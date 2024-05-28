@@ -1,0 +1,22 @@
+databaseChangeLog:
+- changeSet:
+    id: 'init$002'
+    author: Antalex
+    preConditions:
+      - onFail: MARK_RAN
+      - sqlCheck:
+          expectedResult: 0
+          sql: "select count(*) from ${database.defaultSchemaName}.APP_SEQUENCE where SEQUENCE_NAME = 'SEQ_ID'"
+    changes:
+      - insert:
+          tableName: APP_SEQUENCE
+          columns:
+            - column:
+                name: SEQUENCE_NAME
+                value: SEQ_ID
+            - column:
+                name: CACHE_SIZE
+                value: 1000
+            - column:
+                name: MIN_VALUE
+                value: 1

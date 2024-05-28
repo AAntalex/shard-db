@@ -1,0 +1,136 @@
+databaseChangeLog:
+- changeSet:
+    id: 'init$001'
+    author: Antalex
+    changes:
+      - createTable:
+          tableName: APP_SEQUENCE
+          columns:
+          - column:
+              name: SEQUENCE_NAME
+              type: VARCHAR(40)
+              constraints:
+                primaryKey: true
+                nullable: false
+                primaryKeyName: PK_SEQUENCE_NAME
+          - column:
+              name: LAST_VALUE
+              type: bigint
+          - column:
+              name: CACHE_SIZE
+              type: bigint
+          - column:
+              name: MIN_VALUE
+              type: bigint
+          - column:
+              name: MAX_VALUE
+              type: bigint
+          - column:
+              name: CYCLE_FLAG
+              type: boolean
+      - createTable:
+          tableName: APP_DATABASE
+          columns:
+          - column:
+              name: SHARD_ID
+              type: tinyint
+          - column:
+              name: MAIN_SHARD
+              type: boolean
+          - column:
+              name: CLUSTER_ID
+              type: tinyint
+          - column:
+              name: CLUSTER_NAME
+              type: VARCHAR(128)
+          - column:
+              name: DEFAULT_CLUSTER
+              type: boolean
+          - column:
+              name: SEGMENT_NAME
+              type: VARCHAR(128)
+          - column:
+              name: ACCESSIBLE
+              type: boolean
+      - createTable:
+          tableName: APP_TRANSACTION
+          columns:
+          - column:
+              name: UUID
+              type: VARCHAR(40)
+              constraints:
+                primaryKey: true
+                nullable: false
+                primaryKeyName: PK_TRANSACTION_UUID
+          - column:
+              name: EXECUTE_TIME
+              type: timestamp
+          - column:
+              name: ELAPSED_TIME
+              type: bigint
+          - column:
+              name: FAILED
+              type: boolean
+          - column:
+              name: ERROR
+              type: VARCHAR(2000)
+      - createTable:
+          tableName: APP_DML_QUERY
+          columns:
+          - column:
+              name: TRN_UUID
+              type: VARCHAR(40)
+              constraints:
+                foreignKey:
+                  referencedColumnNames: UUID
+                  referencedTableName: APP_TRANSACTION
+                nullable: false
+          - column:
+              name: QUERY_ORDER
+              type: int
+          - column:
+              name: SQL_TEXT
+              type: VARCHAR(2000)
+          - column:
+              name: ROWS_PROCESSED
+              type: int
+      - createTable:
+          tableName: APP_ATTRIBUTE_STORAGE
+          columns:
+          - column:
+              name: ID
+              type: bigint
+              constraints:
+                primaryKey: true
+                nullable: false
+                primaryKeyName: PK_ATTRIBUTE_STORAGE_ID
+          - column:
+              name: SN
+              type: int
+          - column:
+              name: ST
+              type: VARCHAR(40)
+          - column:
+              name: SHARD_MAP
+              type: bigint
+          - column:
+              name: C_ENTITY_ID
+              type: bigint
+          - column:
+              name: C_STORAGE_NAME
+              type: VARCHAR(128)
+          - column:
+              name: C_DATA
+              type: clob
+          - column:
+              name: C_DATA_FORMAT
+              type: VARCHAR(40)
+      - createIndex:
+          columns:
+          - column:
+              name: C_ENTITY_ID
+          - column:
+              name: C_STORAGE_NAME
+          indexName: IDX_ATTRIBUTE_STORAGE_MAIN
+          tableName: APP_ATTRIBUTE_STORAGE
+          unuque: true

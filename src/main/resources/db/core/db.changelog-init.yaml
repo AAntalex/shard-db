@@ -1,0 +1,5 @@
+databaseChangeLog:
+  - include:
+      file: db/core/init/init_tables.yml
+  - include:
+      file: db/core/init/init_data.yml
