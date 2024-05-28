@@ -12,7 +12,7 @@
     </parent>
 
     <groupId>ru.vtb.pmts</groupId>
-    <artifactId>shard-db</artifactId>
+    <artifactId>pmts-db</artifactId>
     <version>1.0-SNAPSHOT</version>
 
     <properties>
