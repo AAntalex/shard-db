@@ -731,7 +731,7 @@ public class ShardDatabaseManagerImpl implements ShardDataBaseManager {
         this.liquibaseEnable = Optional
                 .ofNullable(shardDataBaseConfig.getLiquibase())
                 .map(LiquibaseConfig::getEnabled)
-                .orElse(true);
+                .orElse(false);
     }
 
     private void processThreadPoolConfig() {
@@ -936,7 +936,7 @@ public class ShardDatabaseManagerImpl implements ShardDataBaseManager {
                     database.setDefaultCatalogName(shard.getOwner());
                     database.setDefaultSchemaName(shard.getOwner());
                     new CommandScope(UpdateCommandStep.COMMAND_NAME)
-                            .addArgumentValue(DbUrlConnectionArgumentsCommandStep.DATABASE_ARG, database)
+                            .addArgumentValue("database", database)
                             .addArgumentValue(
                                     UpdateCommandStep.CHANGELOG_FILE_ARG,
                                     changeLog.startsWith(CLASSPATH) ?
