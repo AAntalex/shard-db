@@ -151,18 +151,7 @@ public class ShardDatabaseManagerImpl implements ShardDataBaseManager {
 
     @Override
     public Cluster getCluster(String clusterName) {
-        if (clusterName == null) {
-            throw new ShardDataBaseException("Не указано наименование кластера");
-        }
-        if (ShardUtils.DEFAULT_CLUSTER_NAME.equals(clusterName)) {
-            return defaultCluster;
-        } else {
-            Cluster cluster = clusters.get(clusterName);
-            if (cluster == null) {
-                throw new ShardDataBaseException("Отсутсвует кластер с наименованием " + clusterName);
-            }
-            return cluster;
-        }
+        return Optional.ofNullable(clusterName).map(clusters::get).orElse(defaultCluster);
     }
 
     @Override
@@ -936,7 +925,7 @@ public class ShardDatabaseManagerImpl implements ShardDataBaseManager {
                     database.setDefaultCatalogName(shard.getOwner());
                     database.setDefaultSchemaName(shard.getOwner());
                     new CommandScope(UpdateCommandStep.COMMAND_NAME)
-                            .addArgumentValue("database", database)
+                            .addArgumentValue(DbUrlConnectionArgumentsCommandStep.DATABASE_ARG, database)
                             .addArgumentValue(
                                     UpdateCommandStep.CHANGELOG_FILE_ARG,
                                     changeLog.startsWith(CLASSPATH) ?
