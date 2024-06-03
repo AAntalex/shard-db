@@ -6,6 +6,7 @@ import ru.vtb.pmts.db.annotation.ShardEntity;
 import ru.vtb.pmts.db.domain.abstraction.Domain;
 import ru.vtb.pmts.db.entity.AttributeStorage;
 import ru.vtb.pmts.db.entity.abstraction.ShardInstance;
+import ru.vtb.pmts.db.model.Cluster;
 import ru.vtb.pmts.db.model.DataStorage;
 import ru.vtb.pmts.db.model.enums.DataFormat;
 import ru.vtb.pmts.db.model.enums.MappingType;
@@ -64,6 +65,7 @@ public class DomainClassBuilder {
                     .classPackage(ProcessorUtils.getPackage(classElement.asType().toString()))
                     .entityClass(entityClass)
                     .storage(mainStorage)
+                    .cluster(domainEntity.cluster())
                     .classElement(classElement)
                     .storageMap(storageDtoMap)
                     .chainAccessors(
@@ -269,7 +271,8 @@ public class DomainClassBuilder {
                                             ShardType.class.getCanonicalName(),
                                             ShardDataBaseManager.class.getCanonicalName(),
                                             DataWrapper.class.getCanonicalName(),
-                                            FetchType.class.getCanonicalName()
+                                            FetchType.class.getCanonicalName(),
+                                            Cluster.class.getCanonicalName()
                                     )
                             )
                     )
@@ -282,7 +285,8 @@ public class DomainClassBuilder {
                             "    private DomainEntityManager domainManager;\n\n" +
                             "    private ThreadLocal<Map<Long, Domain>> domains = " +
                             "ThreadLocal.withInitial(HashMap::new);\n" +
-                            "    private final Map<String, DataStorage> storageMap = new HashMap<>();\n\n" +
+                            "    private final Map<String, DataStorage> storageMap = new HashMap<>();\n" +
+                            "    private final Cluster cluster;\n\n" +
                             getConstructorMapperCode(domainClassDto, className) +
                             "\n\n" +
                             "    @Override\n" +
@@ -298,6 +302,7 @@ public class DomainClassBuilder {
                             "    @Override\n" +
                             "    public " + domainClassDto.getTargetClassName() + " newDomain(" +
                             domainClassDto.getEntityClass().getTargetClassName() + " entity) {\n" +
+                            "        entity.setCluster(this.cluster);\n" +
                             "        return new " + domainClassDto.getTargetClassName() +
                             ProcessorUtils.CLASS_INTERCEPT_POSTFIX + "(entity, domainManager);\n" +
                             "    }\n"
@@ -317,6 +322,7 @@ public class DomainClassBuilder {
                 .map(DomainFieldDto::getElement)
                 .filter(element -> ProcessorUtils.isAnnotationPresent(element, Attribute.class))
                 .map(ProcessorUtils::getDeclaredType)
+                .filter(Objects::nonNull)
                 .forEach(type -> {
                     importedTypes.add(type.asElement().toString());
                     if (!type.getTypeArguments().isEmpty()) {
@@ -376,7 +382,16 @@ public class DomainClassBuilder {
                                                         "\")) {\n" +
                                                         "            readFromStorage(\"" +
                                                         field.getStorage().getName() + "\");\n" +
-                                                        "        }\n"
+                                                        "        }\n" +
+                                                        (
+                                                                ProcessorUtils.hasFinalType(field.getElement()) ?
+                                                                        StringUtils.EMPTY :
+                                                                        "        this.setChanges(\"" +
+                                                                                field.getStorage().getName() +
+                                                                                "\");\n"
+                                                        )
+
+
                                 ) +
                                 "        return super." + field.getGetter() + "();\n" +
                                 "    }\n"
@@ -618,11 +633,9 @@ public class DomainClassBuilder {
                 )
                 .map(field ->
                                 "\n                    " + field.getSetter() + "(dataWrapper." +
-                                Optional.ofNullable(
-                                        ProcessorUtils.getClassByName(
-                                                ProcessorUtils
-                                                        .getDeclaredType(field.getElement()).asElement().toString())
-                                        )
+                                Optional.ofNullable(ProcessorUtils.getDeclaredType(field.getElement()))
+                                        .map(DeclaredType::asElement)
+                                        .map(Element::toString).map(ProcessorUtils::getClassByName)
                                         .map(clazz -> {
                                             if  (clazz.isAssignableFrom(Map.class)) {
                                                 return
@@ -721,6 +734,12 @@ public class DomainClassBuilder {
                         "    @Autowired\n" +
                                 "    " + className + " (ShardDataBaseManager dataBaseManager) {",
                         String::concat) +
+                "\n        this.cluster = " +
+                (
+                        classDto.getCluster().isEmpty() ?
+                                "null;" :
+                                "dataBaseManager.getCluster(String.valueOf(\"" + classDto.getCluster() + "\"));"
+                )  +
                 "\n    }";
     }
 }

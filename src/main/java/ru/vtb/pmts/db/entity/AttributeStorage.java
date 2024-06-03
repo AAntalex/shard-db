@@ -15,7 +15,6 @@ public class AttributeStorage extends BaseShardEntity {
     private String storageName;
     private String data;
     private DataFormat dataFormat;
-    private Cluster cluster;
     private ShardType shardType;
     private DataWrapper dataWrapper;
 }

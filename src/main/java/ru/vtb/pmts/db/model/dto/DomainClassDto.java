@@ -15,6 +15,7 @@ public class DomainClassDto {
     private EntityClassDto entityClass;
     private List<DomainFieldDto> fields;
     private StorageDto storage;
+    private String cluster;
     private Element classElement;
     private Map<String, StorageDto> storageMap;
     private Boolean chainAccessors;

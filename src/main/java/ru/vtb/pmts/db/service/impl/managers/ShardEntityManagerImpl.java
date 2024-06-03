@@ -193,6 +193,9 @@ public class ShardEntityManagerImpl implements ShardEntityManager {
             return;
         }
         Cluster cluster = getCluster(entity);
+
+
+
         ShardType shardType = getShardType(entity);
         if (
                 Optional.ofNullable(entity.getStorageContext())

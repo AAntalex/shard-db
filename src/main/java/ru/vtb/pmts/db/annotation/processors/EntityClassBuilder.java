@@ -1250,7 +1250,7 @@ public class EntityClassBuilder {
                 "    }\n\n" +
                 "    @Override\n" +
                 "    public Cluster getCluster(" + entityClassDto.getTargetClassName() + " entity) {\n" +
-                "        return cluster;\n" +
+                "        return Optional.ofNullable(entity).map(ShardInstance::getCluster).orElse(cluster);\n" +
                 "    }";
     }
 

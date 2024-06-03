@@ -3,6 +3,7 @@ package ru.vtb.pmts.db.entity.abstraction;
 import ru.vtb.pmts.db.annotation.ShardEntity;
 import ru.vtb.pmts.db.entity.AttributeStorage;
 import ru.vtb.pmts.db.exception.ShardDataBaseException;
+import ru.vtb.pmts.db.model.Cluster;
 import ru.vtb.pmts.db.model.Shard;
 import ru.vtb.pmts.db.model.StorageContext;
 import ru.vtb.pmts.db.service.impl.SharedEntityTransaction;
@@ -16,6 +17,7 @@ public abstract class BaseShardEntity implements ShardInstance {
     private StorageContext storageContext;
     private List<AttributeStorage> attributeStorage = new ArrayList<>();
     private boolean hasDomain;
+    private Cluster cluster;
 
     public BaseShardEntity () {
         if (this.getClass().isAnnotationPresent(ShardEntity.class)) {
@@ -109,6 +111,16 @@ public abstract class BaseShardEntity implements ShardInstance {
     @Override
     public void setHasDomain(boolean hasDomain) {
         this.hasDomain = hasDomain;
+    }
+
+    @Override
+    public Cluster getCluster() {
+        return cluster;
+    }
+
+    @Override
+    public void setCluster(Cluster cluster) {
+        this.cluster = cluster;
     }
 
     public boolean hasMainShard() {
