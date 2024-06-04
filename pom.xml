@@ -11,8 +11,8 @@
         <relativePath/> <!-- lookup parent from repository -->
     </parent>
 
-    <groupId>ru.vtb.pmts</groupId>
-    <artifactId>multi-db</artifactId>
+    <groupId>com.antalex</groupId>
+    <artifactId>shard-db</artifactId>
     <version>1.0.0</version>
 
     <properties>
