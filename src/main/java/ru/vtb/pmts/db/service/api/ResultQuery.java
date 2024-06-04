@@ -5,6 +5,7 @@ import java.net.URL;
 import java.sql.*;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
+import java.time.OffsetDateTime;
 import java.util.Date;
 
 public interface ResultQuery {
@@ -29,5 +30,6 @@ public interface ResultQuery {
     RowId getRowId(int idx) throws Exception;
     SQLXML getSQLXML(int idx) throws Exception;
     LocalDateTime getLocalDateTime(int idx) throws Exception;
+    OffsetDateTime getOffsetDateTime(int idx) throws Exception;
     LocalDate getLocalDate(int idx) throws Exception;
 }

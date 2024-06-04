@@ -37,6 +37,7 @@ import java.net.URL;
 import java.sql.*;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
+import java.time.OffsetDateTime;
 import java.util.*;
 import java.util.Date;
 import java.util.stream.Collectors;
@@ -1002,6 +1003,9 @@ public class EntityClassBuilder {
             }
             if (clazz.isAssignableFrom(LocalDateTime.class)) {
                 return "result.getLocalDateTime(++index)";
+            }
+            if (clazz.isAssignableFrom(OffsetDateTime.class)) {
+                return "result.getOffsetDateTime(++index)";
             }
             if (clazz.isAssignableFrom(LocalDate.class)) {
                 return "result.getLocalDate(++index)";
