@@ -513,6 +513,11 @@ public class ShardEntityManagerImpl implements ShardEntityManager {
     }
 
     @Override
+    public <T extends ShardInstance> Map<String, String> getFieldMap(Class<T> clazz) {
+        return getEntityRepository(clazz).getFieldMap();
+    }
+
+    @Override
     public List<AttributeStorage> extractAttributeStorage(
             Map<String, DataStorage> storageMap,
             ResultQuery result,

@@ -1,5 +1,6 @@
 package ru.vtb.pmts.db.annotation.processors;
 
+import com.google.common.collect.ImmutableMap;
 import ru.vtb.pmts.db.annotation.Attribute;
 import ru.vtb.pmts.db.annotation.DomainEntity;
 import ru.vtb.pmts.db.annotation.ShardEntity;
@@ -272,17 +273,19 @@ public class DomainClassBuilder {
                                             ShardDataBaseManager.class.getCanonicalName(),
                                             DataWrapper.class.getCanonicalName(),
                                             FetchType.class.getCanonicalName(),
-                                            Cluster.class.getCanonicalName()
+                                            Cluster.class.getCanonicalName(),
+                                            ImmutableMap.class.getCanonicalName()
                                     )
                             )
                     )
             );
             out.println(
                     "@Component\n" +
-                    "public class " + className + " implements DomainEntityMapper<" +
+                            "public class " + className + " implements DomainEntityMapper<" +
                             domainClassDto.getTargetClassName() + ", " +
                             domainClassDto.getEntityClass().getTargetClassName() + "> {\n" +
-                            "    private DomainEntityManager domainManager;\n\n" +
+                            getFieldMapCode(domainClassDto) +
+                            "\n\n    private DomainEntityManager domainManager;\n\n" +
                             "    private ThreadLocal<Map<Long, Domain>> domains = " +
                             "ThreadLocal.withInitial(HashMap::new);\n" +
                             "    private final Map<String, DataStorage> storageMap = new HashMap<>();\n" +
@@ -307,6 +310,8 @@ public class DomainClassBuilder {
                             ProcessorUtils.CLASS_INTERCEPT_POSTFIX + "(entity, domainManager);\n" +
                             "    }\n"
             );
+            out.println();
+            out.println(getFieldMapCode());
             out.println(getMapToEntityCode(domainClassDto));
             out.println();
             out.println(getMapToDomainCode(domainClassDto));
@@ -458,20 +463,20 @@ public class DomainClassBuilder {
                                 !ProcessorUtils.isAnnotationPresentInArgument(field.getElement(), DomainEntity.class)
                 )
                 .map(field ->
-                                        "\n        this." + field.getSetter() + "(" +
-                                        (
-                                                ProcessorUtils.isAnnotationPresentByType(
-                                                        field.getEntityField().getElement(),
-                                                        ShardEntity.class
-                                                ) ?
+                        "\n        this." + field.getSetter() + "(" +
+                                (
+                                        ProcessorUtils.isAnnotationPresentByType(
+                                                field.getEntityField().getElement(),
+                                                ShardEntity.class
+                                        ) ?
 
-                                                        "domainManager.map(" +
-                                                                ProcessorUtils.getTypeField(field.getElement()) +
-                                                                ".class, entity." +
-                                                                field.getEntityField().getGetter() + "()" :
-                                                        "entity." + field.getEntityField().getGetter() + "("
-                                        ) +
-                                        "), false);"
+                                                "domainManager.map(" +
+                                                        ProcessorUtils.getTypeField(field.getElement()) +
+                                                        ".class, entity." +
+                                                        field.getEntityField().getGetter() + "()" :
+                                                "entity." + field.getEntityField().getGetter() + "("
+                                ) +
+                                "), false);"
                 )
                 .reduce(
                         "    private void readEntity() {\n" +
@@ -519,26 +524,26 @@ public class DomainClassBuilder {
                                 Objects.nonNull(field.getGetter())
                 )
                 .map(field ->
-                                ProcessorUtils.isAnnotationPresentInArgument(field.getElement(), DomainEntity.class) ?
-                                        "\n        entity." + field.getEntityField().getSetter() +
-                                                "(domainManager.mapAllToEntities(" +
-                                                ProcessorUtils.getFinalType(field.getElement()) +
-                                                ".class, domain." +  field.getGetter() + "()));" :
-                                        "\n        if (domain.isChanged(" + field.getFieldIndex() + ")) {\n" +
-                                                "            entity." + field.getEntityField().getSetter() +
-                                                (
-                                                        ProcessorUtils.isAnnotationPresentByType(
-                                                                field.getElement(),
-                                                                DomainEntity.class
-                                                        ) ?
-                                                                "(domainManager.map(" +
-                                                                        ProcessorUtils.getFinalType(
-                                                                                field.getElement()
-                                                                        ) +
-                                                                        ".class, domain." + field.getGetter() +
-                                                                        "()));\n" :
-                                                                "(domain." + field.getGetter() + "());\n"
-                                                ) + "        }"
+                        ProcessorUtils.isAnnotationPresentInArgument(field.getElement(), DomainEntity.class) ?
+                                "\n        entity." + field.getEntityField().getSetter() +
+                                        "(domainManager.mapAllToEntities(" +
+                                        ProcessorUtils.getFinalType(field.getElement()) +
+                                        ".class, domain." +  field.getGetter() + "()));" :
+                                "\n        if (domain.isChanged(" + field.getFieldIndex() + ")) {\n" +
+                                        "            entity." + field.getEntityField().getSetter() +
+                                        (
+                                                ProcessorUtils.isAnnotationPresentByType(
+                                                        field.getElement(),
+                                                        DomainEntity.class
+                                                ) ?
+                                                        "(domainManager.map(" +
+                                                                ProcessorUtils.getFinalType(
+                                                                        field.getElement()
+                                                                ) +
+                                                                ".class, domain." + field.getGetter() +
+                                                                "()));\n" :
+                                                        "(domain." + field.getGetter() + "());\n"
+                                        ) + "        }"
                 )
                 .reduce(
                         "    @Override\n" +
@@ -583,7 +588,7 @@ public class DomainClassBuilder {
                                 storageName.equals(field.getStorage().getName())
                 )
                 .map(field ->
-                                "\n                dataWrapper.put(\"" + field.getFieldName() + "\", domain." +
+                        "\n                dataWrapper.put(\"" + field.getFieldName() + "\", domain." +
                                 field.getGetter() + "());"
                 )
                 .reduce(
@@ -632,7 +637,7 @@ public class DomainClassBuilder {
                                 storageName.equals(field.getStorage().getName())
                 )
                 .map(field ->
-                                "\n                    " + field.getSetter() + "(dataWrapper." +
+                        "\n                    " + field.getSetter() + "(dataWrapper." +
                                 Optional.ofNullable(ProcessorUtils.getDeclaredType(field.getElement()))
                                         .map(DeclaredType::asElement)
                                         .map(Element::toString).map(ProcessorUtils::getClassByName)
@@ -741,5 +746,29 @@ public class DomainClassBuilder {
                                 "dataBaseManager.getCluster(String.valueOf(\"" + classDto.getCluster() + "\"));"
                 )  +
                 "\n    }";
+    }
+
+    private static String getFieldMapCode(DomainClassDto classDto) {
+        return classDto.getFields()
+                .stream()
+                .filter(field -> Objects.nonNull(field.getEntityField()))
+                .map(field ->
+                        "\n            .put(\"" + field.getFieldName() + "\", \"" +
+                                field.getEntityField().getColumnName() + "\")"
+                )
+                .reduce(
+                        "    private static final Map<String, String> FIELD_MAP = " +
+                                "ImmutableMap.<String, String>builder()",
+                        String::concat
+                ) + "\n            .build();";
+    }
+
+    private static String getFieldMapCode() {
+        return """
+                    @Override
+                    public Map<String, String> getFieldMap() {
+                        return FIELD_MAP;
+                    }\
+                """;
     }
 }

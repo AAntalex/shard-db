@@ -85,6 +85,7 @@ public interface ShardEntityManager {
             Object... binds);
     <T extends ShardInstance> T extractValues(T entity, ResultQuery result, int index);
     <T extends ShardInstance> T extractValues(Class<T> clazz, ResultQuery result, int index);
+    <T extends ShardInstance> Map<String, String> getFieldMap(Class<T> clazz);
     List<AttributeStorage> extractAttributeStorage(
             Map<String, DataStorage> storageMap,
             ResultQuery result,

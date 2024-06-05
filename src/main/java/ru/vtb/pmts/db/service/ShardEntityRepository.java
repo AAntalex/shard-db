@@ -27,4 +27,5 @@ public interface ShardEntityRepository<T extends ShardInstance> {
     List<T> skipLocked(Integer limit, String condition, Object... binds);
     T extractValues(T entity, ResultQuery result, int index);
     void setEntityManager(ShardEntityManager entityManager);
+    Map<String, String> getFieldMap();
 }

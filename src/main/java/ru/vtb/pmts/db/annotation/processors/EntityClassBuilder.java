@@ -1,5 +1,6 @@
 package ru.vtb.pmts.db.annotation.processors;
 
+import com.google.common.collect.ImmutableMap;
 import ru.vtb.pmts.db.annotation.ParentShard;
 import ru.vtb.pmts.db.annotation.ShardEntity;
 import ru.vtb.pmts.db.entity.AttributeStorage;
@@ -22,6 +23,7 @@ import org.springframework.stereotype.Component;
 import ru.vtb.pmts.db.model.dto.EntityClassDto;
 import ru.vtb.pmts.db.model.dto.EntityFieldDto;
 import ru.vtb.pmts.db.model.dto.IndexDto;
+import ru.vtb.pmts.db.utils.Utils;
 
 import javax.annotation.processing.ProcessingEnvironment;
 import javax.lang.model.element.Element;
@@ -368,7 +370,9 @@ public class EntityClassBuilder {
                                             SerialClob.class.getCanonicalName(),
                                             AttributeStorage.class.getCanonicalName(),
                                             DataStorage.class.getCanonicalName(),
-                                            FetchType.class.getCanonicalName()
+                                            FetchType.class.getCanonicalName(),
+                                            ImmutableMap.class.getCanonicalName(),
+                                            Utils.class.getCanonicalName()
                                     )
                             )
                     )
@@ -421,12 +425,10 @@ public class EntityClassBuilder {
                                 getUniqueColumnsValueCode(entityClassDto) + "L;"
                 );
             }
+            out.println(getColumnListCode(entityClassDto));
+            out.println(getFieldMapCode(entityClassDto));
             out.println();
-            out.println(getColumnsCode(entityClassDto));
             out.println("    private Map<Long, String> updateQueries = new HashMap<>();");
-
-
-            out.println();
             out.println("    private ShardEntityManager entityManager;");
             out.println("    private final Cluster cluster;");
 
@@ -434,6 +436,8 @@ public class EntityClassBuilder {
             out.println(getConstructorCode(entityClassDto, className));
             out.println();
             out.println(getSetEntityManagerCode());
+            out.println();
+            out.println(getFieldMapCode());
             out.println();
             out.println(getNewEntityCode(entityClassDto));
             out.println();
@@ -576,7 +580,7 @@ public class EntityClassBuilder {
                                 (
                                         !isLazyList(field) ?
                                                 "\n        if (!this.isLazy()) {" +
-                                                "\n            this." + field.getSetter() + "(entityManager.findAll(" +
+                                                        "\n            this." + field.getSetter() + "(entityManager.findAll(" +
                                                         ProcessorUtils.getFinalType(field.getElement()) + ".class, " +
                                                         (
                                                                 ProcessorUtils.isAnnotationPresent(
@@ -684,7 +688,7 @@ public class EntityClassBuilder {
                 .reduce(StringUtils.EMPTY, String::concat);
     }
 
-    private static String getColumnsCode(EntityClassDto entityClassDto) {
+    private static String getColumnListCode(EntityClassDto entityClassDto) {
         return entityClassDto.getColumnFields()
                 .stream()
                 .map(field ->
@@ -695,6 +699,19 @@ public class EntityClassBuilder {
                         "    private static final List<String> COLUMNS = Arrays.asList(",
                         String::concat
                 ) + "\n    );";
+    }
+
+    private static String getFieldMapCode(EntityClassDto classDto) {
+        return classDto.getColumnFields()
+                .stream()
+                .map(field ->
+                        "\n            .put(\"" + field.getFieldName() + "\", \"" + field.getColumnName() + "\")"
+                )
+                .reduce(
+                        "    private static final Map<String, String> FIELD_MAP = " +
+                                "ImmutableMap.<String, String>builder()",
+                        String::concat
+                ) + "\n            .build();";
     }
 
     private static String getConstructorCode(EntityClassDto entityClassDto, String className) {
@@ -827,8 +844,9 @@ public class EntityClassBuilder {
                 "                        .createQuery(\n" +
                 "                                " + entityClassDto.getTargetClassName() + ".class, \n" +
                 "                                getSelectQuery(storageMap) +\n" +
-                "                                        Optional.ofNullable(condition).map(it -> \" and \" + it)" +
-                ".orElse(StringUtils.EMPTY),\n" +
+                "                                        Optional.ofNullable(Utils.transform(condition, FIELD_MAP))\n" +
+                "                                                .map(it -> \" and \" + it)\n" +
+                "                                                .orElse(StringUtils.EMPTY),\n" +
                 "                                QueryType.SELECT\n" +
                 "                        )\n" +
                 "                        .bindAll(binds)\n" +
@@ -849,7 +867,7 @@ public class EntityClassBuilder {
                 "                        .createQuery(\n" +
                 "                                " + entityClassDto.getTargetClassName() + ".class,\n" +
                 "                                getSelectQuery(null) +\n" +
-                "                                        Optional.ofNullable(condition)\n" +
+                "                                        Optional.ofNullable(Utils.transform(condition, FIELD_MAP))\n" +
                 "                                                .map(it -> \" and \" + it)\n" +
                 "                                                .orElse(StringUtils.EMPTY) +\n" +
                 "                                \" FOR UPDATE SKIP LOCKED\",\n" +
@@ -880,8 +898,9 @@ public class EntityClassBuilder {
                 "                        .createQuery(\n" +
                 "                                parent,\n" +
                 "                                getSelectQuery(storageMap) +\n" +
-                "                                        Optional.ofNullable(condition).map(it -> \" and \" + it)" +
-                ".orElse(StringUtils.EMPTY),\n" +
+                "                                        Optional.ofNullable(Utils.transform(condition, FIELD_MAP))\n" +
+                "                                                .map(it -> \" and \" + it)\n" +
+                "                                                .orElse(StringUtils.EMPTY),\n" +
                 "                                QueryType.SELECT\n" +
                 "                        )\n" +
                 "                        .bindAll(binds)\n" +
@@ -1028,7 +1047,7 @@ public class EntityClassBuilder {
                                                 "(entityManager.getEntity(" +
                                                         ProcessorUtils.getTypeField(field.getElement()) +
                                                         ".class, result.getLong(++index)), false);\n" :
-                                        "(" + getResultObjectCode(field) + ", false);\n"
+                                                "(" + getResultObjectCode(field) + ", false);\n"
                                 )
                 )
                 .reduce(
@@ -1267,6 +1286,15 @@ public class EntityClassBuilder {
                 """;
     }
 
+    private static String getFieldMapCode() {
+        return """
+                    @Override
+                    public Map<String, String> getFieldMap() {
+                        return FIELD_MAP;
+                    }\
+                """;
+    }
+
     private static String getShardTypeCode(EntityClassDto entityClassDto) {
         return "    @Override\n" +
                 "    public ShardType getShardType() {\n" +
@@ -1286,22 +1314,22 @@ public class EntityClassBuilder {
                         ProcessorUtils.isAnnotationPresent(field.getElement(), ParentShard.class) ||
                                 ProcessorUtils.isAnnotationPresentByType(field.getElement(), ShardEntity.class) ||
                                 ProcessorUtils.isAnnotationPresentInArgument(field.getElement(), ShardEntity.class) ?
-                            "        entityManager." +
-                                    (ProcessorUtils.isAnnotationPresentInArgument(
-                                            field.getElement(),
-                                            ShardEntity.class
-                                    ) ?
-                                            "setAllStorage" :
-                                            "setStorage"
-                                    ) + "(entity." + field.getGetter() + "(), " +
-                                    (
-                                            ProcessorUtils.isAnnotationPresent(field.getElement(), ParentShard.class) &&
-                                                    entityClassDto.getShardType() != ShardType.REPLICABLE ?
-                                                    "entity" :
-                                                    "null"
-                                    ) +
-                                    ");\n" :
-                            ""
+                                "        entityManager." +
+                                        (ProcessorUtils.isAnnotationPresentInArgument(
+                                                field.getElement(),
+                                                ShardEntity.class
+                                        ) ?
+                                                "setAllStorage" :
+                                                "setStorage"
+                                        ) + "(entity." + field.getGetter() + "(), " +
+                                        (
+                                                ProcessorUtils.isAnnotationPresent(field.getElement(), ParentShard.class) &&
+                                                        entityClassDto.getShardType() != ShardType.REPLICABLE ?
+                                                        "entity" :
+                                                        "null"
+                                        ) +
+                                        ");\n" :
+                                ""
                 )
                 .reduce(
                         "    @Override\n" +

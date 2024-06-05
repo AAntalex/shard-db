@@ -15,6 +15,7 @@ import org.springframework.stereotype.Component;
 import ru.vtb.pmts.db.service.DomainEntityManager;
 import ru.vtb.pmts.db.service.DomainEntityMapper;
 import ru.vtb.pmts.db.service.ShardEntityManager;
+import ru.vtb.pmts.db.utils.Utils;
 
 import javax.persistence.EntityTransaction;
 import java.util.*;
@@ -95,7 +96,7 @@ public class DomainEntityManagerImpl implements DomainEntityManager {
                         mapper.entityClass,
                         mapper.domainEntityMapper.getDataStorage(),
                         limit,
-                        condition,
+                        Utils.transform(condition, mapper.domainEntityMapper.getFieldMap()),
                         binds
                 )
         );
@@ -109,10 +110,15 @@ public class DomainEntityManagerImpl implements DomainEntityManager {
                 entityManager.skipLocked(
                         mapper.entityClass,
                         limit,
-                        condition,
+                        Utils.transform(condition, mapper.domainEntityMapper.getFieldMap()),
                         binds
                 )
         );
+    }
+
+    @Override
+    public <T extends Domain> Map<String, String> getFieldMap(Class<T> clazz) {
+        return getMapper(clazz).domainEntityMapper.getFieldMap();
     }
 
     @Override
