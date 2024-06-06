@@ -19,13 +19,23 @@ public class Utils {
     }
 
     public static String transform(String condition, Map<String, String> tokenMap, boolean hasAlias) {
-        int startIdx = condition.indexOf("${");
-        while (startIdx > -1) {
-            int endIdx = condition.indexOf("}", startIdx + 2);
+        int startIdx = 0;
+        int curIdx = condition.indexOf("${");
+        StringBuilder resCondition = new StringBuilder();
+        while (curIdx > -1) {
+            resCondition.append(condition, startIdx, curIdx - 1);
+            int endIdx = condition.indexOf("}", curIdx + 2);
             if (endIdx < 0) {
-                return condition;
+                resCondition.append(condition.substring(curIdx));
+                return resCondition.toString();
             }
-            String token = condition.substring(startIdx + 2, endIdx);
+            startIdx = endIdx + 1;
+            String token = condition.substring(curIdx + 2, endIdx);
+
+
+
+
+
             String alias = StringUtils.EMPTY;
             if (!hasAlias && token.contains(".")) {
                 int aliasIdx = condition.indexOf('.');
@@ -33,6 +43,8 @@ public class Utils {
                 token = token.substring(aliasIdx + 1);
             }
             String newToken = tokenMap.get(token);
+
+
             if (Objects.isNull(newToken)) {
                 throw new IllegalArgumentException(
                         "Для поля \"" + token + "\" не определено соответствие колонки в таблице!"
@@ -44,9 +56,9 @@ public class Utils {
                 );
             }
             condition = condition.replace("${" + alias + token + "}", alias + newToken);
-            startIdx = condition.indexOf("${");
+            curIdx = condition.indexOf("${");
         }
-        return condition;
+        return resCondition.toString();
     }
 
     public static String transform(String condition, Map<String, String> tokenMap) {
