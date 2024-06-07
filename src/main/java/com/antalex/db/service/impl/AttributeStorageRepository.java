@@ -219,7 +219,7 @@ public class AttributeStorageRepository implements ShardEntityRepository<Attribu
                         .createQuery(
                                 AttributeStorage.class, 
                                 SELECT_QUERY +
-                                        Optional.ofNullable(Utils.transform(condition, FIELD_MAP))
+                                        Optional.ofNullable(Utils.transformCondition(condition, FIELD_MAP))
                                                 .map(it -> " and " + it)
                                                 .orElse(StringUtils.EMPTY),
                                 QueryType.SELECT
@@ -241,7 +241,7 @@ public class AttributeStorageRepository implements ShardEntityRepository<Attribu
                         .createQuery(
                                 parent,
                                 SELECT_QUERY +
-                                        Optional.ofNullable(Utils.transform(condition, FIELD_MAP))
+                                        Optional.ofNullable(Utils.transformCondition(condition, FIELD_MAP))
                                                 .map(it -> " and " + it)
                                                 .orElse(StringUtils.EMPTY),
                                 QueryType.SELECT
@@ -262,7 +262,7 @@ public class AttributeStorageRepository implements ShardEntityRepository<Attribu
                         .createQuery(
                                 AttributeStorage.class,
                                 SELECT_QUERY +
-                                        Optional.ofNullable(Utils.transform(condition, FIELD_MAP))
+                                        Optional.ofNullable(Utils.transformCondition(condition, FIELD_MAP))
                                                 .map(it -> " and " + it)
                                                 .orElse(StringUtils.EMPTY) +
                                         " FOR UPDATE OF x0 SKIP LOCKED",

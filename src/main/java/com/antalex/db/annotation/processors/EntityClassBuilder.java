@@ -844,7 +844,8 @@ public class EntityClassBuilder {
                 "                        .createQuery(\n" +
                 "                                " + entityClassDto.getTargetClassName() + ".class, \n" +
                 "                                getSelectQuery(storageMap) +\n" +
-                "                                        Optional.ofNullable(Utils.transform(condition, FIELD_MAP))\n" +
+                "                                        Optional.ofNullable(Utils.transformCondition(condition, " +
+                "FIELD_MAP))\n" +
                 "                                                .map(it -> \" and \" + it)\n" +
                 "                                                .orElse(StringUtils.EMPTY),\n" +
                 "                                QueryType.SELECT\n" +
@@ -867,7 +868,8 @@ public class EntityClassBuilder {
                 "                        .createQuery(\n" +
                 "                                " + entityClassDto.getTargetClassName() + ".class,\n" +
                 "                                getSelectQuery(null) +\n" +
-                "                                        Optional.ofNullable(Utils.transform(condition, FIELD_MAP))\n" +
+                "                                        Optional.ofNullable(Utils.transformCondition(condition, " +
+                "FIELD_MAP))\n" +
                 "                                                .map(it -> \" and \" + it)\n" +
                 "                                                .orElse(StringUtils.EMPTY) +\n" +
                 "                                \" FOR UPDATE SKIP LOCKED\",\n" +
@@ -898,7 +900,8 @@ public class EntityClassBuilder {
                 "                        .createQuery(\n" +
                 "                                parent,\n" +
                 "                                getSelectQuery(storageMap) +\n" +
-                "                                        Optional.ofNullable(Utils.transform(condition, FIELD_MAP))\n" +
+                "                                        Optional.ofNullable(Utils.transformCondition(condition, " +
+                "FIELD_MAP))\n" +
                 "                                                .map(it -> \" and \" + it)\n" +
                 "                                                .orElse(StringUtils.EMPTY),\n" +
                 "                                QueryType.SELECT\n" +

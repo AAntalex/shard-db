@@ -96,7 +96,7 @@ public class DomainEntityManagerImpl implements DomainEntityManager {
                         mapper.entityClass,
                         mapper.domainEntityMapper.getDataStorage(),
                         limit,
-                        Utils.transform(condition, mapper.domainEntityMapper.getFieldMap()),
+                        Utils.transformCondition(condition, mapper.domainEntityMapper.getFieldMap()),
                         binds
                 )
         );
@@ -110,7 +110,7 @@ public class DomainEntityManagerImpl implements DomainEntityManager {
                 entityManager.skipLocked(
                         mapper.entityClass,
                         limit,
-                        Utils.transform(condition, mapper.domainEntityMapper.getFieldMap()),
+                        Utils.transformCondition(condition, mapper.domainEntityMapper.getFieldMap()),
                         binds
                 )
         );
