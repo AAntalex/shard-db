@@ -88,6 +88,20 @@ public class DomainEntityManagerImpl implements DomainEntityManager {
     }
 
     @Override
+    public <T extends Domain> T find(Class<T> clazz, String condition, Object... binds) {
+        Mapper mapper = getMapper(clazz);
+        return map(
+                clazz,
+                entityManager.find(
+                        mapper.entityClass,
+                        mapper.domainEntityMapper.getDataStorage(),
+                        Utils.transformCondition(condition, mapper.domainEntityMapper.getFieldMap()),
+                        binds
+                )
+        );
+    }
+
+    @Override
     public <T extends Domain> List<T> findAll(Class<T> clazz, Integer limit, String condition, Object... binds) {
         Mapper mapper = getMapper(clazz);
         return mapAllToDomains(
@@ -96,7 +110,7 @@ public class DomainEntityManagerImpl implements DomainEntityManager {
                         mapper.entityClass,
                         mapper.domainEntityMapper.getDataStorage(),
                         limit,
-                        Utils.transform(condition, mapper.domainEntityMapper.getFieldMap()),
+                        Utils.transformCondition(condition, mapper.domainEntityMapper.getFieldMap()),
                         binds
                 )
         );
@@ -110,7 +124,7 @@ public class DomainEntityManagerImpl implements DomainEntityManager {
                 entityManager.skipLocked(
                         mapper.entityClass,
                         limit,
-                        Utils.transform(condition, mapper.domainEntityMapper.getFieldMap()),
+                        Utils.transformCondition(condition, mapper.domainEntityMapper.getFieldMap()),
                         binds
                 )
         );

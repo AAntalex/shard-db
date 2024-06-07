@@ -457,6 +457,8 @@ public class EntityClassBuilder {
             out.println();
             out.println(getFindCode(entityClassDto));
             out.println();
+            out.println(getFindOneCode(entityClassDto));
+            out.println();
             out.println(getFindAllCode(entityClassDto));
             out.println();
             out.println(getSkipLockedCode(entityClassDto));
@@ -830,6 +832,39 @@ public class EntityClassBuilder {
                 "    }";
     }
 
+    private static String getFindOneCode(EntityClassDto entityClassDto) {
+        return  "    @Override\n" +
+                "    public " + entityClassDto.getTargetClassName() +
+                " find(Map<String, DataStorage> storageMap, String condition, Object... binds) {\n" +
+                "        try {\n" +
+                "            ResultQuery result = entityManager\n" +
+                "                    .createQuery(\n" +
+                "                            " + entityClassDto.getTargetClassName() + ".class,\n" +
+                "                            getSelectQuery(storageMap) +\n" +
+                "                                    Optional.ofNullable(Utils.transformCondition(condition, " +
+                "FIELD_MAP))\n" +
+                "                                            .map(it -> \" and \" + it)\n" +
+                "                                            .orElse(StringUtils.EMPTY),\n" +
+                "                            QueryType.SELECT\n" +
+                "                    )\n" +
+                "                    .fetchLimit(1)\n" +
+                "                    .bindAll(binds)\n" +
+                "                    .getResult();\n" +
+                "            if (result.next()) {\n" +
+                "                " + entityClassDto.getTargetClassName() +
+                " entity = entityManager.getEntity(" + entityClassDto.getTargetClassName() +
+                ".class, result.getLong(1));\n" +
+                getProcessResultCode(entityClassDto) +
+                "                return entity;\n" +
+                "            } else {\n" +
+                "                return null;\n" +
+                "            }\n" +
+                "        } catch (Exception err) {\n" +
+                "            throw new RuntimeException(err);\n" +
+                "        }\n" +
+                "    }";
+    }
+
     private static String getFindAllCode(EntityClassDto entityClassDto) {
         return  "    @Override\n" +
                 "    public List<" + entityClassDto.getTargetClassName() +
@@ -844,11 +879,12 @@ public class EntityClassBuilder {
                 "                        .createQuery(\n" +
                 "                                " + entityClassDto.getTargetClassName() + ".class, \n" +
                 "                                getSelectQuery(storageMap) +\n" +
-                "                                        Optional.ofNullable(Utils.transform(condition, FIELD_MAP))\n" +
+                "                                        Optional.ofNullable(Utils.transformCondition(condition, FIELD_MAP))\n" +
                 "                                                .map(it -> \" and \" + it)\n" +
                 "                                                .orElse(StringUtils.EMPTY),\n" +
                 "                                QueryType.SELECT\n" +
                 "                        )\n" +
+                "                        .fetchLimit(limit)\n" +
                 "                        .bindAll(binds)\n" +
                 "                        .getResult(),\n" +
                 "                storageMap\n" +
@@ -867,7 +903,7 @@ public class EntityClassBuilder {
                 "                        .createQuery(\n" +
                 "                                " + entityClassDto.getTargetClassName() + ".class,\n" +
                 "                                getSelectQuery(null) +\n" +
-                "                                        Optional.ofNullable(Utils.transform(condition, FIELD_MAP))\n" +
+                "                                        Optional.ofNullable(Utils.transformCondition(condition, FIELD_MAP))\n" +
                 "                                                .map(it -> \" and \" + it)\n" +
                 "                                                .orElse(StringUtils.EMPTY) +\n" +
                 "                                \" FOR UPDATE SKIP LOCKED\",\n" +
@@ -898,7 +934,7 @@ public class EntityClassBuilder {
                 "                        .createQuery(\n" +
                 "                                parent,\n" +
                 "                                getSelectQuery(storageMap) +\n" +
-                "                                        Optional.ofNullable(Utils.transform(condition, FIELD_MAP))\n" +
+                "                                        Optional.ofNullable(Utils.transformCondition(condition, FIELD_MAP))\n" +
                 "                                                .map(it -> \" and \" + it)\n" +
                 "                                                .orElse(StringUtils.EMPTY),\n" +
                 "                                QueryType.SELECT\n" +

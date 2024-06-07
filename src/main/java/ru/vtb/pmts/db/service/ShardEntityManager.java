@@ -62,6 +62,12 @@ public interface ShardEntityManager {
     TransactionalQuery createQuery(Cluster cluster, String query, QueryType queryType);
     <T extends ShardInstance> boolean lock(T entity);
     <T extends ShardInstance> T find(Class<T> clazz, Long id, Map<String, DataStorage> storageMap);
+    <T extends ShardInstance> T find(
+            Class<T> clazz,
+            Map<String, DataStorage> storageMap,
+            String condition,
+            Object... binds
+    );
     <T extends ShardInstance> T find(T entity, Map<String, DataStorage> storageMap);
     AttributeStorage findAttributeStorage(ShardInstance parent, DataStorage storage);
     <T extends ShardInstance> List<T> findAll(
@@ -112,6 +118,10 @@ public interface ShardEntityManager {
 
     default <T extends ShardInstance> T find(Class<T> clazz, Long id) {
         return find(clazz, id, null);
+    }
+
+    default <T extends ShardInstance> T find(Class<T> clazz, String condition, Object... binds) {
+        return find(clazz, null, condition, binds);
     }
 
     default <T extends ShardInstance> T find(T entity) {

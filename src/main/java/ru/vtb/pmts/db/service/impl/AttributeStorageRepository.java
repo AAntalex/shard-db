@@ -179,6 +179,34 @@ public class AttributeStorageRepository implements ShardEntityRepository<Attribu
         return entity;
     }
 
+    @Override
+    public AttributeStorage find(Map<String, DataStorage> storageMap, String condition, Object... binds) {
+        try {
+            ResultQuery result = entityManager
+                    .createQuery(
+                            AttributeStorage.class,
+                            SELECT_QUERY +
+                                    Optional.ofNullable(Utils.transformCondition(condition, FIELD_MAP))
+                                            .map(it -> " and " + it)
+                                            .orElse(StringUtils.EMPTY),
+                            QueryType.SELECT
+                    )
+                    .fetchLimit(1)
+                    .bindAll(binds)
+                    .getResult();
+            if (result.next()) {
+                AttributeStorage entity = entityManager.getEntity(AttributeStorage.class, result.getLong(1));
+                int index = 0;
+                extractValues(entity, result, index);
+                return entity;
+            } else {
+                return null;
+            }
+        } catch (Exception err) {
+            throw new RuntimeException(err);
+        }
+    }
+
     public AttributeStorage find(ShardInstance parent, DataStorage storage) {
         try {
             Cluster cluster =
@@ -219,7 +247,7 @@ public class AttributeStorageRepository implements ShardEntityRepository<Attribu
                         .createQuery(
                                 AttributeStorage.class,
                                 SELECT_QUERY +
-                                        Optional.ofNullable(Utils.transform(condition, FIELD_MAP))
+                                        Optional.ofNullable(Utils.transformCondition(condition, FIELD_MAP))
                                                 .map(it -> " and " + it)
                                                 .orElse(StringUtils.EMPTY),
                                 QueryType.SELECT
@@ -241,7 +269,7 @@ public class AttributeStorageRepository implements ShardEntityRepository<Attribu
                         .createQuery(
                                 parent,
                                 SELECT_QUERY +
-                                        Optional.ofNullable(Utils.transform(condition, FIELD_MAP))
+                                        Optional.ofNullable(Utils.transformCondition(condition, FIELD_MAP))
                                                 .map(it -> " and " + it)
                                                 .orElse(StringUtils.EMPTY),
                                 QueryType.SELECT
@@ -262,7 +290,7 @@ public class AttributeStorageRepository implements ShardEntityRepository<Attribu
                         .createQuery(
                                 AttributeStorage.class,
                                 SELECT_QUERY +
-                                        Optional.ofNullable(Utils.transform(condition, FIELD_MAP))
+                                        Optional.ofNullable(Utils.transformCondition(condition, FIELD_MAP))
                                                 .map(it -> " and " + it)
                                                 .orElse(StringUtils.EMPTY) +
                                         " FOR UPDATE OF x0 SKIP LOCKED",

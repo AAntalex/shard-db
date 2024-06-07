@@ -22,6 +22,7 @@ public interface ShardEntityRepository<T extends ShardInstance> {
     void persist(T entity, boolean delete, boolean onlyChanged);
     void lock(T entity);
     T find(T entity, Map<String, DataStorage> storageMap);
+    T find(Map<String, DataStorage> storageMap, String condition, Object... binds);
     List<T> findAll(Map<String, DataStorage> storageMap, Integer limit, String condition, Object... binds);
     List<T> findAll(ShardInstance parent, Map<String, DataStorage> storageMap, String condition, Object... binds);
     List<T> skipLocked(Integer limit, String condition, Object... binds);
