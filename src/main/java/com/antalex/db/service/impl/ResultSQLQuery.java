@@ -9,12 +9,16 @@ import java.net.URL;
 import java.sql.*;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
+import java.time.OffsetDateTime;
+import java.time.ZoneOffset;
 import java.util.Currency;
 import java.util.Date;
 import java.util.Optional;
 import java.util.UUID;
 
 public class ResultSQLQuery implements ResultQuery {
+    private static final ZoneOffset DEFAULT_TIME_ZONE = OffsetDateTime.now().getOffset();
+
     private final ResultSet result;
     private final Integer fetchLimit;
     private int count;
@@ -156,6 +160,14 @@ public class ResultSQLQuery implements ResultQuery {
     public LocalDateTime getLocalDateTime(int idx) throws SQLException {
         return Optional.ofNullable(result.getTimestamp(idx))
                 .map(Timestamp::toLocalDateTime)
+                .orElse(null);
+    }
+
+    @Override
+    public OffsetDateTime getOffsetDateTime(int idx) throws Exception {
+        return Optional.ofNullable(getLocalDateTime(idx))
+                .map(localDateTime -> OffsetDateTime.of(localDateTime, ZoneOffset.UTC))
+                .map(offsetDateTimeUTC -> offsetDateTimeUTC.atZoneSameInstant(DEFAULT_TIME_ZONE).toOffsetDateTime())
                 .orElse(null);
     }
 

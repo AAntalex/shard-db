@@ -8,6 +8,7 @@ import java.net.URL;
 import java.sql.*;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
+import java.time.OffsetDateTime;
 import java.util.*;
 import java.util.Date;
 
@@ -135,6 +136,11 @@ public class ResultParallelQuery implements ResultQuery {
     @Override
     public LocalDateTime getLocalDateTime(int idx) throws Exception {
         return currentResult.getLocalDateTime(idx);
+    }
+
+    @Override
+    public OffsetDateTime getOffsetDateTime(int idx) throws Exception {
+        return currentResult.getOffsetDateTime(idx);
     }
 
     @Override
