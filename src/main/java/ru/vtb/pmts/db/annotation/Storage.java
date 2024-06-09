@@ -10,7 +10,7 @@ import java.lang.annotation.*;
 @Target({})
 @Retention(RetentionPolicy.RUNTIME)
 public @interface Storage {
-    String value();
+    String value() default "DEFAULT";
     String cluster() default "";
     ShardType shardType() default ShardType.SHARDABLE;
     DataFormat dataFormat() default DataFormat.JSON;

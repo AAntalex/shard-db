@@ -11,6 +11,6 @@ import java.lang.annotation.*;
 public @interface DomainEntity {
     Class<? extends ShardInstance> value();
     String cluster() default StringUtils.EMPTY;
-    Storage storage() default @Storage("<DEFAULT>");
+    Storage storage() default @Storage;
     Storage[] additionalStorage() default {};
 }

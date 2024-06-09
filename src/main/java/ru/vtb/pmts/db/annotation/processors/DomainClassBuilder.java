@@ -57,7 +57,7 @@ public class DomainClassBuilder {
             Map<String, String> getters = ProcessorUtils.getMethodsByPrefix(classElement, "get");
             Map<String, String> setters = ProcessorUtils.getMethodsByPrefix(classElement, "set");
 
-            StorageDto mainStorage = getMainStorage(elementName, domainEntity);
+            StorageDto mainStorage =  getStorageDto(domainEntity.storage());
             Map<String, StorageDto> storageDtoMap = getStorageMap(mainStorage, domainEntity);
 
             DomainClassDto domainClassDto = DomainClassDto
@@ -124,19 +124,11 @@ public class DomainClassBuilder {
                 .build();
     }
 
-    private static StorageDto getMainStorage(String elementName, DomainEntity domainEntity) {
-        StorageDto storageDto = getStorageDto(domainEntity.storage());
-        if ("<DEFAULT>".equals(storageDto.getName())) {
-            storageDto.setName(elementName);
-        }
-        return storageDto;
-    }
-
     private static Map<String, StorageDto> getStorageMap(StorageDto mainStorage, DomainEntity domainEntity) {
         Map<String, StorageDto> storageDtoMap = new HashMap<>();
         storageDtoMap.put(mainStorage.getName(), mainStorage);
         for (Storage storage : domainEntity.additionalStorage()) {
-            storageDtoMap.put(storage.value(), getStorageDto(storage));
+            storageDtoMap.putIfAbsent(storage.value(), getStorageDto(storage));
         }
         return storageDtoMap;
     }

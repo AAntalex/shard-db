@@ -5,7 +5,6 @@ import ru.vtb.pmts.db.model.Shard;
 public class ShardUtils {
     public static final int MAX_SHARDS = 63;
     public static final int MAX_CLUSTERS = 100;
-    public static final String DEFAULT_CLUSTER_NAME = "DEFAULT";
     private static final String DEFAULT_OWNER_PREFIX = "$$$";
 
     public static String transformSQL(String sql, Shard shard) {
