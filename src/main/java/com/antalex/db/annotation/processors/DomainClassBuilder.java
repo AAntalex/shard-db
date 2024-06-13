@@ -388,7 +388,7 @@ public class DomainClassBuilder {
                                                                                 field.getStorage().getName() +
                                                                                 "\", \"" + field.getFieldName() +
                                                                                 "\", super." + field.getGetter() +
-                                                                                ", false);\n"
+                                                                                "(), false);\n"
                                                         )
 
 
@@ -405,6 +405,10 @@ public class DomainClassBuilder {
                 .filter(it ->
                         ProcessorUtils.isAnnotationPresent(it.getElement(), Attribute.class) &&
                                 Objects.nonNull(it.getSetter()) &&
+                                (
+                                        Objects.nonNull(it.getEntityField()) ||
+                                                Objects.nonNull(it.getStorage())
+                                ) &&
                                 !ProcessorUtils.isAnnotationPresentInArgument(it.getElement(), DomainEntity.class)
                 )
                 .map(field ->
@@ -432,18 +436,16 @@ public class DomainClassBuilder {
                                                 field.getFieldIndex() :
                                                 "\"" + field.getStorage().getName() + "\""
                                 ) + ");\n" +
-
-
                                 (
-                                        ProcessorUtils.hasFinalType(field.getElement()) ?
+                                        Objects.isNull(field.getStorage()) ||
+                                                ProcessorUtils.hasFinalType(field.getElement()) ?
                                                 StringUtils.EMPTY :
                                                 "            this.objectToControl(\"" +
                                                         field.getStorage().getName() +
                                                         "\", \"" + field.getFieldName() +
                                                         "\", super." + field.getGetter() +
-                                                        ", true);\n"
+                                                        "(), true);\n"
                                 ) +
-
                                 "        }\n" +
                                 "        " + (classDto.getChainAccessors() ? "return " : StringUtils.EMPTY) +
                                 "super." + field.getSetter() + "(value);\n" +
