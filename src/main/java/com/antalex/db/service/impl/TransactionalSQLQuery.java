@@ -8,6 +8,8 @@ import java.net.URL;
 import java.sql.*;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
+import java.time.OffsetDateTime;
+import java.time.ZoneOffset;
 import java.util.Currency;
 import java.util.Date;
 import java.util.Optional;
@@ -55,6 +57,13 @@ public class TransactionalSQLQuery extends AbstractTransactionalQuery {
         }
         if (o instanceof LocalDate) {
             preparedStatement.setDate(idx, java.sql.Date.valueOf((LocalDate) o));
+            return;
+        }
+        if (o instanceof OffsetDateTime) {
+            preparedStatement.setTimestamp(
+                    idx,
+                    Timestamp.valueOf(((OffsetDateTime) o).atZoneSameInstant(ZoneOffset.UTC).toLocalDateTime())
+            );
             return;
         }
         if (o instanceof Enum) {

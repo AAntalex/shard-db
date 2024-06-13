@@ -35,4 +35,9 @@ public class DomainEntityMapperImpl<T extends Domain, M extends ShardInstance> i
     public Map<String, DataStorage> getDataStorage() {
         return null;
     }
+
+    @Override
+    public Map<String, String> getFieldMap() {
+        return null;
+    }
 }

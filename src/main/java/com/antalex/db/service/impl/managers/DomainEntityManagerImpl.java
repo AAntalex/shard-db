@@ -15,6 +15,7 @@ import org.springframework.core.GenericTypeResolver;
 import org.springframework.stereotype.Component;
 import com.antalex.db.service.DomainEntityMapper;
 import com.antalex.db.service.ShardEntityManager;
+import com.antalex.db.utils.Utils;
 
 import javax.persistence.EntityTransaction;
 import java.util.*;
@@ -87,6 +88,20 @@ public class DomainEntityManagerImpl implements DomainEntityManager {
     }
 
     @Override
+    public <T extends Domain> T find(Class<T> clazz, String condition, Object... binds) {
+        Mapper mapper = getMapper(clazz);
+        return map(
+                clazz,
+                entityManager.find(
+                        mapper.entityClass,
+                        mapper.domainEntityMapper.getDataStorage(),
+                        Utils.transformCondition(condition, mapper.domainEntityMapper.getFieldMap()),
+                        binds
+                )
+        );
+    }
+
+    @Override
     public <T extends Domain> List<T> findAll(Class<T> clazz, Integer limit, String condition, Object... binds) {
         Mapper mapper = getMapper(clazz);
         return mapAllToDomains(
@@ -95,7 +110,7 @@ public class DomainEntityManagerImpl implements DomainEntityManager {
                         mapper.entityClass,
                         mapper.domainEntityMapper.getDataStorage(),
                         limit,
-                        condition,
+                        Utils.transformCondition(condition, mapper.domainEntityMapper.getFieldMap()),
                         binds
                 )
         );
@@ -109,10 +124,15 @@ public class DomainEntityManagerImpl implements DomainEntityManager {
                 entityManager.skipLocked(
                         mapper.entityClass,
                         limit,
-                        condition,
+                        Utils.transformCondition(condition, mapper.domainEntityMapper.getFieldMap()),
                         binds
                 )
         );
+    }
+
+    @Override
+    public <T extends Domain> Map<String, String> getFieldMap(Class<T> clazz) {
+        return getMapper(clazz).domainEntityMapper.getFieldMap();
     }
 
     @Override

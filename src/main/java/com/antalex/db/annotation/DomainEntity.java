@@ -1,6 +1,7 @@
 package com.antalex.db.annotation;
 
 import com.antalex.db.entity.abstraction.ShardInstance;
+import org.apache.commons.lang3.StringUtils;
 
 import java.lang.annotation.*;
 
@@ -9,6 +10,7 @@ import java.lang.annotation.*;
 @Retention(RetentionPolicy.RUNTIME)
 public @interface DomainEntity {
     Class<? extends ShardInstance> value();
-    Storage storage() default @Storage("<DEFAULT>");
+    String cluster() default StringUtils.EMPTY;
+    Storage storage() default @Storage;
     Storage[] additionalStorage() default {};
 }

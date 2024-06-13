@@ -7,6 +7,7 @@ import com.antalex.db.model.enums.QueryStrategy;
 import com.antalex.db.model.enums.QueryType;
 import com.antalex.db.model.enums.ShardType;
 import com.antalex.db.service.ShardEntityRepository;
+import com.google.common.collect.ImmutableMap;
 import com.antalex.db.annotation.ParentShard;
 import com.antalex.db.annotation.ShardEntity;
 import com.antalex.db.entity.AttributeStorage;
@@ -22,6 +23,7 @@ import org.apache.commons.lang3.StringUtils;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Component;
 import com.antalex.db.model.dto.IndexDto;
+import com.antalex.db.utils.Utils;
 
 import javax.annotation.processing.ProcessingEnvironment;
 import javax.lang.model.element.Element;
@@ -37,6 +39,7 @@ import java.net.URL;
 import java.sql.*;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
+import java.time.OffsetDateTime;
 import java.util.*;
 import java.util.Date;
 import java.util.stream.Collectors;
@@ -367,7 +370,9 @@ public class EntityClassBuilder {
                                             SerialClob.class.getCanonicalName(),
                                             AttributeStorage.class.getCanonicalName(),
                                             DataStorage.class.getCanonicalName(),
-                                            FetchType.class.getCanonicalName()
+                                            FetchType.class.getCanonicalName(),
+                                            ImmutableMap.class.getCanonicalName(),
+                                            Utils.class.getCanonicalName()
                                     )
                             )
                     )
@@ -420,12 +425,10 @@ public class EntityClassBuilder {
                                 getUniqueColumnsValueCode(entityClassDto) + "L;"
                 );
             }
+            out.println(getColumnListCode(entityClassDto));
+            out.println(getFieldMapCode(entityClassDto));
             out.println();
-            out.println(getColumnsCode(entityClassDto));
             out.println("    private Map<Long, String> updateQueries = new HashMap<>();");
-
-
-            out.println();
             out.println("    private ShardEntityManager entityManager;");
             out.println("    private final Cluster cluster;");
 
@@ -433,6 +436,8 @@ public class EntityClassBuilder {
             out.println(getConstructorCode(entityClassDto, className));
             out.println();
             out.println(getSetEntityManagerCode());
+            out.println();
+            out.println(getFieldMapCode());
             out.println();
             out.println(getNewEntityCode(entityClassDto));
             out.println();
@@ -451,6 +456,8 @@ public class EntityClassBuilder {
             out.println(getExtractValuesCode(entityClassDto));
             out.println();
             out.println(getFindCode(entityClassDto));
+            out.println();
+            out.println(getFindOneCode(entityClassDto));
             out.println();
             out.println(getFindAllCode(entityClassDto));
             out.println();
@@ -575,7 +582,7 @@ public class EntityClassBuilder {
                                 (
                                         !isLazyList(field) ?
                                                 "\n        if (!this.isLazy()) {" +
-                                                "\n            this." + field.getSetter() + "(entityManager.findAll(" +
+                                                        "\n            this." + field.getSetter() + "(entityManager.findAll(" +
                                                         ProcessorUtils.getFinalType(field.getElement()) + ".class, " +
                                                         (
                                                                 ProcessorUtils.isAnnotationPresent(
@@ -683,7 +690,7 @@ public class EntityClassBuilder {
                 .reduce(StringUtils.EMPTY, String::concat);
     }
 
-    private static String getColumnsCode(EntityClassDto entityClassDto) {
+    private static String getColumnListCode(EntityClassDto entityClassDto) {
         return entityClassDto.getColumnFields()
                 .stream()
                 .map(field ->
@@ -694,6 +701,19 @@ public class EntityClassBuilder {
                         "    private static final List<String> COLUMNS = Arrays.asList(",
                         String::concat
                 ) + "\n    );";
+    }
+
+    private static String getFieldMapCode(EntityClassDto classDto) {
+        return classDto.getColumnFields()
+                .stream()
+                .map(field ->
+                        "\n            .put(\"" + field.getFieldName() + "\", \"" + field.getColumnName() + "\")"
+                )
+                .reduce(
+                        "    private static final Map<String, String> FIELD_MAP = " +
+                                "ImmutableMap.<String, String>builder()",
+                        String::concat
+                ) + "\n            .build();";
     }
 
     private static String getConstructorCode(EntityClassDto entityClassDto, String className) {
@@ -812,6 +832,39 @@ public class EntityClassBuilder {
                 "    }";
     }
 
+    private static String getFindOneCode(EntityClassDto entityClassDto) {
+        return  "    @Override\n" +
+                "    public " + entityClassDto.getTargetClassName() +
+                " find(Map<String, DataStorage> storageMap, String condition, Object... binds) {\n" +
+                "        try {\n" +
+                "            ResultQuery result = entityManager\n" +
+                "                    .createQuery(\n" +
+                "                            " + entityClassDto.getTargetClassName() + ".class,\n" +
+                "                            getSelectQuery(storageMap) +\n" +
+                "                                    Optional.ofNullable(Utils.transformCondition(condition, " +
+                "FIELD_MAP))\n" +
+                "                                            .map(it -> \" and \" + it)\n" +
+                "                                            .orElse(StringUtils.EMPTY),\n" +
+                "                            QueryType.SELECT\n" +
+                "                    )\n" +
+                "                    .fetchLimit(1)\n" +
+                "                    .bindAll(binds)\n" +
+                "                    .getResult();\n" +
+                "            if (result.next()) {\n" +
+                "                " + entityClassDto.getTargetClassName() +
+                " entity = entityManager.getEntity(" + entityClassDto.getTargetClassName() +
+                ".class, result.getLong(1));\n" +
+                getProcessResultCode(entityClassDto) +
+                "                return entity;\n" +
+                "            } else {\n" +
+                "                return null;\n" +
+                "            }\n" +
+                "        } catch (Exception err) {\n" +
+                "            throw new RuntimeException(err);\n" +
+                "        }\n" +
+                "    }";
+    }
+
     private static String getFindAllCode(EntityClassDto entityClassDto) {
         return  "    @Override\n" +
                 "    public List<" + entityClassDto.getTargetClassName() +
@@ -826,10 +879,12 @@ public class EntityClassBuilder {
                 "                        .createQuery(\n" +
                 "                                " + entityClassDto.getTargetClassName() + ".class, \n" +
                 "                                getSelectQuery(storageMap) +\n" +
-                "                                        Optional.ofNullable(condition).map(it -> \" and \" + it)" +
-                ".orElse(StringUtils.EMPTY),\n" +
+                "                                        Optional.ofNullable(Utils.transformCondition(condition, FIELD_MAP))\n" +
+                "                                                .map(it -> \" and \" + it)\n" +
+                "                                                .orElse(StringUtils.EMPTY),\n" +
                 "                                QueryType.SELECT\n" +
                 "                        )\n" +
+                "                        .fetchLimit(limit)\n" +
                 "                        .bindAll(binds)\n" +
                 "                        .getResult(),\n" +
                 "                storageMap\n" +
@@ -848,7 +903,7 @@ public class EntityClassBuilder {
                 "                        .createQuery(\n" +
                 "                                " + entityClassDto.getTargetClassName() + ".class,\n" +
                 "                                getSelectQuery(null) +\n" +
-                "                                        Optional.ofNullable(condition)\n" +
+                "                                        Optional.ofNullable(Utils.transformCondition(condition, FIELD_MAP))\n" +
                 "                                                .map(it -> \" and \" + it)\n" +
                 "                                                .orElse(StringUtils.EMPTY) +\n" +
                 "                                \" FOR UPDATE SKIP LOCKED\",\n" +
@@ -879,8 +934,9 @@ public class EntityClassBuilder {
                 "                        .createQuery(\n" +
                 "                                parent,\n" +
                 "                                getSelectQuery(storageMap) +\n" +
-                "                                        Optional.ofNullable(condition).map(it -> \" and \" + it)" +
-                ".orElse(StringUtils.EMPTY),\n" +
+                "                                        Optional.ofNullable(Utils.transformCondition(condition, FIELD_MAP))\n" +
+                "                                                .map(it -> \" and \" + it)\n" +
+                "                                                .orElse(StringUtils.EMPTY),\n" +
                 "                                QueryType.SELECT\n" +
                 "                        )\n" +
                 "                        .bindAll(binds)\n" +
@@ -1003,6 +1059,9 @@ public class EntityClassBuilder {
             if (clazz.isAssignableFrom(LocalDateTime.class)) {
                 return "result.getLocalDateTime(++index)";
             }
+            if (clazz.isAssignableFrom(OffsetDateTime.class)) {
+                return "result.getOffsetDateTime(++index)";
+            }
             if (clazz.isAssignableFrom(LocalDate.class)) {
                 return "result.getLocalDate(++index)";
             }
@@ -1024,7 +1083,7 @@ public class EntityClassBuilder {
                                                 "(entityManager.getEntity(" +
                                                         ProcessorUtils.getTypeField(field.getElement()) +
                                                         ".class, result.getLong(++index)), false);\n" :
-                                        "(" + getResultObjectCode(field) + ", false);\n"
+                                                "(" + getResultObjectCode(field) + ", false);\n"
                                 )
                 )
                 .reduce(
@@ -1250,7 +1309,7 @@ public class EntityClassBuilder {
                 "    }\n\n" +
                 "    @Override\n" +
                 "    public Cluster getCluster(" + entityClassDto.getTargetClassName() + " entity) {\n" +
-                "        return cluster;\n" +
+                "        return Optional.ofNullable(entity).map(ShardInstance::getCluster).orElse(cluster);\n" +
                 "    }";
     }
 
@@ -1259,6 +1318,15 @@ public class EntityClassBuilder {
                     @Override
                     public void setEntityManager(ShardEntityManager entityManager) {
                         this.entityManager = entityManager;
+                    }\
+                """;
+    }
+
+    private static String getFieldMapCode() {
+        return """
+                    @Override
+                    public Map<String, String> getFieldMap() {
+                        return FIELD_MAP;
                     }\
                 """;
     }
@@ -1282,22 +1350,22 @@ public class EntityClassBuilder {
                         ProcessorUtils.isAnnotationPresent(field.getElement(), ParentShard.class) ||
                                 ProcessorUtils.isAnnotationPresentByType(field.getElement(), ShardEntity.class) ||
                                 ProcessorUtils.isAnnotationPresentInArgument(field.getElement(), ShardEntity.class) ?
-                            "        entityManager." +
-                                    (ProcessorUtils.isAnnotationPresentInArgument(
-                                            field.getElement(),
-                                            ShardEntity.class
-                                    ) ?
-                                            "setAllStorage" :
-                                            "setStorage"
-                                    ) + "(entity." + field.getGetter() + "(), " +
-                                    (
-                                            ProcessorUtils.isAnnotationPresent(field.getElement(), ParentShard.class) &&
-                                                    entityClassDto.getShardType() != ShardType.REPLICABLE ?
-                                                    "entity" :
-                                                    "null"
-                                    ) +
-                                    ");\n" :
-                            ""
+                                "        entityManager." +
+                                        (ProcessorUtils.isAnnotationPresentInArgument(
+                                                field.getElement(),
+                                                ShardEntity.class
+                                        ) ?
+                                                "setAllStorage" :
+                                                "setStorage"
+                                        ) + "(entity." + field.getGetter() + "(), " +
+                                        (
+                                                ProcessorUtils.isAnnotationPresent(field.getElement(), ParentShard.class) &&
+                                                        entityClassDto.getShardType() != ShardType.REPLICABLE ?
+                                                        "entity" :
+                                                        "null"
+                                        ) +
+                                        ");\n" :
+                                ""
                 )
                 .reduce(
                         "    @Override\n" +

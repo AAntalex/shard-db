@@ -151,18 +151,7 @@ public class ShardDatabaseManagerImpl implements ShardDataBaseManager {
 
     @Override
     public Cluster getCluster(String clusterName) {
-        if (clusterName == null) {
-            throw new ShardDataBaseException("Не указано наименование кластера");
-        }
-        if (ShardUtils.DEFAULT_CLUSTER_NAME.equals(clusterName)) {
-            return defaultCluster;
-        } else {
-            Cluster cluster = clusters.get(clusterName);
-            if (cluster == null) {
-                throw new ShardDataBaseException("Отсутсвует кластер с наименованием " + clusterName);
-            }
-            return cluster;
-        }
+        return Optional.ofNullable(clusterName).map(clusters::get).orElse(defaultCluster);
     }
 
     @Override
@@ -731,7 +720,7 @@ public class ShardDatabaseManagerImpl implements ShardDataBaseManager {
         this.liquibaseEnable = Optional
                 .ofNullable(shardDataBaseConfig.getLiquibase())
                 .map(LiquibaseConfig::getEnabled)
-                .orElse(true);
+                .orElse(false);
     }
 
     private void processThreadPoolConfig() {

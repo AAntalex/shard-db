@@ -193,6 +193,9 @@ public class ShardEntityManagerImpl implements ShardEntityManager {
             return;
         }
         Cluster cluster = getCluster(entity);
+
+
+
         ShardType shardType = getShardType(entity);
         if (
                 Optional.ofNullable(entity.getStorageContext())
@@ -459,6 +462,17 @@ public class ShardEntityManagerImpl implements ShardEntityManager {
     }
 
     @Override
+    public <T extends ShardInstance> T find(
+            Class<T> clazz,
+            Map<String, DataStorage> storageMap,
+            String condition,
+            Object... binds)
+    {
+        ShardEntityRepository<T> repository = getEntityRepository(clazz);
+        return repository.find(storageMap, condition, binds);
+    }
+
+    @Override
     public <T extends ShardInstance> List<T> findAll(
             Class<T> clazz,
             Map<String, DataStorage> storageMap,
@@ -507,6 +521,11 @@ public class ShardEntityManagerImpl implements ShardEntityManager {
     public <T extends ShardInstance> T extractValues(Class<T> clazz, ResultQuery result, int index) {
         ShardEntityRepository<T> repository = getEntityRepository(clazz);
         return repository.extractValues(null, result, index);
+    }
+
+    @Override
+    public <T extends ShardInstance> Map<String, String> getFieldMap(Class<T> clazz) {
+        return getEntityRepository(clazz).getFieldMap();
     }
 
     @Override

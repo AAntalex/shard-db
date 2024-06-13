@@ -1,6 +1,5 @@
 package com.antalex.db.entity;
 
-import com.antalex.db.model.Cluster;
 import com.antalex.db.model.enums.DataFormat;
 import com.antalex.db.model.enums.ShardType;
 import lombok.EqualsAndHashCode;
@@ -15,7 +14,6 @@ public class AttributeStorage extends BaseShardEntity {
     private String storageName;
     private String data;
     private DataFormat dataFormat;
-    private Cluster cluster;
     private ShardType shardType;
     private DataWrapper dataWrapper;
 }
