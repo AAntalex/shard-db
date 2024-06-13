@@ -19,6 +19,9 @@ public class Utils {
     }
 
     public static String transformCondition(String condition, Map<String, String> tokenMap) {
+        if (Objects.isNull(condition)) {
+            return null;
+        }
         int startIdx = 0;
         int curIdx = condition.indexOf("${");
 
