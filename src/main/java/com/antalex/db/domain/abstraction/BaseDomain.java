@@ -76,6 +76,9 @@ public abstract class BaseDomain implements Domain {
     }
 
     public void objectToControl(String storageName, String attribute, Object o, boolean replace) {
+        if (o == null) {
+            return;
+        }
         Map<String, ControlledObject> controlledObjectMap = controlledObjects.get(storageName);
         if (Objects.isNull(controlledObjectMap)) {
             controlledObjectMap = new HashMap<>();
