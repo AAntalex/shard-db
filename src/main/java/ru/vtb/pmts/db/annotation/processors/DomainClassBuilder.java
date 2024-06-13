@@ -300,10 +300,11 @@ public class DomainClassBuilder {
                             "        entity.setCluster(this.cluster);\n" +
                             "        return new " + domainClassDto.getTargetClassName() +
                             ProcessorUtils.CLASS_INTERCEPT_POSTFIX + "(entity, domainManager);\n" +
-                            "    }\n"
+                            "    }"
             );
             out.println();
             out.println(getFieldMapCode());
+            out.println();
             out.println(getMapToEntityCode(domainClassDto));
             out.println();
             out.println(getMapToDomainCode(domainClassDto));
@@ -383,9 +384,11 @@ public class DomainClassBuilder {
                                                         (
                                                                 ProcessorUtils.hasFinalType(field.getElement()) ?
                                                                         StringUtils.EMPTY :
-                                                                        "        this.setChanges(\"" +
+                                                                        "        this.objectToControl(\"" +
                                                                                 field.getStorage().getName() +
-                                                                                "\");\n"
+                                                                                "\", \"" + field.getFieldName() +
+                                                                                "\", super." + field.getGetter() +
+                                                                                ", false);\n"
                                                         )
 
 
@@ -429,6 +432,18 @@ public class DomainClassBuilder {
                                                 field.getFieldIndex() :
                                                 "\"" + field.getStorage().getName() + "\""
                                 ) + ");\n" +
+
+
+                                (
+                                        ProcessorUtils.hasFinalType(field.getElement()) ?
+                                                StringUtils.EMPTY :
+                                                "            this.objectToControl(\"" +
+                                                        field.getStorage().getName() +
+                                                        "\", \"" + field.getFieldName() +
+                                                        "\", super." + field.getGetter() +
+                                                        ", true);\n"
+                                ) +
+
                                 "        }\n" +
                                 "        " + (classDto.getChainAccessors() ? "return " : StringUtils.EMPTY) +
                                 "super." + field.getSetter() + "(value);\n" +

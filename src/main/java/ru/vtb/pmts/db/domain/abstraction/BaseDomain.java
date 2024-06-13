@@ -1,15 +1,14 @@
 package ru.vtb.pmts.db.domain.abstraction;
 
+import lombok.AllArgsConstructor;
+import lombok.Data;
 import ru.vtb.pmts.db.annotation.DomainEntity;
 import ru.vtb.pmts.db.entity.AttributeStorage;
 import ru.vtb.pmts.db.entity.abstraction.ShardInstance;
 import ru.vtb.pmts.db.exception.ShardDataBaseException;
 import ru.vtb.pmts.db.utils.Utils;
 
-import java.util.HashMap;
-import java.util.Map;
-import java.util.Objects;
-import java.util.Optional;
+import java.util.*;
 
 public abstract class BaseDomain implements Domain {
     protected ShardInstance entity;
@@ -17,6 +16,7 @@ public abstract class BaseDomain implements Domain {
     private Long changes;
     private final Map<String, Boolean> lazyStore = new HashMap<>();
     private final Map<String, Boolean> changedStore = new HashMap<>();
+    private final Map<String, Map<String, ControlledObject>> controlledObjects = new HashMap<>();
     private final Map<String, AttributeStorage> storage = new HashMap<>();
 
     public BaseDomain () {
@@ -64,11 +64,26 @@ public abstract class BaseDomain implements Domain {
     @Override
     public void setLazy(String storageName, boolean lazy) {
         lazyStore.put(storageName, lazy);
+        if (lazy) {
+            changedStore.remove(storageName);
+            controlledObjects.remove(storageName);
+        }
     }
 
     @Override
     public void setStorageChanged() {
         storage.keySet().forEach(k -> changedStore.put(k, true));
+    }
+
+    public void objectToControl(String storageName, String attribute, Object o, boolean replace) {
+        Map<String, ControlledObject> controlledObjectMap = controlledObjects.get(storageName);
+        if (Objects.isNull(controlledObjectMap)) {
+            controlledObjectMap = new HashMap<>();
+            controlledObjects.put(storageName, controlledObjectMap);
+        }
+        if (replace || !controlledObjectMap.containsKey(attribute)) {
+            controlledObjectMap.put(attribute, new ControlledObject(o.hashCode(), o));
+        }
     }
 
     public void setChanges(int index) {
@@ -84,7 +99,12 @@ public abstract class BaseDomain implements Domain {
     }
 
     public Boolean isChanged(String storageName) {
-        return Optional.ofNullable(changedStore.get(storageName)).orElse(false);
+        return Optional.ofNullable(changedStore.get(storageName)).orElse(false) ||
+                Optional.ofNullable(controlledObjects.get(storageName))
+                        .map(Map::values)
+                        .map(Collection::stream)
+                        .map(it -> it.anyMatch(o -> o.getHashCode() != o.getObject().hashCode()))
+                        .orElse(false);
     }
 
     public Boolean isChanged() {
@@ -97,5 +117,18 @@ public abstract class BaseDomain implements Domain {
 
     public void dropChanges(String storageName) {
         this.changedStore.put(storageName, false);
+        Map<String, ControlledObject> controlledObjectMap = controlledObjects.get(storageName);
+        if (Objects.nonNull(controlledObjectMap)) {
+            controlledObjectMap
+                    .values()
+                    .forEach(o -> o.setHashCode(o.getObject().hashCode()));
+        }
+    }
+
+    @Data
+    @AllArgsConstructor
+    private static class ControlledObject {
+        private int hashCode;
+        private Object object;
     }
 }
