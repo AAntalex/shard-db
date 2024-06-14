@@ -189,7 +189,7 @@ public class ShardEntityManagerImpl implements ShardEntityManager {
 
     @Override
     public <T extends ShardInstance> void setStorage(T entity, ShardInstance parent, boolean force) {
-        if (entity == null) {
+        if (entity == null || entity.isLazy()) {
             return;
         }
         Cluster cluster = getCluster(entity);
@@ -304,7 +304,7 @@ public class ShardEntityManagerImpl implements ShardEntityManager {
 
     @Override
     public <T extends ShardInstance> void generateId(T entity, boolean force) {
-        if (entity == null) {
+        if (entity == null || entity.isLazy()) {
             return;
         }
         if (Objects.isNull(entity.getId())) {

@@ -359,7 +359,15 @@ public class DomainClassBuilder {
                                                                 field.getElement(),
                                                                 DomainEntity.class
                                                         ) ?
-                                                                "        if (" + field.getFieldName() + "Lazy) {\n" +
+                                                                "        return " + field.getGetter() + "(true);\n" +
+                                                                        "    }\n" +
+                                                                        "    public " +
+                                                                        ProcessorUtils.getTypeField(
+                                                                                field.getElement()
+                                                                        ) + " " + field.getGetter() +
+                                                                        "(boolean readLazy) {\n" +
+                                                                        "        if (readLazy && " +
+                                                                        field.getFieldName() + "Lazy) {\n" +
                                                                         "            this." + field.getSetter() +
                                                                         "(domainManager.mapAllToDomains(" +
                                                                         ProcessorUtils.getFinalType(
@@ -537,7 +545,9 @@ public class DomainClassBuilder {
                                 "\n        entity." + field.getEntityField().getSetter() +
                                         "(domainManager.mapAllToEntities(" +
                                         ProcessorUtils.getFinalType(field.getElement()) +
-                                        ".class, domain." +  field.getGetter() + "()));" :
+                                        ".class, ((" + classDto.getTargetClassName() +
+                                        ProcessorUtils.CLASS_INTERCEPT_POSTFIX  + ") domain)." +
+                                        field.getGetter() + "(false)));" :
                                 "\n        if (domain.isChanged(" + field.getFieldIndex() + ")) {\n" +
                                         "            entity." + field.getEntityField().getSetter() +
                                         (

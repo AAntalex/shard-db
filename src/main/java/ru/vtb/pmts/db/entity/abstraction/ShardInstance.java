@@ -15,6 +15,7 @@ public interface ShardInstance {
     void setId(Long id);
     void setStorageContext(StorageContext storageContext);
     boolean isChanged();
+    boolean isLazy();
     Boolean isStored();
     boolean hasNewShards();
     boolean isOurShard(Shard shard);

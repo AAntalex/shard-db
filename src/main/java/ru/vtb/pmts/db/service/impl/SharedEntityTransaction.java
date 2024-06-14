@@ -76,7 +76,7 @@ public class SharedEntityTransaction implements EntityTransaction {
             return;
         }
         this.duration = System.currentTimeMillis();
-        this.tasks.forEach(task -> task.setName("TRN: " + this.uuid + task.getName()));
+        this.tasks.forEach(task -> task.setName("TRN: " + this.uuid + " " + task.getName()));
         this.tasks.forEach(task -> task.run(parallelRun && this.tasks.size() > 1));
         this.tasks.forEach(task -> {
             task.waitTask();
