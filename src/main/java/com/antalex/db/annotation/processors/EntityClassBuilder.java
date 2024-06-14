@@ -510,7 +510,6 @@ public class EntityClassBuilder {
                     """);
             out.println(getLazyFlagsCode(entityClassDto));
             out.println(getInitCode(entityClassDto));
-            out.println(getLazyFlagMethodCode(entityClassDto));
             out.println(getGettersCode(entityClassDto));
             out.println(getSettersCode(entityClassDto));
             out.println("}");
@@ -598,22 +597,6 @@ public class EntityClassBuilder {
                 .reduce("    public void init() {", String::concat) + "\n    }";
     }
 
-    private static String getLazyFlagMethodCode(EntityClassDto entityClassDto) {
-        return entityClassDto.getFields()
-                .stream()
-                .filter(field ->
-                        field.getIsLinked() &&
-                                Objects.nonNull(field.getGetter()) &&
-                                !ProcessorUtils.isAnnotationPresent(field.getElement(), Transient.class)
-                )
-                .map(field ->
-                        "\n    public boolean " + field.getFieldName() + "IsLazy() {\n" +
-                                "        return this." + field.getFieldName() + "Lazy;\n" +
-                                "    }"
-                )
-                .reduce(StringUtils.EMPTY, String::concat);
-    }
-
     private static String getGettersCode(EntityClassDto entityClassDto) {
         return entityClassDto.getFields()
                 .stream()
@@ -631,7 +614,12 @@ public class EntityClassBuilder {
                                                         field.getElement(),
                                                         ShardEntity.class
                                                 ) ?
-                                                "        if (" + field.getFieldName() + "Lazy) {\n" +
+                                                "        return " + field.getGetter() + "(true);\n" +
+                                                        "    }\n" +
+                                                        "    public " +
+                                                        ProcessorUtils.getTypeField(field.getElement()) + " " +
+                                                        field.getGetter() + "(boolean readLazy) {\n" +
+                                                        "        if (readLazy && " + field.getFieldName() + "Lazy) {\n" +
                                                         "            this." + field.getSetter() +
                                                         "(entityManager.findAll(" +
                                                         ProcessorUtils.getFinalType(field.getElement()) + ".class, " +
@@ -1175,16 +1163,12 @@ public class EntityClassBuilder {
                 }
                 if (ProcessorUtils.isAnnotationPresentInArgument(field.getElement(), ShardEntity.class)) {
                     childPersistCode
-                            .append("            if (!((")
+                            .append("            entityManager.persistAll(((")
                             .append(entityClassDto.getTargetClassName())
                             .append(ProcessorUtils.CLASS_INTERCEPT_POSTFIX)
                             .append(") entity).")
-                            .append(field.getFieldName())
-                            .append("IsLazy()) {\n")
-                            .append("                entityManager.persistAll(entity.")
                             .append(field.getGetter())
-                            .append("(), false, onlyChanged);\n")
-                            .append("            }\n");
+                            .append("(false), false, onlyChanged);\n");
                 }
                 if (field.getColumnIndex() > 0) {
                     persistCode
@@ -1355,9 +1339,11 @@ public class EntityClassBuilder {
                                                 field.getElement(),
                                                 ShardEntity.class
                                         ) ?
-                                                "setAllStorage" :
-                                                "setStorage"
-                                        ) + "(entity." + field.getGetter() + "(), " +
+                                                "setAllStorage(((" + entityClassDto.getTargetClassName() +
+                                                        ProcessorUtils.CLASS_INTERCEPT_POSTFIX +
+                                                        ") entity)." + field.getGetter() + "(false), " :
+                                                "setStorage(entity." + field.getGetter() + "(), "
+                                        ) +
                                         (
                                                 ProcessorUtils.isAnnotationPresent(field.getElement(), ParentShard.class) &&
                                                         entityClassDto.getShardType() != ShardType.REPLICABLE ?
@@ -1386,11 +1372,12 @@ public class EntityClassBuilder {
                         code = "        entityManager.generateId(entity." + field.getGetter() + "());\n";
                     }
                     if (ProcessorUtils.isAnnotationPresentInArgument(field.getElement(), ShardEntity.class)) {
-                        code = "        entityManager.generateAllId(entity." + field.getGetter() + "());\n";
+                        code = "        entityManager.generateAllId(entityInterceptor." + field.getGetter() +
+                                "(false));\n";
                         if (field.getIsLinked()) {
                             EntityFieldDto linkedField = findFieldByLinkedColumn(field);
                             if (Objects.nonNull(linkedField)) {
-                                code = code + "        entity." + field.getGetter() + "()\n" +
+                                code = code + "        entityInterceptor." + field.getGetter() + "(false)\n" +
                                         "                .stream()\n" +
                                         "                .filter(child -> \n" +
                                         "                        Optional.ofNullable(child." +
@@ -1421,7 +1408,11 @@ public class EntityClassBuilder {
                 .reduce(
                         "    @Override\n" +
                                 "    public void generateDependentId(" + entityClassDto.getTargetClassName() +
-                                " entity) {\n",
+                                " entity) {\n" +
+                                "        " + entityClassDto.getTargetClassName() +
+                                ProcessorUtils.CLASS_INTERCEPT_POSTFIX + " entityInterceptor = (" +
+                                entityClassDto.getTargetClassName() + ProcessorUtils.CLASS_INTERCEPT_POSTFIX +
+                                ") entity;\n",
                         String::concat
                 ) + "    }";
     }

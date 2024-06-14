@@ -123,6 +123,13 @@ public abstract class BaseShardEntity implements ShardInstance {
         this.cluster = cluster;
     }
 
+    @Override
+    public boolean isLazy() {
+        return Optional.ofNullable(this.storageContext)
+                .map(StorageContext::isLazy)
+                .orElse(false);
+    }
+
     public boolean hasMainShard() {
         return Optional.ofNullable(this.storageContext)
                 .map(StorageContext::hasMainShard)
@@ -146,12 +153,6 @@ public abstract class BaseShardEntity implements ShardInstance {
         return Optional.ofNullable(this.storageContext)
                 .map(StorageContext::getChanges)
                 .orElse(null);
-    }
-
-    public boolean isLazy() {
-        return Optional.ofNullable(this.storageContext)
-                .map(StorageContext::isLazy)
-                .orElse(false);
     }
 
     protected void setChanges(int index) {
