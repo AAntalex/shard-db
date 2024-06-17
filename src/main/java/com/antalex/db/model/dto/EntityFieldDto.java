@@ -15,5 +15,7 @@ public class EntityFieldDto {
     private String getter;
     private String setter;
     private Boolean isLinked;
+    private Boolean isLinkedEntity;
     private boolean isUnique;
+    private EntityFieldDto linkedField;
 }

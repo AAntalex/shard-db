@@ -166,6 +166,11 @@ public class EntityClassBuilder {
                         .filter(field -> !field.getIsLinked() && Objects.nonNull(field.getColumnName()))
                         .collect(Collectors.toList())
         );
+        entityClassDto.getFields().forEach(field -> field.setIsLinkedEntity(isLinkedEntity(field)));
+        entityClassDto.getFields()
+                .stream()
+                .filter(EntityFieldDto::getIsLinkedEntity)
+                .forEach(field -> field.setLinkedField(findFieldByLinkedColumn(field)));
         IntStream.range(0, entityClassDto.getColumnFields().size())
                 .forEach(idx -> entityClassDto.getColumnFields().get(idx).setColumnIndex(idx + 1));
         entityClassDto.setUniqueFields(
@@ -181,6 +186,12 @@ public class EntityClassBuilder {
                 && ProcessorUtils.isAnnotationPresent(element, JoinColumn.class);
     }
 
+    private static boolean isLinkedEntity(EntityFieldDto field) {
+        return field.getIsLinked() &&
+                Objects.nonNull(field.getGetter()) &&
+                ProcessorUtils.isAnnotationPresentInArgument(field.getElement(), ShardEntity.class) &&
+                !ProcessorUtils.isAnnotationPresent(field.getElement(), Transient.class);
+    }
 
     private static String getColumnName(String columnPrefix, Element element) {
         if (ProcessorUtils.isAnnotationPresent(element, Transient.class)) {
@@ -559,11 +570,7 @@ public class EntityClassBuilder {
     private static String getLazyFlagsCode(EntityClassDto entityClassDto) {
         return entityClassDto.getFields()
                 .stream()
-                .filter(field ->
-                        field.getIsLinked() &&
-                                Objects.nonNull(field.getGetter()) &&
-                                !ProcessorUtils.isAnnotationPresent(field.getElement(), Transient.class)
-                )
+                .filter(EntityFieldDto::getIsLinkedEntity)
                 .map(field -> "    private boolean " + field.getFieldName() + "Lazy = false;\n")
                 .reduce(StringUtils.EMPTY, String::concat);
     }
@@ -571,29 +578,8 @@ public class EntityClassBuilder {
     private static String getInitCode(EntityClassDto entityClassDto) {
         return entityClassDto.getFields()
                 .stream()
-                .filter(field ->
-                        field.getIsLinked() &&
-                                Objects.nonNull(field.getGetter()) &&
-                                !ProcessorUtils.isAnnotationPresent(field.getElement(), Transient.class)
-                )
-                .map(field ->
-                        "\n        this." + field.getFieldName() + "Lazy = true;" +
-                                (
-                                        !isLazyList(field) ?
-                                                "\n        if (!this.isLazy()) {" +
-                                                        "\n            this." + field.getSetter() + "(entityManager.findAll(" +
-                                                        ProcessorUtils.getFinalType(field.getElement()) + ".class, " +
-                                                        (
-                                                                ProcessorUtils.isAnnotationPresent(
-                                                                        field.getElement(),
-                                                                        ParentShard.class
-                                                                ) ? "this, " : StringUtils.EMPTY
-                                                        ) + "\"x0." + field.getColumnName() + "=?\", this.id));\n" +
-                                                        "            this." + field.getFieldName() + "Lazy = false;\n" +
-                                                        "        }" :
-                                                StringUtils.EMPTY
-                                )
-                )
+                .filter(EntityFieldDto::getIsLinkedEntity)
+                .map(field -> "\n        this." + field.getFieldName() + "Lazy = true;")
                 .reduce("    public void init() {", String::concat) + "\n    }";
     }
 
@@ -609,11 +595,7 @@ public class EntityClassBuilder {
                                 "    public " + ProcessorUtils.getTypeField(field.getElement()) + " " +
                                 field.getGetter() + "() {\n" +
                                 (
-                                        field.getIsLinked() &&
-                                                ProcessorUtils.isAnnotationPresentInArgument(
-                                                        field.getElement(),
-                                                        ShardEntity.class
-                                                ) ?
+                                        field.getIsLinkedEntity() ?
                                                 "        return " + field.getGetter() + "(true);\n" +
                                                         "    }\n" +
                                                         "    public " +
@@ -946,6 +928,7 @@ public class EntityClassBuilder {
                 getProcessResultCode(entityClassDto) +
                 "                entities.add(entity);\n" +
                 "            }\n" +
+                getProcessLinkedEntityCode(entityClassDto) +
                 "        } catch (Exception err) {\n" +
                 "            throw new RuntimeException(err);\n" +
                 "        }\n" +
@@ -961,6 +944,46 @@ public class EntityClassBuilder {
                 .stream()
                 .filter(it -> Objects.nonNull(it.getSetter()))
                 .count() + 2;
+    }
+
+    private static String getProcessLinkedEntityCode(EntityClassDto entityClassDto) {
+        return entityClassDto.getColumnFields()
+                .stream()
+                .filter(EntityFieldDto::getIsLinkedEntity)
+                .map(field ->
+                        "            entityManager.findAll(\n" +
+                                "                            " + ProcessorUtils.getFinalType(field.getElement()) +
+                                ".class,\n" +
+                                "                            \"x0.C_B_REF in (\" + \n" +
+                                "                                    entities\n" +
+                                "                                            .stream()\n" +
+                                "                                            .map(it -> \"?\")\n" +
+                                "                                            .collect(Collectors.joining(\", \")) + \n" +
+                                "                                    \")\",\n" +
+                                "                            entities\n" +
+                                "                                    .stream()\n" +
+                                "                                    .map(ShardInstance::getId)\n" +
+                                "                                    .toList()\n" +
+                                "                                    .toArray()\n" +
+                                "                    )\n" +
+                                "                    .forEach(l ->\n" +
+                                "                            ((" + entityClassDto.getTargetClassName() +
+                                ProcessorUtils.CLASS_INTERCEPT_POSTFIX + ") " +
+                                (
+                                        ProcessorUtils.isAnnotationPresentByType(
+                                                field.getLinkedField().getElement(),
+                                                ShardEntity.class
+                                        ) ?
+                                                "l." + field.getLinkedField().getGetter() + "()" :
+                                                "entityManager.getEntity(" + entityClassDto.getTargetClassName() +
+                                                        ".class, l." + field.getLinkedField().getGetter() + "())"
+                                ) +
+                                ")\n" +
+                                "                                    ." + field.getGetter() + "(false)\n" +
+                                "                                    .add(l)\n" +
+                                "                    );\n"
+                )
+                .reduce(StringUtils.EMPTY, String::concat);
     }
 
     private static String getProcessResultCode(EntityClassDto entityClassDto) {
@@ -1374,8 +1397,8 @@ public class EntityClassBuilder {
                     if (ProcessorUtils.isAnnotationPresentInArgument(field.getElement(), ShardEntity.class)) {
                         code = "        entityManager.generateAllId(entityInterceptor." + field.getGetter() +
                                 "(false));\n";
-                        if (field.getIsLinked()) {
-                            EntityFieldDto linkedField = findFieldByLinkedColumn(field);
+                        if (field.getIsLinkedEntity()) {
+                            EntityFieldDto linkedField = field.getLinkedField();
                             if (Objects.nonNull(linkedField)) {
                                 code = code + "        entityInterceptor." + field.getGetter() + "(false)\n" +
                                         "                .stream()\n" +
