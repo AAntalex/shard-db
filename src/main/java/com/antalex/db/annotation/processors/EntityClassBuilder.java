@@ -383,7 +383,8 @@ public class EntityClassBuilder {
                                             DataStorage.class.getCanonicalName(),
                                             FetchType.class.getCanonicalName(),
                                             ImmutableMap.class.getCanonicalName(),
-                                            Utils.class.getCanonicalName()
+                                            Utils.class.getCanonicalName(),
+                                            Collectors.class.getCanonicalName()
                                     )
                             )
                     )
@@ -578,7 +579,7 @@ public class EntityClassBuilder {
     private static String getInitCode(EntityClassDto entityClassDto) {
         return entityClassDto.getFields()
                 .stream()
-                .filter(EntityFieldDto::getIsLinkedEntity)
+                .filter(it -> it.getIsLinkedEntity() && isLazyList(it))
                 .map(field -> "\n        this." + field.getFieldName() + "Lazy = true;")
                 .reduce("    public void init() {", String::concat) + "\n    }";
     }
@@ -776,6 +777,21 @@ public class EntityClassBuilder {
                 "    }";
     }
 
+    private static String getEagerList(EntityClassDto entityClassDto) {
+        return entityClassDto.getFields()
+                .stream()
+                .filter(it -> it.getIsLinkedEntity() && !isLazyList(it))
+                .map(field -> "                entity." + field.getSetter() + "(entityManager.findAll(" +
+                        ProcessorUtils.getFinalType(field.getElement()) + ".class, " +
+                        (
+                                ProcessorUtils.isAnnotationPresent(field.getElement(), ParentShard.class) ?
+                                        "entity, " :
+                                        StringUtils.EMPTY
+                        ) +
+                        "\"x0." + field.getColumnName() + "=?\", entity.getId()));\n")
+                .reduce(StringUtils.EMPTY, String::concat);
+    }
+
     private static String getFindCode(EntityClassDto entityClassDto) {
         return  "    @Override\n" +
                 "    public " + entityClassDto.getTargetClassName() + " find(" + entityClassDto.getTargetClassName() +
@@ -792,6 +808,7 @@ public class EntityClassBuilder {
                 "                    .getResult();\n" +
                 "            if (result.next()) {\n" +
                 getProcessResultCode(entityClassDto) +
+                getEagerList(entityClassDto) +
                 "            } else {\n" +
                 "                return null;\n" +
                 "            }\n" +
@@ -825,6 +842,7 @@ public class EntityClassBuilder {
                 " entity = entityManager.getEntity(" + entityClassDto.getTargetClassName() +
                 ".class, result.getLong(1));\n" +
                 getProcessResultCode(entityClassDto) +
+                getEagerList(entityClassDto) +
                 "                return entity;\n" +
                 "            } else {\n" +
                 "                return null;\n" +
@@ -926,6 +944,11 @@ public class EntityClassBuilder {
                 " entity = entityManager.getEntity(" + entityClassDto.getTargetClassName() +
                 ".class, result.getLong(1));\n" +
                 getProcessResultCode(entityClassDto) +
+                entityClassDto.getFields()
+                        .stream()
+                        .filter(it -> it.getIsLinkedEntity() && !isLazyList(it))
+                        .map(field -> "                entity." + field.getGetter() + "().clear();\n")
+                        .reduce(StringUtils.EMPTY, String::concat) +
                 "                entities.add(entity);\n" +
                 "            }\n" +
                 getProcessLinkedEntityCode(entityClassDto) +
@@ -947,9 +970,9 @@ public class EntityClassBuilder {
     }
 
     private static String getProcessLinkedEntityCode(EntityClassDto entityClassDto) {
-        return entityClassDto.getColumnFields()
+        return entityClassDto.getFields()
                 .stream()
-                .filter(EntityFieldDto::getIsLinkedEntity)
+                .filter(it -> it.getIsLinkedEntity() && !isLazyList(it))
                 .map(field ->
                         "            entityManager.findAll(\n" +
                                 "                            " + ProcessorUtils.getFinalType(field.getElement()) +
