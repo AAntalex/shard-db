@@ -654,8 +654,8 @@ public class ShardDatabaseManagerImpl implements ShardDataBaseManager {
         setDataBaseConfigValue(dataSourceConfig, DataSourceConfig::getUrl, config::setJdbcUrl);
         setDataBaseConfigValue(dataSourceConfig, DataSourceConfig::getDriver, config::setDriverClassName);
         setDataBaseConfigValue(dataSourceConfig, DataSourceConfig::getClassName, config::setDataSourceClassName);
-        setDataBaseConfigValue(dataSourceConfig, DataSourceConfig::getUser, config::setUsername);
-        setDataBaseConfigValue(dataSourceConfig, DataSourceConfig::getPass, config::setPassword);
+        setDataBaseConfigValue(dataSourceConfig, DataSourceConfig::getUsername, config::setUsername);
+        setDataBaseConfigValue(dataSourceConfig, DataSourceConfig::getPassword, config::setPassword);
     }
 
     private void setOptionalHikariConfig(
