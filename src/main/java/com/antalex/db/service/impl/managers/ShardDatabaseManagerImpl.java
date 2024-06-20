@@ -376,7 +376,7 @@ public class ShardDatabaseManagerImpl implements ShardDataBaseManager {
                 !Optional
                         .ofNullable(shardDataBaseConfig.getChecks())
                         .map(ChecksConfig::getCheckMainShard)
-                        .orElse(true) ||
+                        .orElse(false) ||
                         shard.getId().equals(cluster.getMainShard().getId()) == mainShard,
                 String.format(
                         "Шарда с ID = '%d'%s должна быть основной в Кластере '%s'" ,
@@ -427,7 +427,7 @@ public class ShardDatabaseManagerImpl implements ShardDataBaseManager {
                 !Optional
                         .ofNullable(shardDataBaseConfig.getChecks())
                         .map(ChecksConfig::getCheckClusterDefault)
-                        .orElse(true) ||
+                        .orElse(false) ||
                         cluster.getName().equals(getDefaultCluster().getName()) == clusterDefault,
                 String.format(
                         "Кластер '%s'%s должен быть основным для БД %s" ,
@@ -654,8 +654,8 @@ public class ShardDatabaseManagerImpl implements ShardDataBaseManager {
         setDataBaseConfigValue(dataSourceConfig, DataSourceConfig::getUrl, config::setJdbcUrl);
         setDataBaseConfigValue(dataSourceConfig, DataSourceConfig::getDriver, config::setDriverClassName);
         setDataBaseConfigValue(dataSourceConfig, DataSourceConfig::getClassName, config::setDataSourceClassName);
-        setDataBaseConfigValue(dataSourceConfig, DataSourceConfig::getUser, config::setUsername);
-        setDataBaseConfigValue(dataSourceConfig, DataSourceConfig::getPass, config::setPassword);
+        setDataBaseConfigValue(dataSourceConfig, DataSourceConfig::getUsername, config::setUsername);
+        setDataBaseConfigValue(dataSourceConfig, DataSourceConfig::getPassword, config::setPassword);
     }
 
     private void setOptionalHikariConfig(
