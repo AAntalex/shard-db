@@ -376,7 +376,7 @@ public class ShardDatabaseManagerImpl implements ShardDataBaseManager {
                 !Optional
                         .ofNullable(shardDataBaseConfig.getChecks())
                         .map(ChecksConfig::getCheckMainShard)
-                        .orElse(true) ||
+                        .orElse(false) ||
                         shard.getId().equals(cluster.getMainShard().getId()) == mainShard,
                 String.format(
                         "Шарда с ID = '%d'%s должна быть основной в Кластере '%s'" ,
@@ -427,7 +427,7 @@ public class ShardDatabaseManagerImpl implements ShardDataBaseManager {
                 !Optional
                         .ofNullable(shardDataBaseConfig.getChecks())
                         .map(ChecksConfig::getCheckClusterDefault)
-                        .orElse(true) ||
+                        .orElse(false) ||
                         cluster.getName().equals(getDefaultCluster().getName()) == clusterDefault,
                 String.format(
                         "Кластер '%s'%s должен быть основным для БД %s" ,
