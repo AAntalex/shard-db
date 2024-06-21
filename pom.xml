@@ -22,6 +22,17 @@
         <liquibase.version>4.27.0</liquibase.version>
     </properties>
 
+    <distributionManagement>
+        <snapshotRepository>
+            <id>pmts-maven-snapshot</id>
+            <url>https://sfera.inno.local/app/repo-ci-maven/api/repository/pmts-maven-snapshot/</url>
+        </snapshotRepository>
+        <repository>
+            <id>pmts-maven-lib</id>
+            <url>https://sfera.inno.local/app/repo-ci-maven/api/repository/pmts-maven-lib/</url>
+        </repository>
+    </distributionManagement>
+
     <dependencies>
         <dependency>
             <groupId>org.springframework.boot</groupId>
