@@ -204,9 +204,9 @@ public class ShardDatabaseManagerImpl implements ShardDataBaseManager {
                             .build()
             );
         }
-        entity.setId((
-                        sequenceNextVal(MAIN_SEQUENCE, storageContext.getCluster()) *
-                                ShardUtils.MAX_CLUSTERS + storageContext.getCluster().getId() - 1
+        entity.setId(
+                (sequenceNextVal(MAIN_SEQUENCE, storageContext.getCluster()) * ShardUtils.MAX_REPLICATIONS
+                         * ShardUtils.MAX_CLUSTERS + storageContext.getCluster().getId() - 1
                 ) * ShardUtils.MAX_SHARDS + storageContext.getShard().getId() - 1
         );
     }

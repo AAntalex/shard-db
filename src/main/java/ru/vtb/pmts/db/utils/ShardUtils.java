@@ -3,6 +3,7 @@ package ru.vtb.pmts.db.utils;
 import ru.vtb.pmts.db.model.Shard;
 
 public class ShardUtils {
+    public static final int MAX_REPLICATIONS = 10;
     public static final int MAX_SHARDS = 63;
     public static final int MAX_CLUSTERS = 100;
     private static final String DEFAULT_OWNER_PREFIX = "$$$";
