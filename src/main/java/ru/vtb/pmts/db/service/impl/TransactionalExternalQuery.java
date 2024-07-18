@@ -39,9 +39,9 @@ public class TransactionalExternalQuery extends AbstractTransactionalQuery {
 
     @Override
     public void addBatchOriginal() throws Exception {
+        this.binds.add(this.currentRow, this.currentBinds);
         this.currentRow++;
         this.currentBinds = new ArrayList<>();
-        this.binds.add(this.currentRow, this.currentBinds);
     }
 
     @Override
@@ -50,12 +50,12 @@ public class TransactionalExternalQuery extends AbstractTransactionalQuery {
     }
 
     @Override
-    public int executeUpdate() throws SQLException {
+    public int executeUpdate() throws Exception {
         return 0;
     }
 
     @Override
-    public ResultQuery executeQuery() throws SQLException {
+    public ResultQuery executeQuery() throws Exception {
         return null;
     }
 }

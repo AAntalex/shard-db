@@ -3,6 +3,7 @@ package ru.vtb.pmts.db.service.api;
 import ru.vtb.pmts.db.model.enums.QueryType;
 
 import java.util.List;
+import java.util.UUID;
 import java.util.concurrent.ExecutorService;
 
 public interface TransactionalTask {
@@ -29,6 +30,7 @@ public interface TransactionalTask {
     void addStepAfterCommit(Runnable target, String name);
     String getName();
     void setName(String name);
+    void setTransactionUid(UUID transactionUid);
     String getError();
     String getErrorCompletion();
     void setMainTask(TransactionalTask task);

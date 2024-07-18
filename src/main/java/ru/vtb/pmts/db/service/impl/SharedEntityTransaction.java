@@ -76,12 +76,17 @@ public class SharedEntityTransaction implements EntityTransaction {
             return;
         }
         this.duration = System.currentTimeMillis();
-        this.tasks.forEach(task -> task.setName("TRN: " + this.uuid + " " + task.getName()));
+        this.tasks.forEach(task -> {
+            task.setName("TRN: " + this.uuid + " " + task.getName());
+            task.setTransactionUid(this.uuid);
+        });
         this.tasks.forEach(task -> task.run(parallelRun && this.tasks.size() > 1));
         this.tasks.forEach(task -> {
             task.waitTask();
             this.error = processTask(task, task.getError(), this.error, SQL_ERROR_TEXT);
         });
+
+
         this.duration = System.currentTimeMillis() - this.duration;
         if (!isShort) {
             prepareSaveTransaction();

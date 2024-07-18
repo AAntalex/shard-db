@@ -16,6 +16,7 @@ import java.util.stream.Stream;
 @Slf4j
 public abstract class AbstractTransactionalTask implements TransactionalTask {
     protected ExecutorService executorService;
+    protected UUID transactionUid;
     protected String name;
     protected String errorCompletion;
     protected Future future;
@@ -186,6 +187,11 @@ public abstract class AbstractTransactionalTask implements TransactionalTask {
     @Override
     public void setName(String name) {
         this.name = name;
+    }
+
+    @Override
+    public void setTransactionUid(UUID transactionUid) {
+        this.transactionUid = transactionUid;
     }
 
     @Override
