@@ -1,6 +1,7 @@
 package ru.vtb.pmts.db.model;
 
 import lombok.Data;
+import org.springframework.web.reactive.function.client.WebClient;
 
 import javax.sql.DataSource;
 
@@ -9,6 +10,7 @@ public class Shard {
     private Short id;
     private String name;
     private DataSource dataSource;
+    private WebClient webClient;
     private DataBaseInfo dataBaseInfo;
     private DynamicDataBaseInfo dynamicDataBaseInfo;
     private String owner;

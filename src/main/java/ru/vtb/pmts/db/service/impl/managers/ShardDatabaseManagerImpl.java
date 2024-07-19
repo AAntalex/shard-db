@@ -1,5 +1,7 @@
 package ru.vtb.pmts.db.service.impl.managers;
 
+import org.springframework.web.reactive.function.client.ExchangeStrategies;
+import org.springframework.web.reactive.function.client.WebClient;
 import ru.vtb.pmts.db.entity.abstraction.ShardInstance;
 import ru.vtb.pmts.db.exception.ShardDataBaseException;
 import ru.vtb.pmts.db.model.enums.QueryType;
@@ -801,6 +803,12 @@ public class ShardDatabaseManagerImpl implements ShardDataBaseManager {
                                     ShardDataBaseConfig.CONFIG_NAME
                             )
                     );
+                    shard.setOwner(
+                            Optional.ofNullable(shardConfig.getDataSource())
+                                    .map(DataSourceConfig::getOwner)
+                                    .orElse(null)
+                    );
+                    shard.setWebClient(WebClient.builder().baseUrl(shard.getUrl()).build());
                 }
                 shard.setSequenceCacheSize(
                         Optional.ofNullable(shardConfig.getSequenceCacheSize())
