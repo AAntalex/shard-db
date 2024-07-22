@@ -1,6 +1,7 @@
 package ru.vtb.pmts.db.service.impl;
 
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.web.reactive.function.client.WebClient;
 import ru.vtb.pmts.db.model.Shard;
 import ru.vtb.pmts.db.model.enums.QueryType;
 import ru.vtb.pmts.db.model.enums.TaskStatus;
@@ -15,15 +16,15 @@ import java.util.concurrent.ExecutorService;
 
 @Slf4j
 public class TransactionalExternalTask extends AbstractTransactionalTask {
-    private final String url;
+    private final WebClient webClient;
     private boolean needCommit;
 
     public TransactionalExternalTask(
             Shard shard,
-            Connection connection,
+            WebClient webClient,
             ExecutorService executorService,
             boolean parallelCommit) {
-        this.connection = connection;
+        this.webClient = webClient;
         this.executorService = executorService;
         this.shard = shard;
         this.parallelCommit = parallelCommit;

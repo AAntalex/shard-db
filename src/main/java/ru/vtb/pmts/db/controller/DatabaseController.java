@@ -12,6 +12,7 @@ import ru.vtb.pmts.db.model.Shard;
 import ru.vtb.pmts.db.model.dto.QueryDto;
 import ru.vtb.pmts.db.service.ShardDataBaseManager;
 import ru.vtb.pmts.db.service.ShardEntityManager;
+import ru.vtb.pmts.db.service.api.TransactionalQuery;
 import ru.vtb.pmts.db.utils.ShardUtils;
 
 import java.sql.Connection;
@@ -33,13 +34,14 @@ public class DatabaseController {
             consumes = { "application/json" }
     )
     public ResponseEntity<String> request(@RequestBody QueryDto query) {
-        Shard shard = dataBaseManager.getShard(dataBaseManager.getCluster(query.clusterName()), query.shardId());
+        TransactionalQuery transactionalQuery = dataBaseManager.getTransactionalTask(
+                dataBaseManager.getShard(
+                        dataBaseManager.getCluster(query.clusterName()), query.shardId()
+                )
+        )
+                .addQuery(query.query(), query.queryType());
 
-        entityManager.createQuery(
-                dataBaseManager.getShard(dataBaseManager.getCluster(query.clusterName()), query.shardId()),
-                query.query(),
-                query.queryType()
-                );
+
         return ResponseEntity.ok(entityManager.toString());
     }
 }
