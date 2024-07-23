@@ -21,8 +21,8 @@ public abstract class AbstractTransactionalTask implements TransactionalTask {
     protected String errorCompletion;
     protected Future future;
     protected TaskStatus status = TaskStatus.CREATED;
-    protected boolean parallelCommit;
     protected Shard shard;
+    protected boolean parallelRun;
 
     private String error;
     private final Map<String, TransactionalQuery> queries = new HashMap<>();
@@ -38,6 +38,7 @@ public abstract class AbstractTransactionalTask implements TransactionalTask {
     @Override
     public void run(Boolean parallelRun) {
         if (this.status == TaskStatus.CREATED) {
+            this.parallelRun = parallelRun;
             Runnable target = () ->
                     steps.forEach(step -> {
                                 if (this.error == null) {
@@ -51,13 +52,12 @@ public abstract class AbstractTransactionalTask implements TransactionalTask {
                                     }
                                 }
                             });
-            if (parallelRun) {
+            if (this.parallelRun) {
                 this.future = this.executorService.submit(target);
                 this.status = TaskStatus.RUNNING;
             } else {
                 target.run();
                 this.status = TaskStatus.DONE;
-                this.parallelCommit = false;
             }
         }
     }
@@ -115,7 +115,7 @@ public abstract class AbstractTransactionalTask implements TransactionalTask {
                                         }
                                     }
                                 });
-                if (this.parallelCommit) {
+                if (this.parallelRun) {
                     this.future = this.executorService.submit(target);
                 } else {
                     target.run();

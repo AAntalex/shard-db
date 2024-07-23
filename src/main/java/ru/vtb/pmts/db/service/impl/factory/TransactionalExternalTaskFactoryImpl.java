@@ -4,6 +4,7 @@ import ru.vtb.pmts.db.model.Shard;
 import ru.vtb.pmts.db.service.api.TransactionalExternalTaskFactory;
 import ru.vtb.pmts.db.service.api.TransactionalTask;
 import org.springframework.stereotype.Component;
+import ru.vtb.pmts.db.service.impl.TransactionalExternalTask;
 
 import java.util.concurrent.ExecutorService;
 
@@ -13,12 +14,11 @@ public class TransactionalExternalTaskFactoryImpl implements TransactionalExtern
 
     @Override
     public TransactionalTask createTask(Shard shard) {
-        throw new UnsupportedOperationException();
+        return new TransactionalExternalTask(shard, executorService);
     }
 
     @Override
     public void setExecutorService(ExecutorService executorService) {
-        System.out.println("AAA setExecutorService");
         this.executorService = executorService;
     }
 }

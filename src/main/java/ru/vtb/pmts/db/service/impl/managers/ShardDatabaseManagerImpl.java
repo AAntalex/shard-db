@@ -1,6 +1,5 @@
 package ru.vtb.pmts.db.service.impl.managers;
 
-import org.springframework.web.reactive.function.client.ExchangeStrategies;
 import org.springframework.web.reactive.function.client.WebClient;
 import ru.vtb.pmts.db.entity.abstraction.ShardInstance;
 import ru.vtb.pmts.db.exception.ShardDataBaseException;
@@ -91,7 +90,6 @@ public class ShardDatabaseManagerImpl implements ShardDataBaseManager {
         this.resourceLoader = resourceLoader;
         this.shardDataBaseConfig = shardDataBaseConfig;
         this.sharedTransactionManager = sharedTransactionManager;
-        this.sharedTransactionManager.setParallelRun(true);
         this.taskFactory = taskFactory;
         this.externalTaskFactory = externalTaskFactory;
         this.executorService = Executors.newCachedThreadPool();
@@ -692,9 +690,9 @@ public class ShardDatabaseManagerImpl implements ShardDataBaseManager {
         this.parallelLimit = getTransactionConfigValue(shardDataBaseConfig, clusterConfig, shardConfig,
                 SharedTransactionConfig::getActiveConnectionParallelLimit)
                 .orElse(0);
-        this.taskFactory.setParallelCommit(
+        this.sharedTransactionManager.setParallelRun(
                 getTransactionConfigValue(shardDataBaseConfig, clusterConfig, shardConfig,
-                        SharedTransactionConfig::getParallelCommit)
+                        SharedTransactionConfig::getParallelRun)
                         .orElse(true)
         );
     }
@@ -831,6 +829,7 @@ public class ShardDatabaseManagerImpl implements ShardDataBaseManager {
                                 .available(true)
                                 .build()
                 );
+                shard.setClusterName(cluster.getName());
                 shard.setName(
                         String.format(
                                 "%s: (%s)",

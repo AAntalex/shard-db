@@ -10,8 +10,7 @@ import java.util.List;
 @Data
 @Accessors(chain = true, fluent = true)
 public class QueryDto {
-    private String clusterName;
-    private Short shardId;
+    private TransactionDto transactionInfo;
     private String query;
     private QueryType queryType;
     private final List<List<String>> binds = new ArrayList<>();

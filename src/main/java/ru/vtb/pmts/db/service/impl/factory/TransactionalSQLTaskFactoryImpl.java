@@ -12,20 +12,14 @@ import java.util.concurrent.ExecutorService;
 @Component
 public class TransactionalSQLTaskFactoryImpl implements TransactionalSQLTaskFactory {
     private ExecutorService executorService;
-    private boolean parallelCommit;
 
     @Override
     public TransactionalTask createTask(Shard shard, Connection connection) {
-        return new TransactionalSQLTask(shard, connection, executorService, parallelCommit);
+        return new TransactionalSQLTask(shard, connection, executorService);
     }
 
     @Override
     public void setExecutorService(ExecutorService executorService) {
         this.executorService = executorService;
-    }
-
-    @Override
-    public void setParallelCommit(boolean parallelCommit) {
-        this.parallelCommit = parallelCommit;
     }
 }

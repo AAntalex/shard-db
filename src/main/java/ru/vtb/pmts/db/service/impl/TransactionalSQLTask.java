@@ -21,12 +21,10 @@ public class TransactionalSQLTask extends AbstractTransactionalTask {
     public TransactionalSQLTask(
             Shard shard,
             Connection connection,
-            ExecutorService executorService,
-            boolean parallelCommit) {
+            ExecutorService executorService) {
         this.connection = connection;
         this.executorService = executorService;
         this.shard = shard;
-        this.parallelCommit = parallelCommit;
     }
 
     @Override
@@ -53,7 +51,7 @@ public class TransactionalSQLTask extends AbstractTransactionalTask {
     public void finish() {
         if (this.status == TaskStatus.COMPLETION) {
             try {
-                if (this.parallelCommit) {
+                if (this.parallelRun) {
                     this.future.get();
                 }
                 if (!this.connection.isClosed()) {

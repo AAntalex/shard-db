@@ -1,22 +1,29 @@
 package ru.vtb.pmts.db.service.impl;
 
+import ru.vtb.pmts.db.model.dto.QueryDto;
+import ru.vtb.pmts.db.model.dto.TransactionDto;
 import ru.vtb.pmts.db.model.enums.QueryType;
 import ru.vtb.pmts.db.service.abstractive.AbstractTransactionalQuery;
 import ru.vtb.pmts.db.service.api.ResultQuery;
 
-import java.sql.*;
 import java.util.*;
 
 public class TransactionalExternalQuery extends AbstractTransactionalQuery {
     private final List<List<String>> binds = new ArrayList<>();
     private final List<Class<?>> types = new ArrayList<>();
+    private final QueryDto queryDto;
     private List<String> currentBinds = new ArrayList<>();
     private int currentRow;
 
 
-    TransactionalExternalQuery(String query, QueryType queryType) {
+    TransactionalExternalQuery(String query, QueryType queryType, TransactionDto transactionInfo) {
         this.query = query;
         this.queryType = queryType;
+        this.queryDto =
+                new QueryDto()
+                        .transactionInfo(transactionInfo)
+                        .query(query)
+                        .queryType(queryType);
     }
 
     @Override

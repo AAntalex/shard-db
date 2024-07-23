@@ -3,13 +3,13 @@ package ru.vtb.pmts.db.service.impl;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.web.reactive.function.client.WebClient;
 import ru.vtb.pmts.db.model.Shard;
+import ru.vtb.pmts.db.model.dto.TransactionDto;
 import ru.vtb.pmts.db.model.enums.QueryType;
 import ru.vtb.pmts.db.model.enums.TaskStatus;
 import ru.vtb.pmts.db.service.abstractive.AbstractTransactionalTask;
 import ru.vtb.pmts.db.service.api.TransactionalQuery;
 import ru.vtb.pmts.db.utils.ShardUtils;
 
-import java.sql.Connection;
 import java.sql.SQLException;
 import java.util.Optional;
 import java.util.concurrent.ExecutorService;
@@ -17,17 +17,24 @@ import java.util.concurrent.ExecutorService;
 @Slf4j
 public class TransactionalExternalTask extends AbstractTransactionalTask {
     private final WebClient webClient;
-    private boolean needCommit;
+    private final TransactionDto transactionInfo;
 
     public TransactionalExternalTask(
             Shard shard,
-            WebClient webClient,
-            ExecutorService executorService,
-            boolean parallelCommit) {
-        this.webClient = webClient;
+            ExecutorService executorService) {
         this.executorService = executorService;
         this.shard = shard;
-        this.parallelCommit = parallelCommit;
+        this.webClient = shard.getWebClient();
+        this.transactionInfo =
+                new TransactionDto()
+                        .shardId(shard.getId())
+                        .clusterName(shard.getClusterName());
+    }
+
+    @Override
+    public void run(Boolean parallelRun) {
+        this.transactionInfo.needCommit(parallelRun && this.transactionInfo.needCommit());
+        super.run(parallelRun);
     }
 
     @Override
@@ -43,14 +50,14 @@ public class TransactionalExternalTask extends AbstractTransactionalTask {
 
     @Override
     public Boolean needCommit() {
-        return this.needCommit;
+        return this.needCommit && this.parallelRun;
     }
 
     @Override
     public void finish() {
         if (this.status == TaskStatus.COMPLETION) {
             try {
-                if (this.parallelCommit) {
+                if (this.parallelRun) {
                     this.future.get();
                 }
             } catch (Exception err) {
@@ -71,11 +78,11 @@ public class TransactionalExternalTask extends AbstractTransactionalTask {
                                 queryType == QueryType.LOCK ||
                                 query.toUpperCase().contains("FOR UPDATE")
                 )
-                        && !this.needCommit)
+                        && !this.transactionInfo.needCommit())
         {
-            this.needCommit = true;
+            this.transactionInfo.needCommit(true);
         }
         String sql = ShardUtils.transformSQL(query, shard);
-        return new TransactionalExternalQuery(sql, queryType);
+        return new TransactionalExternalQuery(sql, queryType, transactionInfo);
     }
 }

@@ -9,6 +9,7 @@ import javax.sql.DataSource;
 public class Shard {
     private Short id;
     private String name;
+    private String clusterName;
     private DataSource dataSource;
     private WebClient webClient;
     private DataBaseInfo dataBaseInfo;

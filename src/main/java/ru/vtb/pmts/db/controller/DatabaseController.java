@@ -7,13 +7,10 @@ import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestMethod;
 import org.springframework.web.bind.annotation.RestController;
-import ru.vtb.pmts.db.model.Cluster;
-import ru.vtb.pmts.db.model.Shard;
 import ru.vtb.pmts.db.model.dto.QueryDto;
 import ru.vtb.pmts.db.service.ShardDataBaseManager;
 import ru.vtb.pmts.db.service.ShardEntityManager;
 import ru.vtb.pmts.db.service.api.TransactionalQuery;
-import ru.vtb.pmts.db.utils.ShardUtils;
 
 import java.sql.Connection;
 import java.util.HashMap;
