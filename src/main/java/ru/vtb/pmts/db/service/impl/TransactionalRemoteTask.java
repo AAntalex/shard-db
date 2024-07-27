@@ -1,9 +1,9 @@
 package ru.vtb.pmts.db.service.impl;
 
+import com.fasterxml.jackson.databind.ObjectMapper;
 import lombok.extern.slf4j.Slf4j;
-import org.springframework.web.reactive.function.client.WebClient;
+import ru.vtb.pmts.db.model.RemoteTaskContainer;
 import ru.vtb.pmts.db.model.Shard;
-import ru.vtb.pmts.db.model.dto.TransactionDto;
 import ru.vtb.pmts.db.model.enums.QueryType;
 import ru.vtb.pmts.db.model.enums.TaskStatus;
 import ru.vtb.pmts.db.service.abstractive.AbstractTransactionalTask;
@@ -12,45 +12,44 @@ import ru.vtb.pmts.db.utils.ShardUtils;
 
 import java.sql.SQLException;
 import java.util.Optional;
+import java.util.UUID;
 import java.util.concurrent.ExecutorService;
 
 @Slf4j
-public class TransactionalExternalTask extends AbstractTransactionalTask {
-    private final WebClient webClient;
-    private final TransactionDto transactionInfo;
+public class TransactionalRemoteTask extends AbstractTransactionalTask {
+    private final RemoteTaskContainer taskContainer;
+    private final ObjectMapper objectMapper;
 
-    public TransactionalExternalTask(
+    public TransactionalRemoteTask(
             Shard shard,
+            ObjectMapper objectMapper,
             ExecutorService executorService) {
         this.executorService = executorService;
         this.shard = shard;
-        this.webClient = shard.getWebClient();
-        this.transactionInfo =
-                new TransactionDto()
-                        .shardId(shard.getId())
-                        .clusterName(shard.getClusterName());
+        this.objectMapper = objectMapper;
+        this.taskContainer =
+                new RemoteTaskContainer()
+                        .shard(shard)
+                        .taskUuid(UUID.randomUUID());
     }
 
     @Override
     public void run(Boolean parallelRun) {
-        this.transactionInfo.needCommit(parallelRun && this.transactionInfo.needCommit());
+        this.taskContainer.postponedCommit(parallelRun && this.taskContainer.postponedCommit());
         super.run(parallelRun);
     }
 
     @Override
     public void commit() throws SQLException {
-        this.connection.commit();
     }
 
     @Override
     public void rollback() throws SQLException {
-        this.connection.rollback();
-
     }
 
     @Override
     public Boolean needCommit() {
-        return this.needCommit && this.parallelRun;
+        return this.taskContainer.postponedCommit() && this.parallelRun;
     }
 
     @Override
@@ -78,11 +77,11 @@ public class TransactionalExternalTask extends AbstractTransactionalTask {
                                 queryType == QueryType.LOCK ||
                                 query.toUpperCase().contains("FOR UPDATE")
                 )
-                        && !this.transactionInfo.needCommit())
+                        && !taskContainer.postponedCommit())
         {
-            this.transactionInfo.needCommit(true);
+            taskContainer.postponedCommit(true);
         }
         String sql = ShardUtils.transformSQL(query, shard);
-        return new TransactionalExternalQuery(sql, queryType, transactionInfo);
+        return new TransactionalRemoteQuery(sql, queryType, taskContainer, objectMapper);
     }
 }

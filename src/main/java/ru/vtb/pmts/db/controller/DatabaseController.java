@@ -3,42 +3,24 @@ package ru.vtb.pmts.db.controller;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.ResponseEntity;
-import org.springframework.web.bind.annotation.RequestBody;
-import org.springframework.web.bind.annotation.RequestMapping;
-import org.springframework.web.bind.annotation.RequestMethod;
-import org.springframework.web.bind.annotation.RestController;
+import org.springframework.web.bind.annotation.*;
 import ru.vtb.pmts.db.model.dto.QueryDto;
-import ru.vtb.pmts.db.service.ShardDataBaseManager;
-import ru.vtb.pmts.db.service.ShardEntityManager;
-import ru.vtb.pmts.db.service.api.TransactionalQuery;
-
-import java.sql.Connection;
-import java.util.HashMap;
-import java.util.Map;
+import ru.vtb.pmts.db.model.dto.RemoteButchResultDto;
+import ru.vtb.pmts.db.service.api.RemoteDatabaseService;
 
 @Slf4j
 @RestController
+@RequestMapping(path = "/api/v1/db/request")
 @RequiredArgsConstructor
 public class DatabaseController {
-    private final Map<String, Connection> activeConnections = new HashMap<>();
-    private final ShardDataBaseManager dataBaseManager;
-    private final ShardEntityManager entityManager;
+    private final RemoteDatabaseService databaseService;
 
-    @RequestMapping(
-            method = RequestMethod.POST,
-            value = "/api/v1/db/request",
+    @PostMapping(
+            value = "/executeBatch",
             produces = { "application/json" },
             consumes = { "application/json" }
     )
-    public ResponseEntity<String> request(@RequestBody QueryDto query) {
-        TransactionalQuery transactionalQuery = dataBaseManager.getTransactionalTask(
-                dataBaseManager.getShard(
-                        dataBaseManager.getCluster(query.clusterName()), query.shardId()
-                )
-        )
-                .addQuery(query.query(), query.queryType());
-
-
-        return ResponseEntity.ok(entityManager.toString());
+    public ResponseEntity<RemoteButchResultDto> executeBatch(@RequestBody QueryDto query) {
+        return ResponseEntity.ok(databaseService.executeBatch(query));
     }
 }

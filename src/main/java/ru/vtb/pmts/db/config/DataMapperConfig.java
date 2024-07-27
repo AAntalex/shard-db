@@ -1,5 +1,7 @@
 package ru.vtb.pmts.db.config;
 
+import com.fasterxml.jackson.annotation.JsonAutoDetect;
+import com.fasterxml.jackson.annotation.PropertyAccessor;
 import com.fasterxml.jackson.core.json.JsonWriteFeature;
 import com.fasterxml.jackson.databind.DeserializationFeature;
 import com.fasterxml.jackson.databind.ObjectMapper;
@@ -13,7 +15,7 @@ import org.springframework.context.annotation.Configuration;
 public class DataMapperConfig {
     @Bean
     public ObjectMapper objectMapper() {
-        return JsonMapper.builder()
+        ObjectMapper objectMapper = JsonMapper.builder()
                 .findAndAddModules()
                 .addModule(new JavaTimeModule())
                 .enable(SerializationFeature.INDENT_OUTPUT)
@@ -25,7 +27,10 @@ public class DataMapperConfig {
                 .disable(DeserializationFeature.FAIL_ON_UNKNOWN_PROPERTIES)
                 // Не теряем точность long
                 .enable(JsonWriteFeature.WRITE_NUMBERS_AS_STRINGS)
+                .visibility(PropertyAccessor.FIELD, JsonAutoDetect.Visibility.ANY)
+                .disable(SerializationFeature.FAIL_ON_EMPTY_BEANS)
                 .build();
+        return objectMapper;
     }
 }
 

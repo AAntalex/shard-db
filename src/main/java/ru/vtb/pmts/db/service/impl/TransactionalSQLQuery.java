@@ -3,7 +3,9 @@ package ru.vtb.pmts.db.service.impl;
 import ru.vtb.pmts.db.model.enums.QueryType;
 import ru.vtb.pmts.db.service.abstractive.AbstractTransactionalQuery;
 import ru.vtb.pmts.db.service.api.ResultQuery;
+import ru.vtb.pmts.db.service.impl.results.ResultSQLQuery;
 
+import javax.sql.rowset.serial.SerialBlob;
 import java.net.URL;
 import java.sql.*;
 import java.time.LocalDate;
@@ -26,16 +28,16 @@ public class TransactionalSQLQuery extends AbstractTransactionalQuery {
     }
 
     @Override
-    public void bindOriginal(int idx, Object o) throws SQLException {
+    protected void bindOriginal(int idx, Object o) throws SQLException {
+        if (o instanceof Timestamp) {
+            preparedStatement.setTimestamp(idx, (Timestamp) o);
+            return;
+        }
+        if (o instanceof Time) {
+            preparedStatement.setTime(idx, (Time) o);
+            return;
+        }
         if (o instanceof Date) {
-            if (o instanceof Timestamp) {
-                preparedStatement.setTimestamp(idx, new Timestamp(((Date) o).getTime()));
-                return;
-            }
-            if (o instanceof Time) {
-                preparedStatement.setTime(idx, new Time(((Date) o).getTime()));
-                return;
-            }
             preparedStatement.setDate(idx, new java.sql.Date(((Date) o).getTime()));
             return;
         }
@@ -80,6 +82,42 @@ public class TransactionalSQLQuery extends AbstractTransactionalQuery {
         }
 
         preparedStatement.setObject(idx, o);
+    }
+
+    @Override
+    protected void bindOriginal(int idx, String o, Class<?> clazz) throws SQLException {
+        if (clazz.isAssignableFrom(Timestamp.class)) {
+            preparedStatement.setTimestamp(idx, Timestamp.valueOf(o));
+            return;
+        }
+        if (clazz.isAssignableFrom(Time.class)) {
+            preparedStatement.setTime(idx, Time.valueOf(o));
+            return;
+        }
+        if (clazz.isAssignableFrom(Date.class)) {
+            preparedStatement.setDate(idx, java.sql.Date.valueOf(o));
+            return;
+        }
+        if (clazz.isAssignableFrom(Blob.class)) {
+            preparedStatement.setBlob(idx, new SerialBlob(o.getBytes()));
+            return;
+        }
+        if (clazz.isAssignableFrom(LocalDateTime.class)) {
+            preparedStatement.setTimestamp(idx, Timestamp.valueOf(LocalDateTime.parse(o)));
+            return;
+        }
+        if (clazz.isAssignableFrom(LocalDate.class)) {
+            preparedStatement.setDate(idx, java.sql.Date.valueOf(LocalDate.parse(o)));
+            return;
+        }
+        if (clazz.isAssignableFrom(OffsetDateTime.class)) {
+            preparedStatement.setTimestamp(
+                    idx,
+                    Timestamp.valueOf(OffsetDateTime.parse(o).atZoneSameInstant(ZoneOffset.UTC).toLocalDateTime())
+            );
+            return;
+        }
+        preparedStatement.setString(idx, o);
     }
 
     @Override

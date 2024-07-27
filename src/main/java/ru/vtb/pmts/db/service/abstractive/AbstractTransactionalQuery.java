@@ -6,7 +6,7 @@ import ru.vtb.pmts.db.model.Shard;
 import ru.vtb.pmts.db.model.enums.QueryType;
 import ru.vtb.pmts.db.service.api.ResultQuery;
 import ru.vtb.pmts.db.service.api.TransactionalQuery;
-import ru.vtb.pmts.db.service.impl.ResultParallelQuery;
+import ru.vtb.pmts.db.service.impl.results.ResultParallelQuery;
 import lombok.Data;
 import lombok.extern.slf4j.Slf4j;
 
@@ -89,9 +89,30 @@ public abstract class AbstractTransactionalQuery implements TransactionalQuery, 
     }
 
     @Override
+    public TransactionalQuery bindAll(List<String> binds, List<Class<?>> types) {
+        IntStream.range(0, binds.size())
+                .forEach(idx ->
+                        bind(idx + 1, binds.get(idx), types.get(idx))
+                );
+        return this;
+    }
+
+    @Override
     public TransactionalQuery bind(int index, Object o) {
         try {
             bindOriginal(index, o);
+            relatedQueries.forEach(query -> query.bind(index, o));
+            this.currentIndex = index;
+        } catch (Exception err) {
+            throw new ShardDataBaseException(err);
+        }
+        return this;
+    }
+
+    @Override
+    public TransactionalQuery bind(int index, String o, Class<?> clazz) {
+        try {
+            bindOriginal(index, o, clazz);
             relatedQueries.forEach(query -> query.bind(index, o));
             this.currentIndex = index;
         } catch (Exception err) {
@@ -235,6 +256,14 @@ public abstract class AbstractTransactionalQuery implements TransactionalQuery, 
         this.fetchLimit = fetchLimit;
         relatedQueries.forEach(relatedQuery -> relatedQuery.fetchLimit(fetchLimit));
         return this;
+    }
+
+    protected void bindOriginal(int idx, String o, Class<?> clazz) throws Exception {
+        throw new UnsupportedOperationException();
+    }
+
+    protected void bindOriginal(int idx, Object o) throws Exception {
+        throw new UnsupportedOperationException();
     }
 
     public int[] getResultUpdateBatch() {

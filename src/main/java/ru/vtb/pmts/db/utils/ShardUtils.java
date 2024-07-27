@@ -2,6 +2,8 @@ package ru.vtb.pmts.db.utils;
 
 import ru.vtb.pmts.db.model.Shard;
 
+import java.util.Optional;
+
 public class ShardUtils {
     public static final int MAX_REPLICATIONS = 10;
     public static final int MAX_SHARDS = 63;
@@ -9,7 +11,9 @@ public class ShardUtils {
     private static final String DEFAULT_OWNER_PREFIX = "$$$";
 
     public static String transformSQL(String sql, Shard shard) {
-        return sql.replace(DEFAULT_OWNER_PREFIX, shard.getOwner());
+        return Optional.ofNullable(shard.getOwner())
+                .map(owner -> sql.replace(DEFAULT_OWNER_PREFIX, owner))
+                .orElse(sql);
     }
 
     public static Long getShardMap(Short id) {

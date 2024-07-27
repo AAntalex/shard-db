@@ -1,4 +1,4 @@
-package ru.vtb.pmts.db.service.impl;
+package ru.vtb.pmts.db.service.impl.results;
 
 import ru.vtb.pmts.db.service.api.ResultQuery;
 import org.apache.commons.lang3.StringUtils;

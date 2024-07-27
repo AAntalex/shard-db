@@ -85,8 +85,6 @@ public class SharedEntityTransaction implements EntityTransaction {
             task.waitTask();
             this.error = processTask(task, task.getError(), this.error, SQL_ERROR_TEXT);
         });
-
-
         this.duration = System.currentTimeMillis() - this.duration;
         if (!isShort) {
             prepareSaveTransaction();

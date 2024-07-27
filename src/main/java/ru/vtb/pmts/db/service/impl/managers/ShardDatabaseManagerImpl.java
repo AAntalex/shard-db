@@ -63,7 +63,7 @@ public class ShardDatabaseManagerImpl implements ShardDataBaseManager {
     private final ShardDataBaseConfig shardDataBaseConfig;
     private final SharedTransactionManager sharedTransactionManager;
     private final TransactionalSQLTaskFactory taskFactory;
-    private final TransactionalExternalTaskFactory externalTaskFactory;
+    private final TransactionalRemoteTaskFactory remoteTaskFactory;
 
     private Cluster defaultCluster;
     private final Map<String, Cluster> clusters = new HashMap<>();
@@ -85,16 +85,16 @@ public class ShardDatabaseManagerImpl implements ShardDataBaseManager {
             ShardDataBaseConfig shardDataBaseConfig,
             SharedTransactionManager sharedTransactionManager,
             TransactionalSQLTaskFactory taskFactory,
-            TransactionalExternalTaskFactory externalTaskFactory)
+            TransactionalRemoteTaskFactory remoteTaskFactory)
     {
         this.resourceLoader = resourceLoader;
         this.shardDataBaseConfig = shardDataBaseConfig;
         this.sharedTransactionManager = sharedTransactionManager;
         this.taskFactory = taskFactory;
-        this.externalTaskFactory = externalTaskFactory;
+        this.remoteTaskFactory = remoteTaskFactory;
         this.executorService = Executors.newCachedThreadPool();
         this.taskFactory.setExecutorService(this.executorService);
-        this.externalTaskFactory.setExecutorService(this.executorService);
+        this.remoteTaskFactory.setExecutorService(this.executorService);
 
         getProperties();
         runInitLiquibase();
@@ -108,7 +108,7 @@ public class ShardDatabaseManagerImpl implements ShardDataBaseManager {
         return Optional.ofNullable(
                 transaction.getCurrentTask(
                         shard,
-                        !shard.getExternal() &&
+                        !shard.getRemote() &&
                                 ((HikariDataSource) shard.getDataSource())
                                         .getHikariPoolMXBean()
                                         .getActiveConnections() > parallelLimit
@@ -116,8 +116,8 @@ public class ShardDatabaseManagerImpl implements ShardDataBaseManager {
         )
                 .orElseGet(() -> {
                     try {
-                        TransactionalTask task = shard.getExternal() ?
-                                externalTaskFactory.createTask(shard) :
+                        TransactionalTask task = shard.getRemote() ?
+                                remoteTaskFactory.createTask(shard) :
                                 taskFactory.createTask(shard, getConnection(shard));
                         transaction.addTask(shard, task);
                         return task;
@@ -513,7 +513,7 @@ public class ShardDatabaseManagerImpl implements ShardDataBaseManager {
         cluster
                 .getShards()
                 .stream()
-                .filter(it -> !it.getExternal())
+                .filter(it -> !it.getRemote())
                 .forEach(shard -> {
                     TransactionalSQLTask task = (TransactionalSQLTask) getTransactionalTask(shard);
                     task.setName("GET DataBase Info on shard " + shard.getName());
@@ -597,7 +597,7 @@ public class ShardDatabaseManagerImpl implements ShardDataBaseManager {
         sharedTransactionManager.getTransaction().begin();
         newShards
                 .stream()
-                .filter(it -> !it.getRight().getExternal() && Objects.isNull(it.getRight().getDataBaseInfo()))
+                .filter(it -> !it.getRight().getRemote() && Objects.isNull(it.getRight().getDataBaseInfo()))
                 .forEach(it -> saveDataBaseInfo(it.getLeft(), it.getRight()));
         sharedTransactionManager.getTransaction().commit();
     }
@@ -788,10 +788,14 @@ public class ShardDatabaseManagerImpl implements ShardDataBaseManager {
                                     .map(DataSourceConfig::getOwner)
                                     .orElse(dataSource.getUsername())
                     );
-                    shard.setExternal(false);
+                    shard.setRemote(false);
                 } else {
-                    shard.setExternal(true);
-                    shard.setUrl(shardConfig.getUrl());
+                    shard.setRemote(true);
+                    shard.setUrl(
+                            Optional.ofNullable(shardConfig.getRemote())
+                            .map(RemoteConfig::getUrl)
+                            .orElse(null)
+                    );
                     Assert.isTrue(
                             Objects.nonNull(shard.getUrl()),
                             String.format(
@@ -802,8 +806,8 @@ public class ShardDatabaseManagerImpl implements ShardDataBaseManager {
                             )
                     );
                     shard.setOwner(
-                            Optional.ofNullable(shardConfig.getDataSource())
-                                    .map(DataSourceConfig::getOwner)
+                            Optional.ofNullable(shardConfig.getRemote())
+                                    .map(RemoteConfig::getOwner)
                                     .orElse(null)
                     );
                     shard.setWebClient(WebClient.builder().baseUrl(shard.getUrl()).build());
@@ -836,7 +840,7 @@ public class ShardDatabaseManagerImpl implements ShardDataBaseManager {
                                 cluster.getName(),
                                 Optional.ofNullable(shardConfig.getDataSource())
                                         .map(DataSourceConfig::getUrl)
-                                        .orElse(shardConfig.getUrl())
+                                        .orElse(shard.getUrl())
                         )
                 );
                 shard.setId(shardConfig.getId());
@@ -920,7 +924,7 @@ public class ShardDatabaseManagerImpl implements ShardDataBaseManager {
     }
 
     private void runLiquibase(Shard shard, String changeLog) {
-        if (!shard.getExternal() && isEnabled(shard)) {
+        if (!shard.getRemote() && isEnabled(shard)) {
             log.debug(String.format("Run changelog \"%s\" on shard %s", changeLog, shard.getName()));
             TransactionalSQLTask task = (TransactionalSQLTask) getTransactionalTask(shard);
             task.setName("Changelog on shard " + shard.getName());

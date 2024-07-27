@@ -16,7 +16,7 @@ public class Shard {
     private DynamicDataBaseInfo dynamicDataBaseInfo;
     private String owner;
     private Integer sequenceCacheSize;
-    private Boolean external;
+    private Boolean remote;
     private String url;
     private Integer hashCode;
     private String segment;

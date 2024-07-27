@@ -4,13 +4,16 @@ import ru.vtb.pmts.db.entity.abstraction.ShardInstance;
 import ru.vtb.pmts.db.model.Shard;
 import ru.vtb.pmts.db.model.enums.QueryType;
 
+import java.sql.SQLException;
+import java.util.List;
 import java.util.concurrent.ExecutorService;
 
 public interface TransactionalQuery {
     TransactionalQuery bind(Object o, boolean skip);
-    TransactionalQuery bindAll(Object... objects);
     TransactionalQuery bind(int index, Object o);
-    void bindOriginal(int idx, Object o) throws Exception;
+    TransactionalQuery bind(int index, String o, Class<?> clazz);
+    TransactionalQuery bindAll(Object... objects);
+    TransactionalQuery bindAll(List<String> binds, List<Class<?>> types);
     TransactionalQuery bindShardMap(ShardInstance entity);
     TransactionalQuery addBatch();
     TransactionalQuery fetchLimit(Integer fetchLimit);

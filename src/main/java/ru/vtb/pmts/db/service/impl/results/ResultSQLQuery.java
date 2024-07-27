@@ -1,4 +1,4 @@
-package ru.vtb.pmts.db.service.impl;
+package ru.vtb.pmts.db.service.impl.results;
 
 import ru.vtb.pmts.db.service.api.ResultQuery;
 import org.apache.commons.lang3.StringUtils;
@@ -23,7 +23,7 @@ public class ResultSQLQuery implements ResultQuery {
     private final Integer fetchLimit;
     private int count;
 
-    ResultSQLQuery(ResultSet result, Integer fetchLimit) {
+    public ResultSQLQuery(ResultSet result, Integer fetchLimit) {
         this.result = result;
         this.fetchLimit = fetchLimit;
     }
