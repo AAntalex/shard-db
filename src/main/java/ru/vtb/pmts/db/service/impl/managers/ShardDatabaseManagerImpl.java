@@ -837,7 +837,9 @@ public class ShardDatabaseManagerImpl implements ShardDataBaseManager {
                 shard.setName(
                         String.format(
                                 "%s: (%s)",
-                                cluster.getName(),
+                                Optional.ofNullable(shardConfig.getId())
+                                        .map(it -> cluster.getName() + "-" + it)
+                                        .orElse(cluster.getName()),
                                 Optional.ofNullable(shardConfig.getDataSource())
                                         .map(DataSourceConfig::getUrl)
                                         .orElse(shard.getUrl())

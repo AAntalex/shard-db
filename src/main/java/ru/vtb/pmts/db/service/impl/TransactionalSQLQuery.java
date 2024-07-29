@@ -86,31 +86,35 @@ public class TransactionalSQLQuery extends AbstractTransactionalQuery {
 
     @Override
     protected void bindOriginal(int idx, String o, Class<?> clazz) throws SQLException {
-        if (clazz.isAssignableFrom(Timestamp.class)) {
+        if (o == null) {
+            preparedStatement.setObject(idx, null);
+            return;
+        }
+        if (Timestamp.class.isAssignableFrom(clazz)) {
             preparedStatement.setTimestamp(idx, Timestamp.valueOf(o));
             return;
         }
-        if (clazz.isAssignableFrom(Time.class)) {
+        if (Time.class.isAssignableFrom(clazz)) {
             preparedStatement.setTime(idx, Time.valueOf(o));
             return;
         }
-        if (clazz.isAssignableFrom(Date.class)) {
+        if (Date.class.isAssignableFrom(clazz)) {
             preparedStatement.setDate(idx, java.sql.Date.valueOf(o));
             return;
         }
-        if (clazz.isAssignableFrom(Blob.class)) {
+        if (Blob.class.isAssignableFrom(clazz)) {
             preparedStatement.setBlob(idx, new SerialBlob(o.getBytes()));
             return;
         }
-        if (clazz.isAssignableFrom(LocalDateTime.class)) {
+        if (LocalDateTime.class.isAssignableFrom(clazz)) {
             preparedStatement.setTimestamp(idx, Timestamp.valueOf(LocalDateTime.parse(o)));
             return;
         }
-        if (clazz.isAssignableFrom(LocalDate.class)) {
+        if (LocalDate.class.isAssignableFrom(clazz)) {
             preparedStatement.setDate(idx, java.sql.Date.valueOf(LocalDate.parse(o)));
             return;
         }
-        if (clazz.isAssignableFrom(OffsetDateTime.class)) {
+        if (OffsetDateTime.class.isAssignableFrom(clazz)) {
             preparedStatement.setTimestamp(
                     idx,
                     Timestamp.valueOf(OffsetDateTime.parse(o).atZoneSameInstant(ZoneOffset.UTC).toLocalDateTime())

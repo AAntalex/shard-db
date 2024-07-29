@@ -143,12 +143,12 @@ public class ResultSQLQuery implements ResultQuery {
                     .map(name -> Enum.valueOf((Class<Enum>) clazz, name))
                     .orElse(null);
         }
-        if (clazz.isAssignableFrom(UUID.class)) {
+        if (UUID.class.isAssignableFrom(clazz)) {
             return (T) Optional.ofNullable(result.getString(idx))
                     .map(str -> UUID.fromString(str))
                     .orElse(null);
         }
-        if (clazz.isAssignableFrom(Currency.class)) {
+        if (Currency.class.isAssignableFrom(clazz)) {
             return (T) Optional.ofNullable(result.getString(idx))
                     .map(str -> Currency.getInstance(str))
                     .orElse(null);

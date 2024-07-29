@@ -661,7 +661,7 @@ public class DomainClassBuilder {
                                         .map(DeclaredType::asElement)
                                         .map(Element::toString).map(ProcessorUtils::getClassByName)
                                         .map(clazz -> {
-                                            if  (clazz.isAssignableFrom(Map.class)) {
+                                            if  (Map.class.isAssignableFrom(clazz)) {
                                                 return
                                                         ProcessorUtils.getDeclaredType(field.getElement())
                                                                 .getTypeArguments()
@@ -677,7 +677,7 @@ public class DomainClassBuilder {
                                                                 ) +
                                                                 "), false);";
                                             }
-                                            if  (clazz.isAssignableFrom(List.class)) {
+                                            if  (List.class.isAssignableFrom(clazz)) {
                                                 return "getList(\"" +
                                                         field.getFieldName() + "\", " +
                                                         ProcessorUtils.getFinalType(field.getElement()) +
