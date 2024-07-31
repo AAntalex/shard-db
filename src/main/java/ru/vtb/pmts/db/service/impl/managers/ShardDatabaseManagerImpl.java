@@ -799,7 +799,7 @@ public class ShardDatabaseManagerImpl implements ShardDataBaseManager {
                     Assert.isTrue(
                             Objects.nonNull(shard.getUrl()),
                             String.format(
-                                    "Properties '%s.clusters.shards.datasource.url' or '%s.clusters.shards.url'" +
+                                    "Properties '%s.clusters.shards.datasource.url' or '%s.clusters.shards.remote.url'" +
                                     " must not be empty",
                                     ShardDataBaseConfig.CONFIG_NAME,
                                     ShardDataBaseConfig.CONFIG_NAME
