@@ -5,11 +5,14 @@ import org.springframework.http.HttpStatusCode;
 import org.springframework.http.MediaType;
 import ru.vtb.pmts.db.exception.ShardDataBaseException;
 import ru.vtb.pmts.db.model.RemoteTaskContainer;
-import ru.vtb.pmts.db.model.dto.QueryDto;
-import ru.vtb.pmts.db.model.dto.RemoteButchResultDto;
+import ru.vtb.pmts.db.model.dto.query.QueryDto;
+import ru.vtb.pmts.db.model.dto.query.RemoteButchResultDto;
+import ru.vtb.pmts.db.model.dto.query.RemoteQueryResultDto;
+import ru.vtb.pmts.db.model.dto.query.RemoteUpdateResultDto;
 import ru.vtb.pmts.db.model.enums.QueryType;
 import ru.vtb.pmts.db.service.abstractive.AbstractTransactionalQuery;
 import ru.vtb.pmts.db.service.api.ResultQuery;
+import ru.vtb.pmts.db.service.impl.results.ResultRemoteQuery;
 
 import java.net.URL;
 import java.sql.Blob;
@@ -19,12 +22,15 @@ import java.util.*;
 import java.util.stream.Collectors;
 
 public class TransactionalRemoteQuery extends AbstractTransactionalQuery {
-    private final List<List<String>> binds = new ArrayList<>();
+    private static final String EXECUTE_BATCH_URI = "executeBatch";
+    private static final String EXECUTE_UPDATE_URI = "executeUpdate";
+    private static final String EXECUTE_QUERY_URI = "executeQuery";
+
+    private final List<List<String>> batchBinds = new ArrayList<>();
     private final List<Class<?>> types = new ArrayList<>();
     private final RemoteTaskContainer taskContainer;
     private final ObjectMapper objectMapper;
-    private List<String> currentBinds = new ArrayList<>();
-    private int currentRow;
+    private List<String> binds = new ArrayList<>();
 
     TransactionalRemoteQuery(
             String query,
@@ -63,28 +69,54 @@ public class TransactionalRemoteQuery extends AbstractTransactionalQuery {
             bindOriginal(idx, ((Currency) o).getCurrencyCode(), String.class);
             return;
         }
+        if (o.getClass().isAssignableFrom(Date.class)) {
+            bindOriginal(idx, (new java.sql.Date(((Date) o).getTime())).toString(), java.sql.Date.class);
+            return;
+        }
         bindOriginal(idx, o.toString(), o.getClass());
     }
 
     @Override
     protected void bindOriginal(int idx, String o, Class<?> clazz) {
-        if (this.currentRow > 0 && Objects.isNull(this.types.get(idx - 1))) {
+        if (!this.batchBinds.isEmpty() && Objects.isNull(this.types.get(idx - 1))) {
             this.types.set(idx - 1, clazz);
-        } else if (this.currentRow == 0) {
+        } else if (this.batchBinds.isEmpty()) {
             this.types.add(idx - 1, clazz);
         }
-        this.currentBinds.add(idx - 1, o);
+        this.binds.add(idx - 1, o);
     }
 
     @Override
     public void addBatchOriginal() throws Exception {
-        this.currentRow++;
-        this.binds.add(this.currentBinds);
-        this.currentBinds = new ArrayList<>();
+        this.batchBinds.add(this.binds);
+        this.binds = new ArrayList<>();
     }
 
     @Override
     public int[] executeBatch() throws Exception {
+        RemoteButchResultDto queryResult = getResponseResult(RemoteButchResultDto.class, EXECUTE_BATCH_URI);
+        taskContainer.clientUuid(queryResult.clientUuid());
+        return queryResult.result();
+    }
+
+    @Override
+    public int executeUpdate() throws Exception {
+        RemoteUpdateResultDto queryResult = getResponseResult(RemoteUpdateResultDto.class, EXECUTE_UPDATE_URI);
+        taskContainer.clientUuid(queryResult.clientUuid());
+        return queryResult.result();
+    }
+
+    @Override
+    public ResultQuery executeQuery() throws Exception {
+        RemoteQueryResultDto queryResult = getResponseResult(RemoteQueryResultDto.class, EXECUTE_QUERY_URI);
+        taskContainer.clientUuid(queryResult.clientUuid());
+        return new ResultRemoteQuery(
+                queryResult.result(),
+                this.fetchLimit
+        );
+    }
+
+    private <R> R getResponseResult(Class<R> clazz, String uri) throws Exception {
         String body = objectMapper.writeValueAsString(getQueryDto());
         initBinds();
         return Optional.ofNullable(
@@ -92,16 +124,22 @@ public class TransactionalRemoteQuery extends AbstractTransactionalQuery {
                                 .shard()
                                 .getWebClient()
                                 .post()
-                                .uri("/api/v1/db/request/executeBatch")
+                                .uri("/api/v1/db/request/" + uri)
                                 .contentType(MediaType.APPLICATION_JSON)
                                 .bodyValue(body)
                                 .retrieve()
                                 .onStatus(HttpStatusCode::isError,
                                         response -> response.bodyToMono(String.class).map(ShardDataBaseException::new))
-                                .bodyToMono(RemoteButchResultDto.class)
+                                .bodyToMono(String.class)
                                 .block()
                 )
-                .map(RemoteButchResultDto::result)
+                .map(jsonData -> {
+                    try {
+                        return objectMapper.readValue(jsonData, clazz);
+                    } catch (Exception err) {
+                        throw new ShardDataBaseException(err);
+                    }
+                })
                 .orElseThrow(() ->
                         new ShardDataBaseException(
                                 "Не смогли получить ответ от " +
@@ -111,24 +149,8 @@ public class TransactionalRemoteQuery extends AbstractTransactionalQuery {
                 );
     }
 
-    @Override
-    public int executeUpdate() throws Exception {
-        initBinds();
-        return 0;
-    }
-
-    @Override
-    public ResultQuery executeQuery() throws Exception {
-        initBinds();
-        return null;
-    }
-
     private void initBinds() {
-        this.types.clear();
-        this.currentBinds.clear();
-        this.binds.clear();
-        this.binds.add(this.currentBinds);
-        this.currentRow = 0;
+        this.batchBinds.clear();
     }
 
     private QueryDto getQueryDto() {
@@ -150,7 +172,7 @@ public class TransactionalRemoteQuery extends AbstractTransactionalQuery {
                                 )
                                 .collect(Collectors.toList())
                 )
-                .currentBinds(currentBinds)
-                .binds(binds);
+                .binds(binds)
+                .batchBinds(batchBinds);
     }
 }

@@ -2,6 +2,8 @@ package ru.vtb.pmts.db.service.impl;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.http.HttpStatusCode;
+import ru.vtb.pmts.db.exception.ShardDataBaseException;
 import ru.vtb.pmts.db.model.RemoteTaskContainer;
 import ru.vtb.pmts.db.model.Shard;
 import ru.vtb.pmts.db.model.enums.QueryType;
@@ -41,10 +43,12 @@ public class TransactionalRemoteTask extends AbstractTransactionalTask {
 
     @Override
     public void commit() throws SQLException {
+        commitOrRollbackRequest(true);
     }
 
     @Override
     public void rollback() throws SQLException {
+        commitOrRollbackRequest(false);
     }
 
     @Override
@@ -83,5 +87,24 @@ public class TransactionalRemoteTask extends AbstractTransactionalTask {
         }
         String sql = ShardUtils.transformSQL(query, shard);
         return new TransactionalRemoteQuery(sql, queryType, taskContainer, objectMapper);
+    }
+
+    private void commitOrRollbackRequest(Boolean commit) {
+        taskContainer
+                .shard()
+                .getWebClient()
+                .put()
+                .uri(uriBuilder -> uriBuilder
+                        .path("/api/v1/db/request/" + (commit ? "commit" : "rollback"))
+                        .queryParam("clientUuid", taskContainer.clientUuid())
+                        .queryParam("taskUuid", taskContainer.taskUuid())
+                        .queryParam("postponedCommit", taskContainer.postponedCommit())
+                        .build()
+                )
+                .retrieve()
+                .onStatus(HttpStatusCode::isError,
+                        response -> response.bodyToMono(String.class).map(ShardDataBaseException::new))
+                .bodyToMono(String.class)
+                .block();
     }
 }

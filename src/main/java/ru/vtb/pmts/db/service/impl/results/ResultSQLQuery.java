@@ -1,22 +1,16 @@
 package ru.vtb.pmts.db.service.impl.results;
 
-import ru.vtb.pmts.db.service.api.ResultQuery;
-import org.apache.commons.lang3.StringUtils;
+import ru.vtb.pmts.db.service.abstractive.AbstractResultQuery;
 
-import javax.sql.rowset.serial.SerialClob;
 import java.math.BigDecimal;
-import java.net.URL;
 import java.sql.*;
 import java.time.LocalDate;
-import java.time.LocalDateTime;
 import java.time.OffsetDateTime;
 import java.time.ZoneOffset;
-import java.util.Currency;
 import java.util.Date;
 import java.util.Optional;
-import java.util.UUID;
 
-public class ResultSQLQuery implements ResultQuery {
+public class ResultSQLQuery extends AbstractResultQuery {
     private static final ZoneOffset DEFAULT_TIME_ZONE = OffsetDateTime.now().getOffset();
 
     private final ResultSet result;
@@ -26,6 +20,11 @@ public class ResultSQLQuery implements ResultQuery {
     public ResultSQLQuery(ResultSet result, Integer fetchLimit) {
         this.result = result;
         this.fetchLimit = fetchLimit;
+    }
+
+    @Override
+    public int getColumnCount() throws SQLException {
+        return result.getMetaData().getColumnCount();
     }
 
     @Override
@@ -112,63 +111,13 @@ public class ResultSQLQuery implements ResultQuery {
     }
 
     @Override
-    public Clob getClob(int idx) throws SQLException {
-        return new SerialClob(
-                Optional.ofNullable(result.getString(idx))
-                        .orElse(StringUtils.EMPTY)
-                        .toCharArray()
-        );
-    }
-
-    @Override
     public RowId getRowId(int idx) throws SQLException {
         return result.getRowId(idx);
     }
 
     @Override
-    public URL getURL(int idx) throws Exception {
-        String url = result.getString(idx);
-        return url == null ? null : new URL(url);
-    }
-
-    @Override
     public SQLXML getSQLXML(int idx) throws SQLException {
         return result.getSQLXML(idx);
-    }
-
-    @Override
-    public <T> T getObject(int idx, Class<T> clazz) throws SQLException {
-        if (clazz.isEnum()) {
-            return (T) Optional.ofNullable(result.getString(idx))
-                    .map(name -> Enum.valueOf((Class<Enum>) clazz, name))
-                    .orElse(null);
-        }
-        if (UUID.class.isAssignableFrom(clazz)) {
-            return (T) Optional.ofNullable(result.getString(idx))
-                    .map(str -> UUID.fromString(str))
-                    .orElse(null);
-        }
-        if (Currency.class.isAssignableFrom(clazz)) {
-            return (T) Optional.ofNullable(result.getString(idx))
-                    .map(str -> Currency.getInstance(str))
-                    .orElse(null);
-        }
-        return (T) result.getObject(idx);
-    }
-
-    @Override
-    public LocalDateTime getLocalDateTime(int idx) throws SQLException {
-        return Optional.ofNullable(result.getTimestamp(idx))
-                .map(Timestamp::toLocalDateTime)
-                .orElse(null);
-    }
-
-    @Override
-    public OffsetDateTime getOffsetDateTime(int idx) throws Exception {
-        return Optional.ofNullable(getLocalDateTime(idx))
-                .map(localDateTime -> OffsetDateTime.of(localDateTime, ZoneOffset.UTC))
-                .map(offsetDateTimeUTC -> offsetDateTimeUTC.atZoneSameInstant(DEFAULT_TIME_ZONE).toOffsetDateTime())
-                .orElse(null);
     }
 
     @Override

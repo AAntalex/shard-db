@@ -1,19 +1,24 @@
 package ru.vtb.pmts.db.service.impl;
 
+import com.fasterxml.jackson.databind.ObjectMapper;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Component;
 import org.springframework.util.Assert;
 import ru.vtb.pmts.db.exception.ShardDataBaseException;
-import ru.vtb.pmts.db.model.dto.QueryDto;
-import ru.vtb.pmts.db.model.dto.RemoteButchResultDto;
+import ru.vtb.pmts.db.model.dto.query.QueryDto;
+import ru.vtb.pmts.db.model.dto.query.RemoteButchResultDto;
+import ru.vtb.pmts.db.model.dto.query.RemoteQueryResultDto;
+import ru.vtb.pmts.db.model.dto.query.RemoteUpdateResultDto;
 import ru.vtb.pmts.db.service.ShardDataBaseManager;
 import ru.vtb.pmts.db.service.api.RemoteDatabaseService;
+import ru.vtb.pmts.db.service.api.ResultQuery;
 import ru.vtb.pmts.db.service.api.TransactionalQuery;
 import ru.vtb.pmts.db.service.api.TransactionalTask;
 
 import java.util.*;
 import java.util.stream.Collectors;
+import java.util.stream.IntStream;
 
 @Slf4j
 @Component
@@ -22,14 +27,113 @@ public class RemoteDatabaseServiceImpl implements RemoteDatabaseService {
     private static final UUID CLIENT_UUID = UUID.randomUUID();
     private final Map<UUID, TransactionalTask> postponedTasks = new HashMap<>();
     private final ShardDataBaseManager dataBaseManager;
+    private final ObjectMapper objectMapper;
 
     @Override
-    public RemoteButchResultDto executeBatch(QueryDto query) {
-        TransactionalTask task;
-        if (query.postponedCommit() && Objects.nonNull(query.clientUuid())) {
-            Assert.isTrue(query.clientUuid().equals(CLIENT_UUID), "Invalid client UUID");
-            task = postponedTasks.get(query.taskUuid());
-        } else {
+    public String executeQuery(QueryDto query) {
+        TransactionalTask task = getTask(query);
+        try {
+            ResultQuery result = task
+                    .addQuery(query.query(), query.queryType())
+                    .bindAll(query.binds(), getTypes(query))
+                    .getResult();
+            int columnCount = result.getColumnCount();
+            List<List<String>> resultValues = new ArrayList<>();
+            while (result.next()) {
+                resultValues.add(
+                        IntStream.rangeClosed(1, columnCount)
+                                .mapToObj(idx -> {
+                                    try {
+                                        return result.getString(idx);
+                                    } catch (Exception err) {
+                                        throw new ShardDataBaseException(err);
+                                    }
+                                }).collect(Collectors.toList())
+                );
+            }
+            RemoteQueryResultDto remoteQueryResultDto =
+                    new RemoteQueryResultDto()
+                            .clientUuid(CLIENT_UUID)
+                            .result(resultValues);
+            finish(query, task);
+            return objectMapper.writeValueAsString(remoteQueryResultDto);
+        } catch (Exception err) {
+            throw new ShardDataBaseException(err);
+        }
+    }
+
+    @Override
+    public String executeUpdate(QueryDto query) {
+        TransactionalTask task = getTask(query);
+        try {
+            RemoteUpdateResultDto result = new RemoteUpdateResultDto()
+                    .clientUuid(CLIENT_UUID)
+                    .result(
+                            task
+                                    .addQuery(query.query(), query.queryType())
+                                    .bindAll(query.binds(), getTypes(query))
+                                    .executeUpdate()
+                    );
+            finish(query, task);
+            return objectMapper.writeValueAsString(result);
+        } catch (Exception err) {
+            throw new ShardDataBaseException(err);
+        }
+    }
+
+    @Override
+    public String executeBatch(QueryDto query) {
+        TransactionalTask task = getTask(query);
+        List<Class<?>> types =  getTypes(query);
+        TransactionalQuery transactionalQuery = task.addQuery(query.query(), query.queryType());
+        query.batchBinds().forEach(binds -> transactionalQuery.bindAll(binds, types).addBatch());
+        try {
+            RemoteButchResultDto result = new RemoteButchResultDto()
+                    .clientUuid(CLIENT_UUID)
+                    .result(transactionalQuery.executeBatch());
+            finish(query, task);
+            return objectMapper.writeValueAsString(result);
+        } catch (Exception err) {
+            throw new ShardDataBaseException(err);
+        }
+    }
+
+    @Override
+    public void commit(UUID clientUuid, UUID taskUuid, Boolean postponedCommit) throws Exception {
+        TransactionalTask task = getTask(clientUuid, taskUuid, postponedCommit);
+        if (Objects.nonNull(task)) {
+            task.commit();
+            task.finish();
+            postponedTasks.remove(taskUuid);
+        }
+    }
+
+    @Override
+    public void rollback(UUID clientUuid, UUID taskUuid, Boolean postponedCommit) throws Exception {
+        TransactionalTask task = getTask(clientUuid, taskUuid, postponedCommit);
+        if (Objects.nonNull(task)) {
+            task.rollback();
+            task.finish();
+            postponedTasks.remove(taskUuid);
+        }
+    }
+
+    private void finish(QueryDto query, TransactionalTask task) {
+        try {
+            if (!query.postponedCommit()) {
+                if (task.needCommit()) {
+                    task.commit();
+                }
+                task.finish();
+            }
+        } catch (Exception err) {
+            throw new ShardDataBaseException(err);
+        }
+    }
+
+    private TransactionalTask getTask(QueryDto query) {
+        TransactionalTask task = getTask(query.clientUuid(), query.taskUuid(), query.postponedCommit());
+        if (Objects.isNull(task)) {
             task = dataBaseManager.getTransactionalTask(
                     dataBaseManager.getShard(
                             dataBaseManager.getCluster(query.clusterName()), query.shardId()
@@ -39,7 +143,11 @@ public class RemoteDatabaseServiceImpl implements RemoteDatabaseService {
                 postponedTasks.put(query.taskUuid(), task);
             }
         }
-        List<Class<?>> types =  query.types()
+        return task;
+    }
+
+    private List<Class<?>> getTypes(QueryDto query) {
+        return query.types()
                 .stream()
                 .map(className -> {
                     if (Objects.isNull(className)) {
@@ -52,19 +160,13 @@ public class RemoteDatabaseServiceImpl implements RemoteDatabaseService {
                     }
                 })
                 .collect(Collectors.toList());
+    }
 
-        TransactionalQuery transactionalQuery = task.addQuery(query.query(), query.queryType());
-        query.binds().forEach(binds -> transactionalQuery.bindAll(binds, types).addBatch());
-        try {
-            RemoteButchResultDto result = new RemoteButchResultDto()
-                    .clientUuid(CLIENT_UUID)
-                    .result(transactionalQuery.executeBatch());
-            if (!query.postponedCommit()) {
-                task.commit();
-            }
-            return result;
-        } catch (Exception err) {
-            throw new ShardDataBaseException(err);
+    private TransactionalTask getTask(UUID clientUuid, UUID taskUuid, Boolean postponedCommit) {
+        if (postponedCommit && Objects.nonNull(clientUuid)) {
+            Assert.isTrue(clientUuid.equals(CLIENT_UUID), "Invalid client UUID");
+            return postponedTasks.get(taskUuid);
         }
+        return null;
     }
 }

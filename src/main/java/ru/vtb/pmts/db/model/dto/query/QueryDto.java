@@ -1,6 +1,5 @@
-package ru.vtb.pmts.db.model.dto;
+package ru.vtb.pmts.db.model.dto.query;
 
-import lombok.Builder;
 import lombok.Data;
 import lombok.experimental.Accessors;
 import ru.vtb.pmts.db.model.enums.QueryType;
@@ -18,7 +17,7 @@ public class QueryDto {
     private Boolean postponedCommit;
     private String query;
     private QueryType queryType;
-    private List<List<String>> binds;
-    private List<String> currentBinds;
+    private List<List<String>> batchBinds;
+    private List<String> binds;
     private List<String> types;
 }

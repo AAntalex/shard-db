@@ -6,6 +6,7 @@ import ru.vtb.pmts.db.service.api.ResultQuery;
 import ru.vtb.pmts.db.service.impl.results.ResultSQLQuery;
 
 import javax.sql.rowset.serial.SerialBlob;
+import java.math.BigDecimal;
 import java.net.URL;
 import java.sql.*;
 import java.time.LocalDate;
@@ -80,12 +81,11 @@ public class TransactionalSQLQuery extends AbstractTransactionalQuery {
             preparedStatement.setString(idx, ((Currency) o).getCurrencyCode());
             return;
         }
-
         preparedStatement.setObject(idx, o);
     }
 
     @Override
-    protected void bindOriginal(int idx, String o, Class<?> clazz) throws SQLException {
+    protected void bindOriginal(int idx, String o, Class<?> clazz) throws Exception {
         if (o == null) {
             preparedStatement.setObject(idx, null);
             return;
@@ -98,7 +98,7 @@ public class TransactionalSQLQuery extends AbstractTransactionalQuery {
             preparedStatement.setTime(idx, Time.valueOf(o));
             return;
         }
-        if (Date.class.isAssignableFrom(clazz)) {
+        if (java.sql.Date.class.isAssignableFrom(clazz)) {
             preparedStatement.setDate(idx, java.sql.Date.valueOf(o));
             return;
         }
@@ -119,6 +119,38 @@ public class TransactionalSQLQuery extends AbstractTransactionalQuery {
                     idx,
                     Timestamp.valueOf(OffsetDateTime.parse(o).atZoneSameInstant(ZoneOffset.UTC).toLocalDateTime())
             );
+            return;
+        }
+        if (BigDecimal.class.isAssignableFrom(clazz)) {
+            preparedStatement.setBigDecimal(idx, new BigDecimal(o));
+            return;
+        }
+        if (Byte.class.isAssignableFrom(clazz)) {
+            preparedStatement.setByte(idx, Byte.parseByte(o));
+            return;
+        }
+        if (Boolean.class.isAssignableFrom(clazz)) {
+            preparedStatement.setBoolean(idx, Boolean.parseBoolean(o));
+            return;
+        }
+        if (Short.class.isAssignableFrom(clazz)) {
+            preparedStatement.setShort(idx, Short.parseShort(o));
+            return;
+        }
+        if (Integer.class.isAssignableFrom(clazz)) {
+            preparedStatement.setInt(idx, Integer.parseInt(o));
+            return;
+        }
+        if (Long.class.isAssignableFrom(clazz)) {
+            preparedStatement.setLong(idx, Long.parseLong(o));
+            return;
+        }
+        if (Float.class.isAssignableFrom(clazz)) {
+            preparedStatement.setFloat(idx, Float.parseFloat(o));
+            return;
+        }
+        if (Double.class.isAssignableFrom(clazz)) {
+            preparedStatement.setDouble(idx, Double.parseDouble(o));
             return;
         }
         preparedStatement.setString(idx, o);

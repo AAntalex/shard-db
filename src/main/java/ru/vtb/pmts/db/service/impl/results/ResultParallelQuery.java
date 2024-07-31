@@ -44,6 +44,11 @@ public class ResultParallelQuery implements ResultQuery {
     }
 
     @Override
+    public int getColumnCount() throws Exception {
+        return currentResult.getColumnCount();
+    }
+
+    @Override
     public Long getLong(int idx) throws Exception {
         return currentResult.getLong(idx);
     }
