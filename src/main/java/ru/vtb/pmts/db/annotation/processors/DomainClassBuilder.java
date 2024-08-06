@@ -34,7 +34,6 @@ import javax.tools.JavaFileObject;
 import java.io.IOException;
 import java.io.PrintWriter;
 import java.util.*;
-import java.util.stream.Collectors;
 
 public class DomainClassBuilder {
     private static final Map<Element, DomainClassDto> domainClasses = new HashMap<>();
@@ -97,7 +96,7 @@ public class DomainClassBuilder {
                                                             )
                                                             .build()
                                     )
-                                    .collect(Collectors.toList())
+                                    .toList()
                     )
                     .build();
 

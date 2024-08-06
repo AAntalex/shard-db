@@ -6,7 +6,7 @@ import org.apache.commons.lang3.StringUtils;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
-import ru.vtb.pmts.db.model.dto.query.QueryDto;
+import ru.vtb.pmts.db.model.dto.QueryDto;
 import ru.vtb.pmts.db.service.api.RemoteDatabaseService;
 
 import java.util.UUID;
@@ -18,7 +18,7 @@ import java.util.UUID;
 public class DatabaseController {
     private final RemoteDatabaseService databaseService;
 
-    @GetMapping(
+    @PostMapping(
             value = "/executeQuery",
             consumes = { "application/json" }
     )
@@ -28,7 +28,7 @@ public class DatabaseController {
         } catch (Exception err) {
             return ResponseEntity
                     .status(HttpStatus.INTERNAL_SERVER_ERROR)
-                    .body(err.getLocalizedMessage());
+                    .body(databaseService.getResponseError(err.getLocalizedMessage()));
         }
     }
 
@@ -42,7 +42,7 @@ public class DatabaseController {
         } catch (Exception err) {
             return ResponseEntity
                     .status(HttpStatus.INTERNAL_SERVER_ERROR)
-                    .body(err.getLocalizedMessage());
+                    .body(databaseService.getResponseError(err.getLocalizedMessage()));
         }
     }
 
@@ -56,7 +56,7 @@ public class DatabaseController {
         } catch (Exception err) {
             return ResponseEntity
                     .status(HttpStatus.INTERNAL_SERVER_ERROR)
-                    .body(err.getLocalizedMessage());
+                    .body(databaseService.getResponseError(err.getLocalizedMessage()));
         }
     }
 

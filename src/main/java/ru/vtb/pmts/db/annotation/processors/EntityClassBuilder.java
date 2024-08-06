@@ -120,7 +120,7 @@ public class EntityClassBuilder {
                                                             .element(fieldElement)
                                                             .build()
                                     )
-                                    .collect(Collectors.toList())
+                                    .toList()
                     )
                     .indexes(
                             Optional.ofNullable(classElement.getAnnotation(Table.class))
@@ -164,7 +164,7 @@ public class EntityClassBuilder {
                 entityClassDto.getFields()
                         .stream()
                         .filter(field -> !field.getIsLinked() && Objects.nonNull(field.getColumnName()))
-                        .collect(Collectors.toList())
+                        .toList()
         );
         entityClassDto.getFields().forEach(field -> field.setIsLinkedEntity(isLinkedEntity(field)));
         entityClassDto.getFields()
@@ -177,7 +177,7 @@ public class EntityClassBuilder {
                 entityClassDto.getColumnFields()
                         .stream()
                         .filter(EntityFieldDto::isUnique)
-                        .collect(Collectors.toList())
+                        .toList()
         );
     }
 

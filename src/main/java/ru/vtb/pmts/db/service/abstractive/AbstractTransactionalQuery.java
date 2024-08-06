@@ -26,6 +26,7 @@ public abstract class AbstractTransactionalQuery implements TransactionalQuery, 
     protected Integer fetchLimit;
     protected final List<TransactionalQuery> relatedQueries = new ArrayList<>();
 
+    private Long duration;
     private int resultUpdate;
     private int[] resultUpdateBatch;
     private ExecutorService executorService;
@@ -53,7 +54,7 @@ public abstract class AbstractTransactionalQuery implements TransactionalQuery, 
     @Override
     public void execute() {
         if (queryType != QueryType.DML) {
-            log.trace("Execute Query '" + this.query + "'");
+            log.trace("Execute Query '{}'", this.query);
             if (relatedQueries.isEmpty()) {
                 run();
             } else {
@@ -182,6 +183,7 @@ public abstract class AbstractTransactionalQuery implements TransactionalQuery, 
     @Override
     public void run() {
         try {
+            this.duration = System.currentTimeMillis();
             if (queryType == QueryType.DML) {
                 if (this.isButch) {
                     this.resultUpdateBatch = executeBatch();
@@ -193,6 +195,7 @@ public abstract class AbstractTransactionalQuery implements TransactionalQuery, 
                 this.increment();
                 this.result = executeQuery();
             }
+            this.duration = System.currentTimeMillis() - this.duration;
         } catch (Exception err) {
             throw new ShardDataBaseException(err);
         }
@@ -258,14 +261,7 @@ public abstract class AbstractTransactionalQuery implements TransactionalQuery, 
         return this;
     }
 
-    protected void bindOriginal(int idx, String o, Class<?> clazz) throws Exception {
-        throw new UnsupportedOperationException();
-    }
-
-    protected void bindOriginal(int idx, Object o) throws Exception {
-        throw new UnsupportedOperationException();
-    }
-
+    @Override
     public int[] getResultUpdateBatch() {
         if (relatedQueries.isEmpty()) {
             return resultUpdateBatch;
@@ -281,6 +277,19 @@ public abstract class AbstractTransactionalQuery implements TransactionalQuery, 
         }
     }
 
+    @Override
+    public long getDuration() {
+        return duration;
+    }
+
+    protected void bindOriginal(int idx, String o, Class<?> clazz) throws Exception {
+        throw new UnsupportedOperationException();
+    }
+
+    protected void bindOriginal(int idx, Object o) throws Exception {
+        throw new UnsupportedOperationException();
+    }
+
     private RunInfo runQuery(TransactionalQuery transactionalQuery) {
         RunInfo runInfo = new RunInfo();
         runInfo.setName(
@@ -293,7 +302,7 @@ public abstract class AbstractTransactionalQuery implements TransactionalQuery, 
         runInfo.setFuture(
                 this.executorService.submit(() -> {
                     try {
-                        log.trace("Running " + runInfo.getName());
+                        log.trace("Running {}", runInfo.getName());
                         ((Runnable) transactionalQuery).run();
                     } catch (Exception err) {
                         runInfo.setError("ERROR: " + runInfo.getName() + ":\n" + err.getLocalizedMessage());
@@ -306,7 +315,7 @@ public abstract class AbstractTransactionalQuery implements TransactionalQuery, 
 
     private void waitRun(RunInfo runInfo) {
         try {
-            log.trace("Waiting " + runInfo.getName() + "...");
+            log.trace("Waiting {}}...", runInfo.getName());
             runInfo.getFuture().get();
         } catch (Exception err) {
             throw new ShardDataBaseException(err);

@@ -1,5 +1,6 @@
 package ru.vtb.pmts.db.service.impl.managers;
 
+import com.google.common.util.concurrent.ThreadFactoryBuilder;
 import org.springframework.web.reactive.function.client.WebClient;
 import ru.vtb.pmts.db.entity.abstraction.ShardInstance;
 import ru.vtb.pmts.db.exception.ShardDataBaseException;
@@ -31,10 +32,7 @@ import javax.sql.DataSource;
 import java.io.File;
 import java.sql.*;
 import java.util.*;
-import java.util.concurrent.ExecutorService;
-import java.util.concurrent.Executors;
-import java.util.concurrent.ThreadPoolExecutor;
-import java.util.concurrent.TimeUnit;
+import java.util.concurrent.*;
 import java.util.function.Consumer;
 import java.util.function.Function;
 import java.util.stream.Stream;
@@ -49,13 +47,17 @@ public class ShardDatabaseManagerImpl implements ShardDataBaseManager {
     private static final String CLUSTERS_PATH = "clusters";
     private static final String SHARDS_PATH = "shards";
     private static final String MAIN_SEQUENCE = "SEQ_ID";
-    private static final int DEFAULT_TIME_OUT_REFRESH_DB_INFO = 10;
+    private static final int DEFAULT_TIME_OUT_DB_PROCESSOR = 10;
 
     private static final String SELECT_DB_INFO = "SELECT SHARD_ID,MAIN_SHARD,CLUSTER_ID,CLUSTER_NAME,DEFAULT_CLUSTER" +
             ",SEGMENT_NAME,ACCESSIBLE FROM $$$.APP_DATABASE";
     private static final String INS_DB_INFO = "INSERT INTO $$$.APP_DATABASE " +
             "(SHARD_ID,MAIN_SHARD,CLUSTER_ID,CLUSTER_NAME,DEFAULT_CLUSTER,SEGMENT_NAME,ACCESSIBLE) " +
             " VALUES (?, ?, ?, ?, ?, ?, ?)";
+    private static final String SAVE_TRANSACTION_QUERY = "INSERT INTO $$$.APP_TRANSACTION " +
+            "(UUID,EXECUTE_TIME,CHUNKS,ELAPSED_TIME,ALL_ELAPSED_TIME,FAILED,ERROR) VALUES (?,?,?,?,?,?,?)";
+    private static final String SAVE_DML_QUERY = "INSERT INTO $$$.APP_DML_QUERY " +
+            "(TRN_UUID,QUERY_ORDER,SQL_TEXT,ROWS_PROCESSED,ELAPSED_TIME) VALUES (?,?,?,?,?)";
 
     private static final String SELECT_DYNAMIC_DB_INFO = "SELECT SEGMENT_NAME,ACCESSIBLE FROM $$$.APP_DATABASE";
 
@@ -76,8 +78,8 @@ public class ShardDatabaseManagerImpl implements ShardDataBaseManager {
     private String changLogName;
     private Boolean liquibaseEnable;
     private String segment;
+    private int timeOutDbProcessor;
     private int parallelLimit;
-    private int timeOut;
     private final ExecutorService executorService;
 
     ShardDatabaseManagerImpl(
@@ -100,6 +102,7 @@ public class ShardDatabaseManagerImpl implements ShardDataBaseManager {
         runInitLiquibase();
         processDataBaseInfo();
         runLiquibase();
+        runScheduleDatabaseProcessor();
     }
 
     @Override
@@ -481,29 +484,63 @@ public class ShardDatabaseManagerImpl implements ShardDataBaseManager {
                 .forEach(this::checkDataBaseInfo);
     }
 
+    public void saveTransactionInfo() {
+        if (!sharedTransactionManager.getTransactionInfoList().isEmpty()) {
+            log.trace("Save transaction info...");
+            List<TransactionInfo> transactionInfoList = sharedTransactionManager.getTransactionInfoList();
+            List<TransactionInfo> copyTransactionInfoList;
+            synchronized (transactionInfoList) {
+                copyTransactionInfoList = transactionInfoList.stream().toList();
+                transactionInfoList.clear();
+            }
+            sharedTransactionManager.getTransaction().begin();
+            copyTransactionInfoList.forEach(transactionInfo -> {
+                getTransactionalTask(transactionInfo.shard())
+                        .addQuery(SAVE_TRANSACTION_QUERY, QueryType.DML)
+                        .bind(transactionInfo.uuid())
+                        .bind(transactionInfo.executeTime())
+                        .bind(transactionInfo.chunks())
+                        .bind(transactionInfo.elapsedTime())
+                        .bind(transactionInfo.allElapsedTime())
+                        .bind(transactionInfo.failed())
+                        .bind(transactionInfo.error())
+                        .addBatch();
+                transactionInfo.queries().forEach(queryInfo -> {
+                    getTransactionalTask(transactionInfo.shard())
+                            .addQuery(SAVE_DML_QUERY, QueryType.DML)
+                            .bind(transactionInfo.uuid())
+                            .bind(queryInfo.order())
+                            .bind(queryInfo.sql())
+                            .bind(queryInfo.rows())
+                            .bind(queryInfo.elapsedTime())
+                            .addBatch();
+                });
+            });
+            ((SharedEntityTransaction) sharedTransactionManager.getTransaction()).commit(false);
+        }
+    }
+
     private void getDynamicDataBaseInfo(Shard shard) {
-        if (shard.getDynamicDataBaseInfo().getLastTime() != null &&
-                System.currentTimeMillis() - shard.getDynamicDataBaseInfo().getLastTime() > this.timeOut)
-        {
-            log.trace("Read dynamic DB info...'");
-            DynamicDataBaseInfo dynamicDataBaseInfo = shard.getDynamicDataBaseInfo();
-            dynamicDataBaseInfo.setLastTime(System.currentTimeMillis());
-            try {
-                Connection connection = shard.getDataSource().getConnection();
-                PreparedStatement preparedStatement = connection.prepareStatement(
-                        ShardUtils.transformSQL(SELECT_DYNAMIC_DB_INFO, shard)
-                );
-                ResultSet resultSet = preparedStatement.executeQuery();
-                if (resultSet.next()) {
-                    dynamicDataBaseInfo.setAvailable(true);
-                    dynamicDataBaseInfo.setSegment(resultSet.getString(1));
-                    dynamicDataBaseInfo.setAccessible(resultSet.getBoolean(2));
-                }
-                connection.close();
-            } catch (SQLException err) {
-                if (err instanceof SQLTransientConnectionException) {
-                    dynamicDataBaseInfo.setAvailable(false);
-                }
+        log.trace("Read dynamic DB info...");
+        TransactionalTask task = getTransactionalTask(shard);
+        DynamicDataBaseInfo dynamicDataBaseInfo = shard.getDynamicDataBaseInfo();
+        dynamicDataBaseInfo.setLastTime(System.currentTimeMillis());
+        try {
+            ResultQuery resultSet = task.addQuery(
+                    SELECT_DYNAMIC_DB_INFO,
+                    QueryType.SELECT
+            ).getResult();
+            if (resultSet.next()) {
+                dynamicDataBaseInfo.setAvailable(true);
+                dynamicDataBaseInfo.setSegment(resultSet.getString(1));
+                dynamicDataBaseInfo.setAccessible(resultSet.getBoolean(2));
+            }
+            task.finish();
+        } catch (Exception err) {
+            if (err instanceof SQLTransientConnectionException) {
+                dynamicDataBaseInfo.setAvailable(false);
+                log.trace("The shard '{}' is not available", shard.getName());
+            } else {
                 throw new ShardDataBaseException(err);
             }
         }
@@ -515,9 +552,9 @@ public class ShardDatabaseManagerImpl implements ShardDataBaseManager {
                 .stream()
                 .filter(it -> !it.getRemote())
                 .forEach(shard -> {
-                    TransactionalSQLTask task = (TransactionalSQLTask) getTransactionalTask(shard);
+                    TransactionalTask task = getTransactionalTask(shard);
                     task.setName("GET DataBase Info on shard " + shard.getName());
-                    TransactionalSQLQuery query = (TransactionalSQLQuery) task.addQuery(
+                    TransactionalQuery query = task.addQuery(
                             SELECT_DB_INFO,
                             QueryType.SELECT
                     );
@@ -581,7 +618,7 @@ public class ShardDatabaseManagerImpl implements ShardDataBaseManager {
         dynamicDBInfo.setAvailable(true);
         dynamicDBInfo.setAccessible(Optional.ofNullable(dynamicDBInfo.getAccessible()).orElse(true));
 
-        TransactionalSQLTask task = (TransactionalSQLTask) getTransactionalTask(shard);
+        TransactionalTask task = getTransactionalTask(shard);
         task.setName("SAVE DataBase Info on shard " + shard.getName());
         task.addQuery(INS_DB_INFO, QueryType.DML)
                 .bind(shard.getDataBaseInfo().getShardId())
@@ -599,7 +636,7 @@ public class ShardDatabaseManagerImpl implements ShardDataBaseManager {
                 .stream()
                 .filter(it -> !it.getRight().getRemote() && Objects.isNull(it.getRight().getDataBaseInfo()))
                 .forEach(it -> saveDataBaseInfo(it.getLeft(), it.getRight()));
-        sharedTransactionManager.getTransaction().commit();
+        ((SharedEntityTransaction) sharedTransactionManager.getTransaction()).commit(false);
     }
 
     private <T> Optional<T> getTransactionConfigValue(ShardDataBaseConfig shardDataBaseConfig,
@@ -734,13 +771,17 @@ public class ShardDatabaseManagerImpl implements ShardDataBaseManager {
         Optional.ofNullable(shardDataBaseConfig.getThreadPool())
                 .map(ThreadPoolConfig::getKeepAliveTime)
                 .ifPresent(keepAliveTime -> executor.setKeepAliveTime(keepAliveTime, TimeUnit.SECONDS));
+        Optional.ofNullable(shardDataBaseConfig.getThreadPool())
+                .map(ThreadPoolConfig::getNameFormat)
+                .ifPresent(nameFormat ->
+                        executor.setThreadFactory(new ThreadFactoryBuilder().setNameFormat(nameFormat).build()));
     }
 
     private void getProperties() {
         this.segment = shardDataBaseConfig.getSegment();
-        this.timeOut = Optional
-                .ofNullable(shardDataBaseConfig.getTimeOut())
-                .orElse(DEFAULT_TIME_OUT_REFRESH_DB_INFO) * 1000;
+        this.timeOutDbProcessor = Optional
+                .ofNullable(shardDataBaseConfig.getProcessorTimeOut())
+                .orElse(DEFAULT_TIME_OUT_DB_PROCESSOR);
         this.processLiquibaseConfig();
         this.processThreadPoolConfig();
         Assert.notEmpty(
@@ -910,7 +951,6 @@ public class ShardDatabaseManagerImpl implements ShardDataBaseManager {
 
     private Connection getConnection(Shard shard) throws SQLException {
         if (Objects.nonNull(shard)) {
-            getDynamicDataBaseInfo(shard);
             if (!this.isAvailable(shard.getDynamicDataBaseInfo())) {
                 throw new ShardDataBaseException(String.format("The shard \"%s\" is unavailable", shard.getName()));
             }
@@ -989,6 +1029,22 @@ public class ShardDatabaseManagerImpl implements ShardDataBaseManager {
         Optional.of(path + File.separatorChar + this.changLogName)
                 .filter(src -> resourceLoader.getResource(src).exists())
                 .ifPresent(this::runLiquibase);
+    }
+
+    private void runScheduleDatabaseProcessor() {
+        Executors.newSingleThreadScheduledExecutor().scheduleWithFixedDelay(() -> {
+            log.trace("schedule...'");
+            clusters
+                    .values()
+                    .forEach(
+                            cluster ->
+                                    cluster.getShards()
+                                            .forEach(shard -> {
+                                                this.executorService.submit(() -> this.getDynamicDataBaseInfo(shard));
+                                            })
+                    );
+            saveTransactionInfo();
+        }, this.timeOutDbProcessor, this.timeOutDbProcessor, TimeUnit.SECONDS);
     }
 
     private void runLiquibase() {

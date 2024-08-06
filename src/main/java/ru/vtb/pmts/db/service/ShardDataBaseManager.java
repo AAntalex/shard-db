@@ -30,4 +30,5 @@ public interface ShardDataBaseManager {
     long sequenceNextVal();
     TransactionalTask getTransactionalTask(Shard shard);
     Boolean isEnabled(Shard shard);
+    void saveTransactionInfo();
 }

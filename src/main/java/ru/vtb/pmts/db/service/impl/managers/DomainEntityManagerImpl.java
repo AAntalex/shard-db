@@ -159,7 +159,7 @@ public class DomainEntityManagerImpl implements DomainEntityManager {
         Mapper mapper = getMapper(clazz);
         return (List) domains.stream()
                 .map(mapper.domainEntityMapper::map)
-                .collect(Collectors.toList());
+                .toList();
     }
 
     @Override
@@ -167,7 +167,7 @@ public class DomainEntityManagerImpl implements DomainEntityManager {
         Mapper mapper = getMapper(clazz);
         return (List) entities.stream()
                 .map(mapper.domainEntityMapper::map)
-                .collect(Collectors.toList());
+                .toList();
     }
 
     @Override

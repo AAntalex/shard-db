@@ -1,5 +1,6 @@
 package ru.vtb.pmts.db.service.api;
 
+import ru.vtb.pmts.db.model.Shard;
 import ru.vtb.pmts.db.model.enums.QueryType;
 
 import java.util.List;
@@ -36,4 +37,6 @@ public interface TransactionalTask {
     void setMainTask(TransactionalTask task);
     List<TransactionalQuery> getDmlQueries();
     ExecutorService getExecutorService();
+    long getDuration();
+    Shard getShard();
 }

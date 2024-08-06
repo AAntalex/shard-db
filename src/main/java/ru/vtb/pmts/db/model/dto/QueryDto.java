@@ -1,4 +1,4 @@
-package ru.vtb.pmts.db.model.dto.query;
+package ru.vtb.pmts.db.model.dto;
 
 import lombok.Data;
 import lombok.experimental.Accessors;

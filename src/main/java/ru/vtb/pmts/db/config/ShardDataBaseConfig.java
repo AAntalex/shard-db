@@ -13,7 +13,7 @@ public class ShardDataBaseConfig {
     public static final String CONFIG_NAME = "shard-db-config";
 
     private String segment;
-    private Integer timeOut;
+    private Integer processorTimeOut;
     private List<ClusterConfig> clusters;
     private LiquibaseConfig liquibase;
     private HikariSettings hikari;

@@ -37,6 +37,7 @@ public interface TransactionalQuery {
     void init();
     int getResultUpdate();
     int[] getResultUpdateBatch();
+    long getDuration();
 
     default TransactionalQuery bind(Object o) {
         return bind(o, false);

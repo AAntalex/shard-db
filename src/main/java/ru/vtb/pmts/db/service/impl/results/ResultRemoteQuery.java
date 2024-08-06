@@ -7,8 +7,6 @@ import javax.sql.rowset.serial.SerialBlob;
 import java.math.BigDecimal;
 import java.sql.*;
 import java.sql.Date;
-import java.time.OffsetDateTime;
-import java.time.ZoneOffset;
 import java.util.*;
 
 public class ResultRemoteQuery extends AbstractResultQuery {
@@ -29,8 +27,8 @@ public class ResultRemoteQuery extends AbstractResultQuery {
 
     @Override
     public boolean next() {
-        if ((fetchLimit == null || ++currentIndex <= fetchLimit) && result.size() > currentIndex) {
-            currentResult = result.get(currentIndex);
+        if ((fetchLimit == null || currentIndex+1 <= fetchLimit) && result.size() > currentIndex) {
+            currentResult = result.get(currentIndex++);
             return true;
         }
         return false;

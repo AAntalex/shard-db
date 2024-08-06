@@ -27,7 +27,6 @@ import org.springframework.stereotype.Component;
 import javax.persistence.EntityTransaction;
 import javax.persistence.FetchType;
 import java.util.*;
-import java.util.stream.Collectors;
 
 @Component
 @Primary
@@ -142,7 +141,7 @@ public class ShardEntityManagerImpl implements ShardEntityManager {
         entity.getAttributeStorage()
                 .forEach(it -> persist(it, false, false, true));
         if (isAurTransaction) {
-            flush(true);
+            flush();
         }
     }
 
@@ -154,7 +153,7 @@ public class ShardEntityManagerImpl implements ShardEntityManager {
         boolean isAurTransaction = startTransaction();
         entities.forEach(this::delete);
         if (isAurTransaction) {
-            flush(false);
+            flush();
         }
     }
 
@@ -193,9 +192,6 @@ public class ShardEntityManagerImpl implements ShardEntityManager {
             return;
         }
         Cluster cluster = getCluster(entity);
-
-
-
         ShardType shardType = getShardType(entity);
         if (
                 Optional.ofNullable(entity.getStorageContext())
@@ -360,7 +356,8 @@ public class ShardEntityManagerImpl implements ShardEntityManager {
 
     @Override
     public void flush() {
-        flush(false);
+        SharedEntityTransaction transaction = (SharedEntityTransaction) getTransaction();
+        transaction.commit();
     }
 
     @Override
@@ -397,10 +394,10 @@ public class ShardEntityManagerImpl implements ShardEntityManager {
                     Collections.singletonList(createQuery(entity, query, queryType, queryStrategy));
             case ALL_SHARDS -> dataBaseManager.getEntityShards(entity)
                     .map(shard -> this.createQuery(shard, query, queryType))
-                    .collect(Collectors.toList());
+                    .toList();
             case NEW_SHARDS -> dataBaseManager.getNewShards(entity)
                     .map(shard -> this.createQuery(shard, query, queryType))
-                    .collect(Collectors.toList());
+                    .toList();
         };
     }
 
@@ -422,7 +419,7 @@ public class ShardEntityManagerImpl implements ShardEntityManager {
     {
         return dataBaseManager.getEnabledShards(cluster)
                 .map(shard -> this.createQuery(shard, query, queryType))
-                .collect(Collectors.toList());
+                .toList();
     }
 
 
@@ -572,12 +569,6 @@ public class ShardEntityManagerImpl implements ShardEntityManager {
         return attributeStorageRepository.find(parent, storage);
     }
 
-    private void flush(boolean shortTransaction) {
-        SharedEntityTransaction transaction = (SharedEntityTransaction) getTransaction();
-        transaction.setShort(shortTransaction);
-        transaction.commit();
-    }
-
     private <T extends ShardInstance> T save(T entity, boolean onlyChanged) {
         setStorage(entity, null, true);
         generateId(entity, true);
@@ -594,7 +585,7 @@ public class ShardEntityManagerImpl implements ShardEntityManager {
                     persist(attributeStorage, onlyChanged);
                 });
         if (isAurTransaction) {
-            flush(true);
+            flush();
         }
         return entity;
     }
@@ -606,7 +597,7 @@ public class ShardEntityManagerImpl implements ShardEntityManager {
         boolean isAurTransaction = startTransaction();
         entities.forEach(it -> save(it, onlyChanged));
         if (isAurTransaction) {
-            flush(false);
+            flush();
         }
         return entities;
     }

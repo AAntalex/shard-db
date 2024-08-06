@@ -1,15 +1,17 @@
 package ru.vtb.pmts.db.service.impl;
 
+import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Component;
 import org.springframework.util.Assert;
 import ru.vtb.pmts.db.exception.ShardDataBaseException;
-import ru.vtb.pmts.db.model.dto.query.QueryDto;
-import ru.vtb.pmts.db.model.dto.query.RemoteButchResultDto;
-import ru.vtb.pmts.db.model.dto.query.RemoteQueryResultDto;
-import ru.vtb.pmts.db.model.dto.query.RemoteUpdateResultDto;
+import ru.vtb.pmts.db.model.dto.QueryDto;
+import ru.vtb.pmts.db.model.dto.response.ResponseButchDto;
+import ru.vtb.pmts.db.model.dto.response.ResponseErrorDto;
+import ru.vtb.pmts.db.model.dto.response.ResponseQueryDto;
+import ru.vtb.pmts.db.model.dto.response.ResponseUpdateDto;
 import ru.vtb.pmts.db.service.ShardDataBaseManager;
 import ru.vtb.pmts.db.service.api.RemoteDatabaseService;
 import ru.vtb.pmts.db.service.api.ResultQuery;
@@ -48,15 +50,16 @@ public class RemoteDatabaseServiceImpl implements RemoteDatabaseService {
                                     } catch (Exception err) {
                                         throw new ShardDataBaseException(err);
                                     }
-                                }).collect(Collectors.toList())
+                                })
+                                .toList()
                 );
             }
-            RemoteQueryResultDto remoteQueryResultDto =
-                    new RemoteQueryResultDto()
+            ResponseQueryDto responseQueryDto =
+                    new ResponseQueryDto()
                             .clientUuid(CLIENT_UUID)
                             .result(resultValues);
             finish(query, task);
-            return objectMapper.writeValueAsString(remoteQueryResultDto);
+            return objectMapper.writeValueAsString(responseQueryDto);
         } catch (Exception err) {
             throw new ShardDataBaseException(err);
         }
@@ -66,7 +69,7 @@ public class RemoteDatabaseServiceImpl implements RemoteDatabaseService {
     public String executeUpdate(QueryDto query) {
         TransactionalTask task = getTask(query);
         try {
-            RemoteUpdateResultDto result = new RemoteUpdateResultDto()
+            ResponseUpdateDto result = new ResponseUpdateDto()
                     .clientUuid(CLIENT_UUID)
                     .result(
                             task
@@ -88,7 +91,7 @@ public class RemoteDatabaseServiceImpl implements RemoteDatabaseService {
         TransactionalQuery transactionalQuery = task.addQuery(query.query(), query.queryType());
         query.batchBinds().forEach(binds -> transactionalQuery.bindAll(binds, types).addBatch());
         try {
-            RemoteButchResultDto result = new RemoteButchResultDto()
+            ResponseButchDto result = new ResponseButchDto()
                     .clientUuid(CLIENT_UUID)
                     .result(transactionalQuery.executeBatch());
             finish(query, task);
@@ -115,6 +118,17 @@ public class RemoteDatabaseServiceImpl implements RemoteDatabaseService {
             task.rollback();
             task.finish();
             postponedTasks.remove(taskUuid);
+        }
+    }
+
+    @Override
+    public String getResponseError(String error) {
+        try {
+            return objectMapper.writeValueAsString(
+                    new ResponseErrorDto().clientUuid(CLIENT_UUID).error(error)
+            );
+        } catch (JsonProcessingException err) {
+            throw new ShardDataBaseException(err);
         }
     }
 

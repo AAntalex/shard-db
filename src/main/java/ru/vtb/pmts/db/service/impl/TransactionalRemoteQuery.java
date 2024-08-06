@@ -5,10 +5,11 @@ import org.springframework.http.HttpStatusCode;
 import org.springframework.http.MediaType;
 import ru.vtb.pmts.db.exception.ShardDataBaseException;
 import ru.vtb.pmts.db.model.RemoteTaskContainer;
-import ru.vtb.pmts.db.model.dto.query.QueryDto;
-import ru.vtb.pmts.db.model.dto.query.RemoteButchResultDto;
-import ru.vtb.pmts.db.model.dto.query.RemoteQueryResultDto;
-import ru.vtb.pmts.db.model.dto.query.RemoteUpdateResultDto;
+import ru.vtb.pmts.db.model.dto.QueryDto;
+import ru.vtb.pmts.db.model.dto.response.ResponseButchDto;
+import ru.vtb.pmts.db.model.dto.response.ResponseErrorDto;
+import ru.vtb.pmts.db.model.dto.response.ResponseQueryDto;
+import ru.vtb.pmts.db.model.dto.response.ResponseUpdateDto;
 import ru.vtb.pmts.db.model.enums.QueryType;
 import ru.vtb.pmts.db.service.abstractive.AbstractTransactionalQuery;
 import ru.vtb.pmts.db.service.api.ResultQuery;
@@ -19,7 +20,6 @@ import java.sql.Blob;
 import java.sql.Clob;
 import java.sql.SQLException;
 import java.util.*;
-import java.util.stream.Collectors;
 
 public class TransactionalRemoteQuery extends AbstractTransactionalQuery {
     private static final String EXECUTE_BATCH_URI = "executeBatch";
@@ -94,21 +94,21 @@ public class TransactionalRemoteQuery extends AbstractTransactionalQuery {
 
     @Override
     public int[] executeBatch() throws Exception {
-        RemoteButchResultDto queryResult = getResponseResult(RemoteButchResultDto.class, EXECUTE_BATCH_URI);
+        ResponseButchDto queryResult = getResponseResult(ResponseButchDto.class, EXECUTE_BATCH_URI);
         taskContainer.clientUuid(queryResult.clientUuid());
         return queryResult.result();
     }
 
     @Override
     public int executeUpdate() throws Exception {
-        RemoteUpdateResultDto queryResult = getResponseResult(RemoteUpdateResultDto.class, EXECUTE_UPDATE_URI);
+        ResponseUpdateDto queryResult = getResponseResult(ResponseUpdateDto.class, EXECUTE_UPDATE_URI);
         taskContainer.clientUuid(queryResult.clientUuid());
         return queryResult.result();
     }
 
     @Override
     public ResultQuery executeQuery() throws Exception {
-        RemoteQueryResultDto queryResult = getResponseResult(RemoteQueryResultDto.class, EXECUTE_QUERY_URI);
+        ResponseQueryDto queryResult = getResponseResult(ResponseQueryDto.class, EXECUTE_QUERY_URI);
         taskContainer.clientUuid(queryResult.clientUuid());
         return new ResultRemoteQuery(
                 queryResult.result(),
@@ -129,7 +129,23 @@ public class TransactionalRemoteQuery extends AbstractTransactionalQuery {
                                 .bodyValue(body)
                                 .retrieve()
                                 .onStatus(HttpStatusCode::isError,
-                                        response -> response.bodyToMono(String.class).map(ShardDataBaseException::new))
+                                        response ->
+                                                response.bodyToMono(String.class)
+                                                        .map(jsonData -> {
+                                                            try {
+                                                                ResponseErrorDto errorDto =
+                                                                        objectMapper.readValue(
+                                                                                jsonData,
+                                                                                ResponseErrorDto.class
+                                                                        );
+                                                                taskContainer.clientUuid(errorDto.clientUuid());
+                                                                return errorDto.error();
+                                                            } catch (Exception err) {
+                                                                return err.getLocalizedMessage();
+                                                            }
+                                                        })
+                                                        .map(ShardDataBaseException::new)
+                                )
                                 .bodyToMono(String.class)
                                 .block()
                 )
@@ -170,7 +186,7 @@ public class TransactionalRemoteQuery extends AbstractTransactionalQuery {
                                                 .map(Class::getCanonicalName)
                                                 .orElse(null)
                                 )
-                                .collect(Collectors.toList())
+                                .toList()
                 )
                 .binds(binds)
                 .batchBinds(batchBinds);
