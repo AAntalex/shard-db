@@ -521,7 +521,7 @@ public class ShardDatabaseManagerImpl implements ShardDataBaseManager {
     }
 
     private void getDynamicDataBaseInfo(Shard shard) {
-        log.trace("Read dynamic DB info...");
+        log.trace("Read dynamic DB info on '{}'...", shard.getName());
         TransactionalTask task = getTransactionalTask(shard);
         DynamicDataBaseInfo dynamicDataBaseInfo = shard.getDynamicDataBaseInfo();
         dynamicDataBaseInfo.setLastTime(System.currentTimeMillis());
@@ -1033,7 +1033,7 @@ public class ShardDatabaseManagerImpl implements ShardDataBaseManager {
 
     private void runScheduleDatabaseProcessor() {
         Executors.newSingleThreadScheduledExecutor().scheduleWithFixedDelay(() -> {
-            log.trace("schedule...'");
+            log.trace("schedule Database Processor...");
             clusters
                     .values()
                     .forEach(

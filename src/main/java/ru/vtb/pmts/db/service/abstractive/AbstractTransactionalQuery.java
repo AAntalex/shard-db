@@ -26,7 +26,7 @@ public abstract class AbstractTransactionalQuery implements TransactionalQuery, 
     protected Integer fetchLimit;
     protected final List<TransactionalQuery> relatedQueries = new ArrayList<>();
 
-    private Long duration;
+    private long duration;
     private int resultUpdate;
     private int[] resultUpdateBatch;
     private ExecutorService executorService;
@@ -197,6 +197,7 @@ public abstract class AbstractTransactionalQuery implements TransactionalQuery, 
             }
             this.duration = System.currentTimeMillis() - this.duration;
         } catch (Exception err) {
+            this.duration = System.currentTimeMillis() - this.duration;
             throw new ShardDataBaseException(err);
         }
     }

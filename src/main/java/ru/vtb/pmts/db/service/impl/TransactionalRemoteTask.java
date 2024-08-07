@@ -56,18 +56,17 @@ public class TransactionalRemoteTask extends AbstractTransactionalTask {
         return this.taskContainer.postponedCommit() && this.parallelRun;
     }
 
+
     @Override
     public void finish() {
-        if (this.status == TaskStatus.COMPLETION) {
-            try {
-                if (this.parallelRun) {
-                    this.future.get();
-                }
-            } catch (Exception err) {
-                this.errorCompletion = err.getLocalizedMessage();
+        try {
+            if (this.parallelRun) {
+                this.future.get();
             }
-            this.status = TaskStatus.FINISHED;
+        } catch (Exception err) {
+            this.errorCompletion = err.getLocalizedMessage();
         }
+        this.status = TaskStatus.FINISHED;
     }
 
     @Override

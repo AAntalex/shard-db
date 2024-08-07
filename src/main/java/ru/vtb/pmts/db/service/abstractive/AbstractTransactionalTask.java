@@ -24,7 +24,7 @@ public abstract class AbstractTransactionalTask implements TransactionalTask {
     protected Shard shard;
     protected boolean parallelRun;
 
-    private Long duration;
+    private long duration;
     private String error;
     private final Map<String, TransactionalQuery> queries = new HashMap<>();
     private final List<TransactionalQuery> dmlQueries = new ArrayList<>();
