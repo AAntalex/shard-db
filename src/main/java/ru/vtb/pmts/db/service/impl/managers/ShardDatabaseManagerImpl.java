@@ -342,7 +342,7 @@ public class ShardDatabaseManagerImpl implements ShardDataBaseManager {
         Short shardId = shard.getId();
         while (!isEnabled(shard)) {
             shard = cluster.getShards().get((int) shardSequences.get(cluster.getName()).nextValue());
-            Assert.isTrue(!shardId.equals(shard.getId()), "Отсутсвуют доступные шарды!");
+            Assert.isTrue(!shardId.equals(shard.getId()), "Отсутствуют доступные шарды!");
         }
         return shard;
     }
@@ -487,11 +487,10 @@ public class ShardDatabaseManagerImpl implements ShardDataBaseManager {
     public void saveTransactionInfo() {
         if (!sharedTransactionManager.getTransactionInfoList().isEmpty()) {
             log.trace("Save transaction info...");
-            List<TransactionInfo> transactionInfoList = sharedTransactionManager.getTransactionInfoList();
             List<TransactionInfo> copyTransactionInfoList;
-            synchronized (transactionInfoList) {
-                copyTransactionInfoList = transactionInfoList.stream().toList();
-                transactionInfoList.clear();
+            synchronized (sharedTransactionManager.getTransactionInfoList()) {
+                copyTransactionInfoList = sharedTransactionManager.getTransactionInfoList().stream().toList();
+                sharedTransactionManager.getTransactionInfoList().clear();
             }
             sharedTransactionManager.getTransaction().begin();
             copyTransactionInfoList.forEach(transactionInfo -> {
@@ -505,16 +504,14 @@ public class ShardDatabaseManagerImpl implements ShardDataBaseManager {
                         .bind(transactionInfo.failed())
                         .bind(transactionInfo.error())
                         .addBatch();
-                transactionInfo.queries().forEach(queryInfo -> {
-                    getTransactionalTask(transactionInfo.shard())
-                            .addQuery(SAVE_DML_QUERY, QueryType.DML)
-                            .bind(transactionInfo.uuid())
-                            .bind(queryInfo.order())
-                            .bind(queryInfo.sql())
-                            .bind(queryInfo.rows())
-                            .bind(queryInfo.elapsedTime())
-                            .addBatch();
-                });
+                transactionInfo.queries().forEach(queryInfo -> getTransactionalTask(transactionInfo.shard())
+                        .addQuery(SAVE_DML_QUERY, QueryType.DML)
+                        .bind(transactionInfo.uuid())
+                        .bind(queryInfo.order())
+                        .bind(queryInfo.sql())
+                        .bind(queryInfo.rows())
+                        .bind(queryInfo.elapsedTime())
+                        .addBatch());
             });
             ((SharedEntityTransaction) sharedTransactionManager.getTransaction()).commit(false);
         }
@@ -1039,9 +1036,7 @@ public class ShardDatabaseManagerImpl implements ShardDataBaseManager {
                     .forEach(
                             cluster ->
                                     cluster.getShards()
-                                            .forEach(shard -> {
-                                                this.executorService.submit(() -> this.getDynamicDataBaseInfo(shard));
-                                            })
+                                            .forEach(shard -> this.executorService.submit(() -> this.getDynamicDataBaseInfo(shard)))
                     );
             saveTransactionInfo();
         }, this.timeOutDbProcessor, this.timeOutDbProcessor, TimeUnit.SECONDS);
