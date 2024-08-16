@@ -1,0 +1,7 @@
+package ru.vtb.pmts.db.service;
+
+import java.sql.Connection;
+
+public interface LockManager {
+    <T extends Connection> String getLockInfo(T conn);
+}

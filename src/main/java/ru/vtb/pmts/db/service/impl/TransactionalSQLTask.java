@@ -1,5 +1,6 @@
 package ru.vtb.pmts.db.service.impl;
 
+import com.zaxxer.hikari.pool.ProxyConnection;
 import ru.vtb.pmts.db.exception.ShardDataBaseException;
 import ru.vtb.pmts.db.model.Shard;
 import ru.vtb.pmts.db.model.enums.QueryType;
@@ -9,10 +10,14 @@ import ru.vtb.pmts.db.service.api.TransactionalQuery;
 import ru.vtb.pmts.db.utils.ShardUtils;
 import lombok.extern.slf4j.Slf4j;
 
+import java.lang.reflect.Field;
 import java.sql.Connection;
 import java.sql.SQLException;
+import java.util.Objects;
 import java.util.Optional;
 import java.util.concurrent.ExecutorService;
+import java.util.concurrent.TimeUnit;
+import java.util.concurrent.TimeoutException;
 
 @Slf4j
 public class TransactionalSQLTask extends AbstractTransactionalTask {
@@ -85,7 +90,33 @@ public class TransactionalSQLTask extends AbstractTransactionalTask {
         }
     }
 
+    @Override
+    public void waitTask() {
+        if (this.status == TaskStatus.RUNNING) {
+            try {
+                log.trace("Waiting {}...", this.name);
+                long waitTime = System.currentTimeMillis();
+                while (true) try {
+                    this.future.get(1, TimeUnit.SECONDS);
+                    break;
+                } catch (TimeoutException ignored) {
+                    log.trace("Waiting after {} sec.", (System.currentTimeMillis() - waitTime) / 1000);
+                }
+            } catch (Exception err) {
+                throw new ShardDataBaseException(err);
+            } finally {
+                this.status = TaskStatus.DONE;
+            }
+        }
+    }
+
     public Connection getConnection() {
         return connection;
+    }
+
+    private Object getDelegateConnection(ProxyConnection connection) throws Exception {
+        Field field = ProxyConnection.class.getDeclaredField("delegate");
+        field.setAccessible(true);
+        return field.get(connection);
     }
 }
