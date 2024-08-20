@@ -106,6 +106,7 @@ public class TransactionalSQLTask extends AbstractTransactionalTask {
                     break;
                 } catch (TimeoutException ignored) {
                     log.trace("Waiting after {} sec.", (System.currentTimeMillis() - waitTime) / 1000);
+                    log.trace("Waiting for {}...", lockManager.getLockInfo(connection, shard));
                 }
             } catch (Exception err) {
                 throw new ShardDataBaseException(err);

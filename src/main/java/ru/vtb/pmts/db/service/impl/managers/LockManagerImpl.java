@@ -10,7 +10,6 @@ import ru.vtb.pmts.db.exception.ShardDataBaseException;
 import ru.vtb.pmts.db.model.DataBaseInstance;
 import ru.vtb.pmts.db.service.LockManager;
 import ru.vtb.pmts.db.service.LockProcessor;
-import ru.vtb.pmts.db.service.ShardEntityRepository;
 
 import java.lang.reflect.Field;
 import java.sql.Connection;
@@ -38,7 +37,7 @@ public class LockManagerImpl implements LockManager {
     public void setLockProcessors(List<LockProcessor<?>> lockProcessors) {
         for (LockProcessor<?> lockProcessor : lockProcessors) {
             Class<?>[] classes = GenericTypeResolver
-                    .resolveTypeArguments(lockProcessors.getClass(), ShardEntityRepository.class);
+                    .resolveTypeArguments(lockProcessor.getClass(), LockProcessor.class);
             if (Objects.nonNull(classes) && classes.length > 0 && !LOCK_PROCESSORS.containsKey(classes[0])) {
                 LOCK_PROCESSORS.put(classes[0], lockProcessor);
             }
@@ -50,18 +49,19 @@ public class LockManagerImpl implements LockManager {
         if (conn == null) {
             return null;
         }
-        return getLockProcessor(conn).getLockInfo(conn, shard);
+        Connection targetConnection = getTargetConnection(conn);
+        return getLockProcessor(targetConnection).getLockInfo(targetConnection, shard);
     }
 
-    private Class<?> getConnectionClass(Connection connection) {
+    private Connection getTargetConnection(Connection connection) {
         if (connection instanceof ProxyConnection) {
             try {
-                return this.delegateField.get(connection).getClass();
+                return (Connection) this.delegateField.get(connection);
             } catch (Exception err) {
                 throw new ShardDataBaseException(err);
             }
         } else {
-            return connection.getClass();
+            return connection;
         }
     }
 
@@ -70,15 +70,14 @@ public class LockManagerImpl implements LockManager {
         if (lockProcessor != null && currentConnection.get() == connection) {
             return lockProcessor;
         }
-        Class<?> clazz = getConnectionClass(connection);
         lockProcessor =
                 Optional
-                        .ofNullable(LOCK_PROCESSORS.get(clazz))
+                        .ofNullable(LOCK_PROCESSORS.get(connection.getClass()))
                         .orElse(
                                 LOCK_PROCESSORS
                                         .keySet()
                                         .stream()
-                                        .filter(it -> it.isAssignableFrom(clazz))
+                                        .filter(it -> it.isAssignableFrom(connection.getClass()))
                                         .map(LOCK_PROCESSORS::get)
                                         .findAny()
                                         .orElseThrow(NotImplementedException::new)
