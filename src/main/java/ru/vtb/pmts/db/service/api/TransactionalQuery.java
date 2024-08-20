@@ -1,10 +1,9 @@
 package ru.vtb.pmts.db.service.api;
 
 import ru.vtb.pmts.db.entity.abstraction.ShardInstance;
-import ru.vtb.pmts.db.model.Shard;
+import ru.vtb.pmts.db.model.DataBaseInstance;
 import ru.vtb.pmts.db.model.enums.QueryType;
 
-import java.sql.SQLException;
 import java.util.List;
 import java.util.concurrent.ExecutorService;
 
@@ -32,8 +31,8 @@ public interface TransactionalQuery {
     TransactionalQuery getMainQuery();
     void setExecutorService(ExecutorService executorService);
     void setParallelRun(Boolean parallelRun);
-    void setShard(Shard shard);
-    Shard getShard();
+    void setShard(DataBaseInstance shard);
+    DataBaseInstance getShard();
     void init();
     int getResultUpdate();
     int[] getResultUpdateBatch();

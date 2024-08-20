@@ -6,7 +6,7 @@ import org.springframework.web.reactive.function.client.WebClient;
 import javax.sql.DataSource;
 
 @Data
-public class Shard {
+public class DataBaseInstance {
     private Short id;
     private String name;
     private String clusterName;

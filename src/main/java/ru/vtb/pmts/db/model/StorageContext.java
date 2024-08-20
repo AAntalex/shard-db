@@ -11,7 +11,7 @@ import java.util.Optional;
 @Builder
 public class StorageContext {
     private Cluster cluster;
-    private Shard shard;
+    private DataBaseInstance shard;
     private Long shardMap;
     private Long originalShardMap;
     private Boolean stored;
@@ -117,11 +117,11 @@ public class StorageContext {
                 (ShardUtils.getShardMap(this.cluster.getMainShard().getId()) & this.shardMap) > 0L;
     }
 
-    public Shard getShard() {
+    public DataBaseInstance getShard() {
         return shard;
     }
 
-    public void setShard(Shard shard) {
+    public void setShard(DataBaseInstance shard) {
         this.shard = shard;
     }
 

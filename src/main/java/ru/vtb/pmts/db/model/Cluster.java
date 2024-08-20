@@ -11,7 +11,7 @@ import java.util.Map;
 public class Cluster {
     private Short id;
     private String name;
-    private Shard mainShard;
-    private List<Shard> shards = new ArrayList<>();
-    private Map<Short, Shard> shardMap = new HashMap<>();
+    private DataBaseInstance mainShard;
+    private List<DataBaseInstance> shards = new ArrayList<>();
+    private Map<Short, DataBaseInstance> shardMap = new HashMap<>();
 }

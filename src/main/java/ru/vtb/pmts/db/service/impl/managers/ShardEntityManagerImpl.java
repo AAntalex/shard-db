@@ -5,7 +5,7 @@ import ru.vtb.pmts.db.entity.abstraction.ShardInstance;
 import ru.vtb.pmts.db.exception.ShardDataBaseException;
 import ru.vtb.pmts.db.model.Cluster;
 import ru.vtb.pmts.db.model.DataStorage;
-import ru.vtb.pmts.db.model.Shard;
+import ru.vtb.pmts.db.model.DataBaseInstance;
 import ru.vtb.pmts.db.model.StorageContext;
 import ru.vtb.pmts.db.model.enums.QueryStrategy;
 import ru.vtb.pmts.db.model.enums.QueryType;
@@ -695,7 +695,7 @@ public class ShardEntityManagerImpl implements ShardEntityManager {
         return mainQuery;
     }
 
-    private TransactionalQuery createQuery(Shard shard, String query, QueryType queryType) {
+    private TransactionalQuery createQuery(DataBaseInstance shard, String query, QueryType queryType) {
         TransactionalQuery transactionalQuery = dataBaseManager.getTransactionalTask(shard).addQuery(query, queryType);
         transactionalQuery.setShard(shard);
         if (queryType == QueryType.SELECT) {

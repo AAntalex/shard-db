@@ -2,7 +2,7 @@ package ru.vtb.pmts.db.entity.abstraction;
 
 import ru.vtb.pmts.db.entity.AttributeStorage;
 import ru.vtb.pmts.db.model.Cluster;
-import ru.vtb.pmts.db.model.Shard;
+import ru.vtb.pmts.db.model.DataBaseInstance;
 import ru.vtb.pmts.db.model.StorageContext;
 
 import javax.persistence.EntityTransaction;
@@ -18,7 +18,7 @@ public interface ShardInstance {
     boolean isLazy();
     Boolean isStored();
     boolean hasNewShards();
-    boolean isOurShard(Shard shard);
+    boolean isOurShard(DataBaseInstance shard);
     boolean setTransactionalContext(EntityTransaction transaction);
     List<AttributeStorage> getAttributeStorage();
     void setAttributeStorage(List<AttributeStorage> attributeStorage);

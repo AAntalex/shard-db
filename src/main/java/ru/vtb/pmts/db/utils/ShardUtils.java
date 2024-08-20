@@ -1,6 +1,6 @@
 package ru.vtb.pmts.db.utils;
 
-import ru.vtb.pmts.db.model.Shard;
+import ru.vtb.pmts.db.model.DataBaseInstance;
 
 import java.util.Optional;
 
@@ -10,7 +10,7 @@ public class ShardUtils {
     public static final int MAX_CLUSTERS = 100;
     private static final String DEFAULT_OWNER_PREFIX = "$$$";
 
-    public static String transformSQL(String sql, Shard shard) {
+    public static String transformSQL(String sql, DataBaseInstance shard) {
         return Optional.ofNullable(shard.getOwner())
                 .map(owner -> sql.replace(DEFAULT_OWNER_PREFIX, owner))
                 .orElse(sql);

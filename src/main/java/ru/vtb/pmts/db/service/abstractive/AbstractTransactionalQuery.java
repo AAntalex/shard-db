@@ -2,7 +2,7 @@ package ru.vtb.pmts.db.service.abstractive;
 
 import ru.vtb.pmts.db.entity.abstraction.ShardInstance;
 import ru.vtb.pmts.db.exception.ShardDataBaseException;
-import ru.vtb.pmts.db.model.Shard;
+import ru.vtb.pmts.db.model.DataBaseInstance;
 import ru.vtb.pmts.db.model.enums.QueryType;
 import ru.vtb.pmts.db.service.api.ResultQuery;
 import ru.vtb.pmts.db.service.api.TransactionalQuery;
@@ -35,7 +35,7 @@ public abstract class AbstractTransactionalQuery implements TransactionalQuery, 
     private int currentIndex;
     private boolean isButch;
     private int count;
-    private Shard shard;
+    private DataBaseInstance shard;
     private String error;
     private ResultParallelQuery parallelResult;
 
@@ -223,12 +223,12 @@ public abstract class AbstractTransactionalQuery implements TransactionalQuery, 
     }
 
     @Override
-    public void setShard(Shard shard) {
+    public void setShard(DataBaseInstance shard) {
         this.shard = shard;
     }
 
     @Override
-    public Shard getShard() {
+    public DataBaseInstance getShard() {
         return shard;
     }
 

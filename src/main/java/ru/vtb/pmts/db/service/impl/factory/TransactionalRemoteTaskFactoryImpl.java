@@ -1,7 +1,7 @@
 package ru.vtb.pmts.db.service.impl.factory;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
-import ru.vtb.pmts.db.model.Shard;
+import ru.vtb.pmts.db.model.DataBaseInstance;
 import ru.vtb.pmts.db.service.api.TransactionalRemoteTaskFactory;
 import ru.vtb.pmts.db.service.api.TransactionalTask;
 import org.springframework.stereotype.Component;
@@ -19,7 +19,7 @@ public class TransactionalRemoteTaskFactoryImpl implements TransactionalRemoteTa
     }
 
     @Override
-    public TransactionalTask createTask(Shard shard) {
+    public TransactionalTask createTask(DataBaseInstance shard) {
         return new TransactionalRemoteTask(shard, objectMapper, executorService);
     }
 

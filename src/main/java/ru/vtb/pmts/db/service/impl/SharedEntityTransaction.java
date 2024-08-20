@@ -2,7 +2,7 @@ package ru.vtb.pmts.db.service.impl;
 
 import ru.vtb.pmts.db.exception.ShardDataBaseException;
 import ru.vtb.pmts.db.model.QueryInfo;
-import ru.vtb.pmts.db.model.Shard;
+import ru.vtb.pmts.db.model.DataBaseInstance;
 import ru.vtb.pmts.db.model.TransactionInfo;
 import ru.vtb.pmts.db.service.api.TransactionalQuery;
 import ru.vtb.pmts.db.service.api.TransactionalTask;
@@ -135,7 +135,7 @@ public class SharedEntityTransaction implements EntityTransaction {
         return this.hasError;
     }
 
-    public TransactionalTask getCurrentTask(Shard shard, boolean limitParallel) {
+    public TransactionalTask getCurrentTask(DataBaseInstance shard, boolean limitParallel) {
         return Optional.ofNullable(currentTasks.get(shard.getHashCode()))
                 .orElse(
                         Optional.ofNullable(buckets.get(shard.getHashCode()))
@@ -149,7 +149,7 @@ public class SharedEntityTransaction implements EntityTransaction {
                 );
     }
 
-    public void addTask(Shard shard, TransactionalTask task) {
+    public void addTask(DataBaseInstance shard, TransactionalTask task) {
         currentTasks.put(shard.getHashCode(), task);
         tasks.add(task);
 

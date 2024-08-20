@@ -17,6 +17,6 @@ public class TransactionInfo {
     private Long allElapsedTime;
     private Boolean failed;
     private String error;
-    private Shard shard;
+    private DataBaseInstance shard;
     private List<QueryInfo> queries;
 }

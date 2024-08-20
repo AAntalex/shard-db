@@ -7,6 +7,7 @@ import org.springframework.context.annotation.Primary;
 import org.springframework.core.GenericTypeResolver;
 import org.springframework.stereotype.Component;
 import ru.vtb.pmts.db.exception.ShardDataBaseException;
+import ru.vtb.pmts.db.model.DataBaseInstance;
 import ru.vtb.pmts.db.service.LockManager;
 import ru.vtb.pmts.db.service.LockProcessor;
 import ru.vtb.pmts.db.service.ShardEntityRepository;
@@ -45,11 +46,11 @@ public class LockManagerImpl implements LockManager {
     }
 
     @Override
-    public <T extends Connection> String getLockInfo(T conn) {
+    public <T extends Connection> String getLockInfo(T conn, DataBaseInstance shard) {
         if (conn == null) {
             return null;
         }
-        return getLockProcessor(conn).getLockInfo(conn);
+        return getLockProcessor(conn).getLockInfo(conn, shard);
     }
 
     private Class<?> getConnectionClass(Connection connection) {

@@ -1,7 +1,7 @@
 package ru.vtb.pmts.db.service.abstractive;
 
 import ru.vtb.pmts.db.exception.ShardDataBaseException;
-import ru.vtb.pmts.db.model.Shard;
+import ru.vtb.pmts.db.model.DataBaseInstance;
 import ru.vtb.pmts.db.model.enums.QueryType;
 import ru.vtb.pmts.db.model.enums.TaskStatus;
 import ru.vtb.pmts.db.service.api.TransactionalQuery;
@@ -11,8 +11,6 @@ import lombok.extern.slf4j.Slf4j;
 import java.util.*;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Future;
-import java.util.concurrent.TimeUnit;
-import java.util.concurrent.TimeoutException;
 import java.util.stream.Stream;
 
 @Slf4j
@@ -23,7 +21,7 @@ public abstract class AbstractTransactionalTask implements TransactionalTask {
     protected String errorCompletion;
     protected Future future;
     protected TaskStatus status = TaskStatus.CREATED;
-    protected Shard shard;
+    protected DataBaseInstance shard;
     protected boolean parallelRun;
 
     private long duration;
@@ -266,7 +264,7 @@ public abstract class AbstractTransactionalTask implements TransactionalTask {
     }
 
     @Override
-    public Shard getShard() {
+    public DataBaseInstance getShard() {
         return shard;
     }
 }

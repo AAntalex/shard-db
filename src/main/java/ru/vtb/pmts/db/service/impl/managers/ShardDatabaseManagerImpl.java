@@ -72,7 +72,7 @@ public class ShardDatabaseManagerImpl implements ShardDataBaseManager {
     private final Map<Short, Cluster> clusterIds = new HashMap<>();
     private final Map<String, SequenceGenerator> shardSequences = new HashMap<>();
     private final Map<String, Map<Integer, SequenceGenerator>> sequences = new HashMap<>();
-    private final List<ImmutablePair<Cluster, Shard>> newShards = new ArrayList<>();
+    private final List<ImmutablePair<Cluster, DataBaseInstance>> newShards = new ArrayList<>();
 
     private String changLogPath;
     private String changLogName;
@@ -106,7 +106,7 @@ public class ShardDatabaseManagerImpl implements ShardDataBaseManager {
     }
 
     @Override
-    public TransactionalTask getTransactionalTask(Shard shard) {
+    public TransactionalTask getTransactionalTask(DataBaseInstance shard) {
         SharedEntityTransaction transaction = (SharedEntityTransaction) sharedTransactionManager.getTransaction();
         return Optional.ofNullable(
                 transaction.getCurrentTask(
@@ -163,14 +163,14 @@ public class ShardDatabaseManagerImpl implements ShardDataBaseManager {
     }
 
     @Override
-    public Shard getShard(Cluster cluster, Short id) {
+    public DataBaseInstance getShard(Cluster cluster, Short id) {
         if (cluster == null) {
             throw new ShardDataBaseException("Не указан кластер");
         }
         if (id == null) {
             throw new ShardDataBaseException("Не указан идентификатор шарды");
         }
-        Shard shard = cluster.getShardMap().get(id);
+        DataBaseInstance shard = cluster.getShardMap().get(id);
         if (shard == null) {
             throw new ShardDataBaseException(
                     String.format("Отсутсвует шарда с идентификатором '%d' в кластере '%s'", id, cluster.getName())
@@ -215,7 +215,7 @@ public class ShardDatabaseManagerImpl implements ShardDataBaseManager {
     }
 
     @Override
-    public Stream<Shard> getEnabledShards(Cluster cluster) {
+    public Stream<DataBaseInstance> getEnabledShards(Cluster cluster) {
         return Optional.ofNullable(cluster)
                 .map(Cluster::getShards)
                 .map(List::stream)
@@ -229,7 +229,7 @@ public class ShardDatabaseManagerImpl implements ShardDataBaseManager {
     }
 
     @Override
-    public Stream<Shard> getEntityShards(ShardInstance entity) {
+    public Stream<DataBaseInstance> getEntityShards(ShardInstance entity) {
         return getShardsFromValue(
                 entity,
                 entity.isStored() ?
@@ -240,7 +240,7 @@ public class ShardDatabaseManagerImpl implements ShardDataBaseManager {
     }
 
     @Override
-    public Stream<Shard> getNewShards(ShardInstance entity) {
+    public Stream<DataBaseInstance> getNewShards(ShardInstance entity) {
         if (entity.isStored()) {
             return getShardsFromValue(
                     entity,
@@ -254,7 +254,7 @@ public class ShardDatabaseManagerImpl implements ShardDataBaseManager {
     }
 
     @Override
-    public long sequenceNextVal(String sequenceName, Shard shard) {
+    public long sequenceNextVal(String sequenceName, DataBaseInstance shard) {
         Map<Integer, SequenceGenerator> shardSequences = sequences.get(sequenceName);
         if (Objects.isNull(shardSequences)) {
             shardSequences = new HashMap<>();
@@ -303,7 +303,7 @@ public class ShardDatabaseManagerImpl implements ShardDataBaseManager {
             throw new ShardDataBaseException("Идентификатор сущности не может быть равен 0");
         }
         Cluster cluster = getCluster(ShardUtils.getClusterIdFromEntityId(id));
-        Shard shard = getShard(cluster, ShardUtils.getShardIdFromEntityId(id));
+        DataBaseInstance shard = getShard(cluster, ShardUtils.getShardIdFromEntityId(id));
         return StorageContext.builder()
                 .stored(true)
                 .isLazy(true)
@@ -313,9 +313,9 @@ public class ShardDatabaseManagerImpl implements ShardDataBaseManager {
     }
 
     @Override
-    public Boolean isEnabled(Shard shard) {
+    public Boolean isEnabled(DataBaseInstance shard) {
         return Optional.ofNullable(shard)
-                .map(Shard::getDynamicDataBaseInfo)
+                .map(DataBaseInstance::getDynamicDataBaseInfo)
                 .map(it ->
                         this.isAvailable(it) &&
                                 Optional.ofNullable(shard.getSegment())
@@ -325,7 +325,7 @@ public class ShardDatabaseManagerImpl implements ShardDataBaseManager {
                 .orElse(true);
     }
 
-    private Stream<Shard> getShardsFromValue(ShardInstance entity, Long shardMap, boolean onlyNew) {
+    private Stream<DataBaseInstance> getShardsFromValue(ShardInstance entity, Long shardMap, boolean onlyNew) {
         return entity
                 .getStorageContext()
                 .getCluster()
@@ -337,8 +337,8 @@ public class ShardDatabaseManagerImpl implements ShardDataBaseManager {
                 );
     }
 
-    private Shard getNextShard(Cluster cluster) {
-        Shard shard = cluster.getShards().get((int) shardSequences.get(cluster.getName()).nextValue());
+    private DataBaseInstance getNextShard(Cluster cluster) {
+        DataBaseInstance shard = cluster.getShards().get((int) shardSequences.get(cluster.getName()).nextValue());
         Short shardId = shard.getId();
         while (!isEnabled(shard)) {
             shard = cluster.getShards().get((int) shardSequences.get(cluster.getName()).nextValue());
@@ -353,7 +353,7 @@ public class ShardDatabaseManagerImpl implements ShardDataBaseManager {
         saveDataBaseInfo();
     }
 
-    private void checkShardID(Cluster cluster, Shard shard, short shardId) {
+    private void checkShardID(Cluster cluster, DataBaseInstance shard, short shardId) {
         if (Objects.isNull(shard.getId())) {
             shard.setId(shardId);
             this.addShardToCluster(cluster, shard);
@@ -374,7 +374,7 @@ public class ShardDatabaseManagerImpl implements ShardDataBaseManager {
         }
     }
 
-    private void checkMainShard(Cluster cluster, Shard shard, boolean mainShard) {
+    private void checkMainShard(Cluster cluster, DataBaseInstance shard, boolean mainShard) {
         Assert.isTrue(
                 !Optional
                         .ofNullable(shardDataBaseConfig.getChecks())
@@ -461,7 +461,7 @@ public class ShardDatabaseManagerImpl implements ShardDataBaseManager {
         throw new ShardDataBaseException("Отсутсвует свободный идентификатор для кластера");
     }
 
-    private void checkDataBaseInfo(Cluster cluster, Shard shard) {
+    private void checkDataBaseInfo(Cluster cluster, DataBaseInstance shard) {
         if (Objects.nonNull(shard.getDataBaseInfo())) {
             checkShardID(cluster, shard, shard.getDataBaseInfo().getShardId());
             checkMainShard(cluster, shard, shard.getDataBaseInfo().isMainShard());
@@ -474,7 +474,7 @@ public class ShardDatabaseManagerImpl implements ShardDataBaseManager {
     }
 
     private void checkDataBaseInfo(Cluster cluster) {
-        for (Shard shard : cluster.getShards()) {
+        for (DataBaseInstance shard : cluster.getShards()) {
             checkDataBaseInfo(cluster, shard);
         }
     }
@@ -517,7 +517,7 @@ public class ShardDatabaseManagerImpl implements ShardDataBaseManager {
         }
     }
 
-    private void getDynamicDataBaseInfo(Shard shard) {
+    private void getDynamicDataBaseInfo(DataBaseInstance shard) {
         log.trace("Read dynamic DB info on '{}'...", shard.getName());
         TransactionalTask task = getTransactionalTask(shard);
         DynamicDataBaseInfo dynamicDataBaseInfo = shard.getDynamicDataBaseInfo();
@@ -590,7 +590,7 @@ public class ShardDatabaseManagerImpl implements ShardDataBaseManager {
     }
 
 
-    private void saveDataBaseInfo(Cluster cluster, Shard shard) {
+    private void saveDataBaseInfo(Cluster cluster, DataBaseInstance shard) {
         if (Objects.isNull(shard.getId())) {
             shard.setId(getShardId(cluster));
             this.addShardToCluster(cluster, shard);
@@ -814,7 +814,7 @@ public class ShardDatabaseManagerImpl implements ShardDataBaseManager {
             );
 
             clusterConfig.getShards().forEach(shardConfig-> {
-                Shard shard = new Shard();
+                DataBaseInstance shard = new DataBaseInstance();
                 setOptionalHikariConfig(shardDataBaseConfig, clusterConfig, shardConfig);
                 if (Optional.ofNullable(shardConfig.getDataSource()).map(DataSourceConfig::getUrl).isPresent()) {
                     HikariDataSource dataSource = new HikariDataSource(
@@ -924,7 +924,7 @@ public class ShardDatabaseManagerImpl implements ShardDataBaseManager {
         }
     }
 
-    private synchronized void addShardToCluster(Cluster cluster, Shard shard) {
+    private synchronized void addShardToCluster(Cluster cluster, DataBaseInstance shard) {
         if (Objects.isNull(shard.getHashCode())) {
             shard.setHashCode(shard.hashCode());
         }
@@ -946,7 +946,7 @@ public class ShardDatabaseManagerImpl implements ShardDataBaseManager {
         }
     }
 
-    private Connection getConnection(Shard shard) throws SQLException {
+    private Connection getConnection(DataBaseInstance shard) throws SQLException {
         if (Objects.nonNull(shard)) {
             if (!this.isAvailable(shard.getDynamicDataBaseInfo())) {
                 throw new ShardDataBaseException(String.format("The shard \"%s\" is unavailable", shard.getName()));
@@ -962,7 +962,7 @@ public class ShardDatabaseManagerImpl implements ShardDataBaseManager {
                 .orElse(true);
     }
 
-    private void runLiquibase(Shard shard, String changeLog) {
+    private void runLiquibase(DataBaseInstance shard, String changeLog) {
         if (!shard.getRemote() && isEnabled(shard)) {
             log.debug(String.format("Run changelog \"%s\" on shard %s", changeLog, shard.getName()));
             TransactionalSQLTask task = (TransactionalSQLTask) getTransactionalTask(shard);
@@ -1010,7 +1010,7 @@ public class ShardDatabaseManagerImpl implements ShardDataBaseManager {
         sharedTransactionManager.getTransaction().commit();
     }
 
-    private void runLiquibaseFromPath(String path, Shard shard) {
+    private void runLiquibaseFromPath(String path, DataBaseInstance shard) {
         Optional.of(path + File.separatorChar + this.changLogName)
                 .filter(src -> resourceLoader.getResource(src).exists())
                 .ifPresent(changeLog -> runLiquibase(shard, changeLog));

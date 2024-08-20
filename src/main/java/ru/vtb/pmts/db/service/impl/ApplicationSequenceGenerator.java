@@ -1,7 +1,7 @@
 package ru.vtb.pmts.db.service.impl;
 
 import ru.vtb.pmts.db.exception.ShardDataBaseException;
-import ru.vtb.pmts.db.model.Shard;
+import ru.vtb.pmts.db.model.DataBaseInstance;
 import ru.vtb.pmts.db.service.abstractive.AbstractSequenceGenerator;
 import ru.vtb.pmts.db.utils.ShardUtils;
 
@@ -21,11 +21,11 @@ public class ApplicationSequenceGenerator extends AbstractSequenceGenerator {
     private static final String QUERY_UPDATE = "UPDATE $$$.APP_SEQUENCE SET LAST_VALUE = ? WHERE SEQUENCE_NAME = ?";
 
     private final String name;
-    private final Shard shard;
+    private final DataBaseInstance shard;
     private Integer cacheSize;
     private Connection connection;
 
-    public ApplicationSequenceGenerator(String name, Shard shard) {
+    public ApplicationSequenceGenerator(String name, DataBaseInstance shard) {
         this.name = name;
         this.shard = shard;
         this.cacheSize = shard.getSequenceCacheSize();

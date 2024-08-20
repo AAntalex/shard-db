@@ -1,10 +1,12 @@
 package ru.vtb.pmts.db.service.impl;
 
 import com.zaxxer.hikari.pool.ProxyConnection;
+import lombok.Getter;
 import ru.vtb.pmts.db.exception.ShardDataBaseException;
-import ru.vtb.pmts.db.model.Shard;
+import ru.vtb.pmts.db.model.DataBaseInstance;
 import ru.vtb.pmts.db.model.enums.QueryType;
 import ru.vtb.pmts.db.model.enums.TaskStatus;
+import ru.vtb.pmts.db.service.LockManager;
 import ru.vtb.pmts.db.service.abstractive.AbstractTransactionalTask;
 import ru.vtb.pmts.db.service.api.TransactionalQuery;
 import ru.vtb.pmts.db.utils.ShardUtils;
@@ -13,7 +15,6 @@ import lombok.extern.slf4j.Slf4j;
 import java.lang.reflect.Field;
 import java.sql.Connection;
 import java.sql.SQLException;
-import java.util.Objects;
 import java.util.Optional;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.TimeUnit;
@@ -21,15 +22,19 @@ import java.util.concurrent.TimeoutException;
 
 @Slf4j
 public class TransactionalSQLTask extends AbstractTransactionalTask {
+    @Getter
     private final Connection connection;
+    private final LockManager lockManager;
 
     public TransactionalSQLTask(
-            Shard shard,
+            DataBaseInstance shard,
             Connection connection,
-            ExecutorService executorService) {
+            ExecutorService executorService,
+            LockManager lockManager) {
         this.connection = connection;
         this.executorService = executorService;
         this.shard = shard;
+        this.lockManager = lockManager;
     }
 
     @Override
@@ -108,10 +113,6 @@ public class TransactionalSQLTask extends AbstractTransactionalTask {
                 this.status = TaskStatus.DONE;
             }
         }
-    }
-
-    public Connection getConnection() {
-        return connection;
     }
 
     private Object getDelegateConnection(ProxyConnection connection) throws Exception {

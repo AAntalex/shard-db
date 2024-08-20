@@ -5,7 +5,7 @@ import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.HttpStatusCode;
 import ru.vtb.pmts.db.exception.ShardDataBaseException;
 import ru.vtb.pmts.db.model.RemoteTaskContainer;
-import ru.vtb.pmts.db.model.Shard;
+import ru.vtb.pmts.db.model.DataBaseInstance;
 import ru.vtb.pmts.db.model.enums.QueryType;
 import ru.vtb.pmts.db.model.enums.TaskStatus;
 import ru.vtb.pmts.db.service.abstractive.AbstractTransactionalTask;
@@ -23,7 +23,7 @@ public class TransactionalRemoteTask extends AbstractTransactionalTask {
     private final ObjectMapper objectMapper;
 
     public TransactionalRemoteTask(
-            Shard shard,
+            DataBaseInstance shard,
             ObjectMapper objectMapper,
             ExecutorService executorService) {
         this.executorService = executorService;

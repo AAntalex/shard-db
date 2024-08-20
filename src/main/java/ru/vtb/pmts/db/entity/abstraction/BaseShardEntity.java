@@ -4,7 +4,7 @@ import ru.vtb.pmts.db.annotation.ShardEntity;
 import ru.vtb.pmts.db.entity.AttributeStorage;
 import ru.vtb.pmts.db.exception.ShardDataBaseException;
 import ru.vtb.pmts.db.model.Cluster;
-import ru.vtb.pmts.db.model.Shard;
+import ru.vtb.pmts.db.model.DataBaseInstance;
 import ru.vtb.pmts.db.model.StorageContext;
 import ru.vtb.pmts.db.service.impl.SharedEntityTransaction;
 import ru.vtb.pmts.db.utils.ShardUtils;
@@ -79,10 +79,10 @@ public abstract class BaseShardEntity implements ShardInstance {
     }
 
     @Override
-    public boolean isOurShard(Shard shard) {
+    public boolean isOurShard(DataBaseInstance shard) {
         return Optional.ofNullable(this.storageContext)
                 .map(StorageContext::getShard)
-                .map(Shard::getId)
+                .map(DataBaseInstance::getId)
                 .map(shardId -> shardId.equals(shard.getId()))
                 .orElse(false);
     }
