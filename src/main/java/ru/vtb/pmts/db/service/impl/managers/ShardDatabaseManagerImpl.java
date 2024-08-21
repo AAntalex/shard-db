@@ -5,6 +5,8 @@ import org.springframework.web.reactive.function.client.WebClient;
 import ru.vtb.pmts.db.entity.abstraction.ShardInstance;
 import ru.vtb.pmts.db.exception.ShardDataBaseException;
 import ru.vtb.pmts.db.model.enums.QueryType;
+import ru.vtb.pmts.db.service.LockManager;
+import ru.vtb.pmts.db.service.LockProcessor;
 import ru.vtb.pmts.db.service.ShardDataBaseManager;
 import ru.vtb.pmts.db.service.SharedTransactionManager;
 import ru.vtb.pmts.db.service.api.*;
@@ -48,6 +50,8 @@ public class ShardDatabaseManagerImpl implements ShardDataBaseManager {
     private static final String SHARDS_PATH = "shards";
     private static final String MAIN_SEQUENCE = "SEQ_ID";
     private static final int DEFAULT_TIME_OUT_DB_PROCESSOR = 10;
+    private static final long DEFAULT_TIME_OUT_LOCK_PROCESSOR = 60;
+    private static final long DEFAULT_DELAY_LOCK_PROCESSOR = 10;
 
     private static final String SELECT_DB_INFO = "SELECT SHARD_ID,MAIN_SHARD,CLUSTER_ID,CLUSTER_NAME,DEFAULT_CLUSTER" +
             ",SEGMENT_NAME,ACCESSIBLE FROM $$$.APP_DATABASE";
@@ -66,6 +70,8 @@ public class ShardDatabaseManagerImpl implements ShardDataBaseManager {
     private final SharedTransactionManager sharedTransactionManager;
     private final TransactionalSQLTaskFactory taskFactory;
     private final TransactionalRemoteTaskFactory remoteTaskFactory;
+    private final ExecutorService executorService;
+    private final LockManager lockManager;
 
     private Cluster defaultCluster;
     private final Map<String, Cluster> clusters = new HashMap<>();
@@ -80,14 +86,14 @@ public class ShardDatabaseManagerImpl implements ShardDataBaseManager {
     private String segment;
     private int timeOutDbProcessor;
     private int parallelLimit;
-    private final ExecutorService executorService;
 
     ShardDatabaseManagerImpl(
             ResourceLoader resourceLoader,
             ShardDataBaseConfig shardDataBaseConfig,
             SharedTransactionManager sharedTransactionManager,
             TransactionalSQLTaskFactory taskFactory,
-            TransactionalRemoteTaskFactory remoteTaskFactory)
+            TransactionalRemoteTaskFactory remoteTaskFactory,
+            LockManager lockManager)
     {
         this.resourceLoader = resourceLoader;
         this.shardDataBaseConfig = shardDataBaseConfig;
@@ -97,6 +103,7 @@ public class ShardDatabaseManagerImpl implements ShardDataBaseManager {
         this.executorService = Executors.newCachedThreadPool();
         this.taskFactory.setExecutorService(this.executorService);
         this.remoteTaskFactory.setExecutorService(this.executorService);
+        this.lockManager = lockManager;
 
         getProperties();
         runInitLiquibase();
@@ -774,6 +781,19 @@ public class ShardDatabaseManagerImpl implements ShardDataBaseManager {
                         executor.setThreadFactory(new ThreadFactoryBuilder().setNameFormat(nameFormat).build()));
     }
 
+    private void processLockConfig() {
+        this.lockManager.setDelay(
+                Optional.ofNullable(shardDataBaseConfig.getLockProcessor())
+                        .map(LockProcessorConfig::getDelay)
+                        .orElse(DEFAULT_DELAY_LOCK_PROCESSOR)
+        );
+        this.lockManager.setTimeOut(
+                Optional.ofNullable(shardDataBaseConfig.getLockProcessor())
+                        .map(LockProcessorConfig::getTimeOut)
+                        .orElse(DEFAULT_TIME_OUT_LOCK_PROCESSOR)
+        );
+    }
+
     private void getProperties() {
         this.segment = shardDataBaseConfig.getSegment();
         this.timeOutDbProcessor = Optional
@@ -781,6 +801,7 @@ public class ShardDatabaseManagerImpl implements ShardDataBaseManager {
                 .orElse(DEFAULT_TIME_OUT_DB_PROCESSOR);
         this.processLiquibaseConfig();
         this.processThreadPoolConfig();
+        this.processLockConfig();
         Assert.notEmpty(
                 shardDataBaseConfig.getClusters(),
                 String.format("Property '%s.clusters' must not be empty", ShardDataBaseConfig.CONFIG_NAME)

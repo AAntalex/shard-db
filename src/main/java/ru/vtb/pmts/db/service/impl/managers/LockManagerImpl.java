@@ -1,6 +1,8 @@
 package ru.vtb.pmts.db.service.impl.managers;
 
 import com.zaxxer.hikari.pool.ProxyConnection;
+import lombok.Getter;
+import lombok.Setter;
 import org.apache.commons.lang3.NotImplementedException;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.context.annotation.Primary;
@@ -23,6 +25,13 @@ public class LockManagerImpl implements LockManager {
     private final ThreadLocal<LockProcessor<?>> currentLockProcessor = new ThreadLocal<>();
     private final ThreadLocal<Connection> currentConnection = new ThreadLocal<>();
     private final Field delegateField;
+
+    @Getter
+    @Setter
+    private long delay;
+    @Getter
+    @Setter
+    private long timeOut;
 
     LockManagerImpl() {
         try {

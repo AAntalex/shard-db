@@ -18,6 +18,7 @@ public class ShardDataBaseConfig {
     private LiquibaseConfig liquibase;
     private HikariSettings hikari;
     private ThreadPoolConfig threadPool;
+    private LockProcessorConfig lockProcessor;
     private SharedTransactionConfig transactionConfig;
     private ChecksConfig checks;
     private Integer sequenceCacheSize;

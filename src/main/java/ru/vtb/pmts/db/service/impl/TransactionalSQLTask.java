@@ -2,6 +2,7 @@ package ru.vtb.pmts.db.service.impl;
 
 import com.zaxxer.hikari.pool.ProxyConnection;
 import lombok.Getter;
+import org.apache.commons.lang3.StringUtils;
 import ru.vtb.pmts.db.exception.ShardDataBaseException;
 import ru.vtb.pmts.db.model.DataBaseInstance;
 import ru.vtb.pmts.db.model.enums.QueryType;
@@ -101,11 +102,25 @@ public class TransactionalSQLTask extends AbstractTransactionalTask {
             try {
                 log.trace("Waiting {}...", this.name);
                 long waitTime = System.currentTimeMillis();
+                long lockTime = waitTime;
+                String lockInfo = StringUtils.EMPTY;
                 while (true) try {
-                    this.future.get(1, TimeUnit.SECONDS);
+                    this.future.get(lockManager.getDelay(), TimeUnit.SECONDS);
                     break;
                 } catch (TimeoutException ignored) {
                     log.trace("Waiting after {} sec.", (System.currentTimeMillis() - waitTime) / 1000);
+                    String currentLockInfo = lockManager.getLockInfo(connection, shard);
+
+
+
+                    if (currentLockInfo == null || !currentLockInfo.equals(lockInfo)) {
+                        lockInfo = currentLockInfo;
+                        lockTime = System.currentTimeMillis();
+                    }
+
+
+
+
                     log.trace("Waiting for {}...", lockManager.getLockInfo(connection, shard));
                 }
             } catch (Exception err) {
