@@ -13,13 +13,10 @@ import java.sql.SQLException;
 
 @Component
 public class PgLockProcessor implements LockProcessor<PgConnection> {
-    private static final String QUERY = "select bs.pid, bs.application_name, bs.client_addr, bs.usename, bs.state\n" +
-            "  from pg_stat_activity s\n" +
-            "    join pg_locks l on s.pid = l.pid\n" +
-            "    join pg_locks bl on l.transactionid = bl.transactionid and bl.granted\n" +
-            "    join pg_stat_activity bs on bl.pid = bs.pid and bs.state like 'idle%'\n" +
-            "where s.pid = ?\n" +
-            "  and not l.granted";
+    private static final String QUERY = "select bs.pid, bs.application_name, bs.client_addr, bs.usename, bs.state, s.query\n" +
+            "from pg_stat_activity s\n" +
+            "  join pg_stat_activity bs on bs.backend_xid = s.backend_xmin and bs.state like 'idle%'\n" +
+            "where s.pid = ?";
 
     @Override
     public String getLockInfo(PgConnection targetConnection, DataBaseInstance instance) {
@@ -28,7 +25,9 @@ public class PgLockProcessor implements LockProcessor<PgConnection> {
             preparedStatement.setInt(1, targetConnection.getBackendPID());
             ResultSet result = preparedStatement.executeQuery();
             if (result.next()) {
-                return "pid = " + result.getInt(1) +
+                return "blocked session - pid = " + targetConnection.getBackendPID() +
+                        ", query = " + result.getString(6) +
+                        "; blocking session - pid = " + result.getInt(1) +
                         ", application_name = " + result.getString(2) +
                         ", client_addr = " + result.getString(3) +
                         ", usename = " + result.getString(4) +

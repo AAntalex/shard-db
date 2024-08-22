@@ -14,7 +14,7 @@ import java.sql.ResultSet;
 @Component
 public class OracleLockProcessor implements LockProcessor<OracleConnection> {
     private static final String QUERY =
-            "select bs.SID, bs.SERIAL#, bs.PROGRAM, bs.MACHINE, bs.OSUSER, bs.USERNAME, bs.STATUS\n" +
+            "select bs.SID, bs.SERIAL#, bs.PROGRAM, bs.MACHINE, bs.OSUSER, bs.USERNAME, bs.STATUS, s.SQL_ID\n" +
                     "from gv$session s\n" +
                     "  join gv$session bs on bs.SID = s.FINAL_BLOCKING_SESSION \n" +
                     "                        and bs.INST_ID = s.FINAL_BLOCKING_INSTANCE and bs.STATUS = 'INACTIVE'\n" +
@@ -29,11 +29,16 @@ public class OracleLockProcessor implements LockProcessor<OracleConnection> {
             Field serialNumberField  = conn.getClass().getDeclaredField("serialNumber");
             sessionIdField.setAccessible(true);
             serialNumberField.setAccessible(true);
-            preparedStatement.setObject(1, sessionIdField.get(conn));
-            preparedStatement.setObject(2, serialNumberField.get(conn));
+            int sessionId = (int) sessionIdField.get(conn);
+            int serialNumber = (int) serialNumberField.get(conn);
+            preparedStatement.setInt(1, sessionId);
+            preparedStatement.setInt(2, serialNumber);
             ResultSet result = preparedStatement.executeQuery();
             if (result.next()) {
-                return "SID = " + result.getInt(1) +
+                return "blocked session - SID = " + sessionId +
+                        ", SERIAL# = " + serialNumber +
+                        ", SQL_ID = " + result.getString(8) +
+                        "; blocking session - SID = " + result.getInt(1) +
                         ", SERIAL# = " + result.getInt(2) +
                         ", PROGRAM = " + result.getString(3) +
                         ", MACHINE = " + result.getString(4) +

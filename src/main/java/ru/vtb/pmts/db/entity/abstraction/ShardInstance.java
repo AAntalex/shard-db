@@ -10,7 +10,7 @@ import java.util.List;
 
 public interface ShardInstance {
     Long getId();
-    Long getOrderId();
+    Long getOrderedId();
     StorageContext getStorageContext();
     void setId(Long id);
     void setStorageContext(StorageContext storageContext);

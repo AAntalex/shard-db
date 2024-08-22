@@ -176,4 +176,8 @@ public class TransactionalSQLQuery extends AbstractTransactionalQuery {
         this.preparedStatement.setFetchSize(Optional.ofNullable(this.fetchLimit).orElse(FETCH_SIZE));
         return new ResultSQLQuery(this.preparedStatement.executeQuery(), this.fetchLimit);
     }
+
+    public void cancel() throws SQLException {
+        this.preparedStatement.cancel();
+    }
 }

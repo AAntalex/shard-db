@@ -41,9 +41,9 @@ public abstract class BaseShardEntity implements ShardInstance {
     }
 
     @Override
-    public Long getOrderId() {
+    public Long getOrderedId() {
         return Optional.ofNullable(this.id)
-                .map(it -> it % (ShardUtils.MAX_REPLICATIONS * ShardUtils.MAX_SHARDS * ShardUtils.MAX_CLUSTERS))
+                .map(it -> it / (ShardUtils.MAX_REPLICATIONS * ShardUtils.MAX_SHARDS * ShardUtils.MAX_CLUSTERS))
                 .orElse(null);
     }
 

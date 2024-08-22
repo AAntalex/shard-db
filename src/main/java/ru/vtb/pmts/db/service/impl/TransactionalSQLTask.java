@@ -18,6 +18,7 @@ import java.sql.Connection;
 import java.sql.SQLException;
 import java.util.Optional;
 import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.TimeoutException;
 
@@ -108,20 +109,26 @@ public class TransactionalSQLTask extends AbstractTransactionalTask {
                     this.future.get(lockManager.getDelay(), TimeUnit.SECONDS);
                     break;
                 } catch (TimeoutException ignored) {
-                    log.trace("Waiting after {} sec.", (System.currentTimeMillis() - waitTime) / 1000);
                     String currentLockInfo = lockManager.getLockInfo(connection, shard);
-
-
-
+                    log.trace(
+                            "Waiting after {} sec. LockInfo: {}, LockTime = {}",
+                            (System.currentTimeMillis() - waitTime) / 1000,
+                            currentLockInfo,
+                            (System.currentTimeMillis() - lockTime) / 1000
+                    );
                     if (currentLockInfo == null || !currentLockInfo.equals(lockInfo)) {
-                        lockInfo = currentLockInfo;
+                        lockInfo = currentLockInfo == null ? StringUtils.EMPTY : currentLockInfo;
                         lockTime = System.currentTimeMillis();
                     }
-
-
-
-
-                    log.trace("Waiting for {}...", lockManager.getLockInfo(connection, shard));
+                    if (currentLockInfo != null
+                            && (System.currentTimeMillis() - lockTime) / 1000 >= lockManager.getTimeOut()
+                    ) {
+                        for (TransactionalQuery query : this.queries.values()) {
+                            ((TransactionalSQLQuery) query).cancel();
+                        }
+                        this.future.get();
+                        this.error = "Истекло время ожидания блокирующей пассивной сессии: " + currentLockInfo;
+                    }
                 }
             } catch (Exception err) {
                 throw new ShardDataBaseException(err);

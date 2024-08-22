@@ -23,10 +23,10 @@ public abstract class AbstractTransactionalTask implements TransactionalTask {
     protected TaskStatus status = TaskStatus.CREATED;
     protected DataBaseInstance shard;
     protected boolean parallelRun;
+    protected String error;
+    protected final Map<String, TransactionalQuery> queries = new HashMap<>();
 
     private long duration;
-    private String error;
-    private final Map<String, TransactionalQuery> queries = new HashMap<>();
     private final List<TransactionalQuery> dmlQueries = new ArrayList<>();
     private final Map<String, TransactionalQuery> dmlQueryMap = new HashMap<>();
     private TransactionalTask mainTask;
