@@ -104,7 +104,6 @@ public class ShardDatabaseManagerImpl implements ShardDataBaseManager {
         this.taskFactory.setExecutorService(this.executorService);
         this.remoteTaskFactory.setExecutorService(this.executorService);
         this.lockManager = lockManager;
-
         getProperties();
         runInitLiquibase();
         processDataBaseInfo();
@@ -1057,7 +1056,9 @@ public class ShardDatabaseManagerImpl implements ShardDataBaseManager {
                     .forEach(
                             cluster ->
                                     cluster.getShards()
-                                            .forEach(shard -> this.executorService.submit(() -> this.getDynamicDataBaseInfo(shard)))
+                                            .forEach(shard ->
+                                                    this.executorService.submit(() ->
+                                                            this.getDynamicDataBaseInfo(shard)))
                     );
             saveTransactionInfo();
         }, this.timeOutDbProcessor, this.timeOutDbProcessor, TimeUnit.SECONDS);

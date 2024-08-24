@@ -93,10 +93,7 @@ public class SharedEntityTransaction implements EntityTransaction {
             return;
         }
         this.duration = System.currentTimeMillis();
-        this.tasks.forEach(task -> {
-            task.setName("TRN: " + this.uuid + " " + task.getName());
-            task.setTransactionUid(this.uuid);
-        });
+        this.tasks.forEach(task -> task.setName("TRN: " + this.uuid + " " + task.getName()));
         this.tasks.forEach(task -> task.run(parallelRun && this.tasks.size() > 1));
         this.tasks.forEach(task -> {
             task.waitTask();
@@ -170,6 +167,10 @@ public class SharedEntityTransaction implements EntityTransaction {
 
     public void addParallel() {
         currentTasks.clear();
+    }
+
+    public void close() {
+        this.completed = true;
     }
 
     private String processTask(

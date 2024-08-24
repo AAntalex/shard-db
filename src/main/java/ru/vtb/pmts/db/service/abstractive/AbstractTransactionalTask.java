@@ -16,7 +16,6 @@ import java.util.stream.Stream;
 @Slf4j
 public abstract class AbstractTransactionalTask implements TransactionalTask {
     protected ExecutorService executorService;
-    protected UUID transactionUid;
     protected String name;
     protected String errorCompletion;
     protected Future future;
@@ -45,9 +44,7 @@ public abstract class AbstractTransactionalTask implements TransactionalTask {
                 steps.forEach(step -> {
                     if (this.error == null) {
                         try {
-                            log.trace(
-                                    "Running \"" + this.name + "\", step \"" + step.name + "\"..."
-                            );
+                            log.trace("Running \"{}\", step \"{}\"...", this.name,  step.name);
                             step.target.run();
                         } catch (Exception err) {
                             this.error = step.name + ":\n" + err.getMessage();
@@ -191,11 +188,6 @@ public abstract class AbstractTransactionalTask implements TransactionalTask {
     @Override
     public void setName(String name) {
         this.name = name;
-    }
-
-    @Override
-    public void setTransactionUid(UUID transactionUid) {
-        this.transactionUid = transactionUid;
     }
 
     @Override

@@ -31,7 +31,6 @@ public interface TransactionalTask {
     void addStepAfterCommit(Runnable target, String name);
     String getName();
     void setName(String name);
-    void setTransactionUid(UUID transactionUid);
     String getError();
     String getErrorCompletion();
     void setMainTask(TransactionalTask task);

@@ -13,6 +13,7 @@ import ru.vtb.pmts.db.model.dto.response.ResponseErrorDto;
 import ru.vtb.pmts.db.model.dto.response.ResponseQueryDto;
 import ru.vtb.pmts.db.model.dto.response.ResponseUpdateDto;
 import ru.vtb.pmts.db.service.ShardDataBaseManager;
+import ru.vtb.pmts.db.service.SharedTransactionManager;
 import ru.vtb.pmts.db.service.api.RemoteDatabaseService;
 import ru.vtb.pmts.db.service.api.ResultQuery;
 import ru.vtb.pmts.db.service.api.TransactionalQuery;
@@ -30,6 +31,7 @@ public class RemoteDatabaseServiceImpl implements RemoteDatabaseService {
     private final Map<UUID, TransactionalTask> postponedTasks = new HashMap<>();
     private final ShardDataBaseManager dataBaseManager;
     private final ObjectMapper objectMapper;
+    private final SharedTransactionManager sharedTransactionManager;
 
     @Override
     public String executeQuery(QueryDto query) {
@@ -58,10 +60,11 @@ public class RemoteDatabaseServiceImpl implements RemoteDatabaseService {
                     new ResponseQueryDto()
                             .clientUuid(CLIENT_UUID)
                             .result(resultValues);
-            finish(query, task);
             return objectMapper.writeValueAsString(responseQueryDto);
         } catch (Exception err) {
             throw new ShardDataBaseException(err);
+        } finally {
+            finish(query, task);
         }
     }
 
@@ -69,35 +72,46 @@ public class RemoteDatabaseServiceImpl implements RemoteDatabaseService {
     public String executeUpdate(QueryDto query) {
         TransactionalTask task = getTask(query);
         try {
+            TransactionalQuery transactionalQuery =
+                    task
+                            .addQuery(query.query(), query.queryType())
+                            .bindAll(query.binds(), getTypes(query));
+            task.run(true);
+            task.waitTask();
+            if (Objects.nonNull(task.getError())) {
+                throw new ShardDataBaseException(task.getError());
+            }
             ResponseUpdateDto result = new ResponseUpdateDto()
                     .clientUuid(CLIENT_UUID)
-                    .result(
-                            task
-                                    .addQuery(query.query(), query.queryType())
-                                    .bindAll(query.binds(), getTypes(query))
-                                    .executeUpdate()
-                    );
-            finish(query, task);
+                    .result(transactionalQuery.getResultUpdate());
             return objectMapper.writeValueAsString(result);
         } catch (Exception err) {
             throw new ShardDataBaseException(err);
+        } finally {
+            finish(query, task);
         }
     }
 
     @Override
     public String executeBatch(QueryDto query) {
         TransactionalTask task = getTask(query);
-        List<Class<?>> types =  getTypes(query);
-        TransactionalQuery transactionalQuery = task.addQuery(query.query(), query.queryType());
-        query.batchBinds().forEach(binds -> transactionalQuery.bindAll(binds, types).addBatch());
         try {
+            List<Class<?>> types =  getTypes(query);
+            TransactionalQuery transactionalQuery = task.addQuery(query.query(), query.queryType());
+            query.batchBinds().forEach(binds -> transactionalQuery.bindAll(binds, types).addBatch());
+            task.run(true);
+            task.waitTask();
+            if (Objects.nonNull(task.getError())) {
+                throw new ShardDataBaseException(task.getError());
+            }
             ResponseButchDto result = new ResponseButchDto()
                     .clientUuid(CLIENT_UUID)
-                    .result(transactionalQuery.executeBatch());
-            finish(query, task);
+                    .result(transactionalQuery.getResultUpdateBatch());
             return objectMapper.writeValueAsString(result);
         } catch (Exception err) {
             throw new ShardDataBaseException(err);
+        } finally {
+            finish(query, task);
         }
     }
 
@@ -107,6 +121,7 @@ public class RemoteDatabaseServiceImpl implements RemoteDatabaseService {
         if (Objects.nonNull(task)) {
             task.commit();
             task.finish();
+            ((SharedEntityTransaction) sharedTransactionManager.getTransaction()).close();
             postponedTasks.remove(taskUuid);
         }
     }
@@ -117,6 +132,7 @@ public class RemoteDatabaseServiceImpl implements RemoteDatabaseService {
         if (Objects.nonNull(task)) {
             task.rollback();
             task.finish();
+            ((SharedEntityTransaction) sharedTransactionManager.getTransaction()).close();
             postponedTasks.remove(taskUuid);
         }
     }
@@ -136,10 +152,15 @@ public class RemoteDatabaseServiceImpl implements RemoteDatabaseService {
         try {
             if (!query.postponedCommit()) {
                 if (task.needCommit()) {
-                    task.commit();
+                    if (Objects.nonNull(task.getError())) {
+                        task.rollback();
+                    } else {
+                        task.commit();
+                    }
                 }
                 task.finish();
             }
+            ((SharedEntityTransaction) sharedTransactionManager.getTransaction()).close();
         } catch (Exception err) {
             throw new ShardDataBaseException(err);
         }
