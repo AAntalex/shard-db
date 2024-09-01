@@ -1,9 +1,7 @@
 package ru.vtb.pmts.db.annotation.processors;
 
 import com.google.common.collect.ImmutableMap;
-import ru.vtb.pmts.db.annotation.Attribute;
-import ru.vtb.pmts.db.annotation.DomainEntity;
-import ru.vtb.pmts.db.annotation.ShardEntity;
+import ru.vtb.pmts.db.annotation.*;
 import ru.vtb.pmts.db.domain.abstraction.Domain;
 import ru.vtb.pmts.db.entity.AttributeStorage;
 import ru.vtb.pmts.db.entity.abstraction.ShardInstance;
@@ -21,7 +19,6 @@ import lombok.experimental.Accessors;
 import org.apache.commons.lang3.StringUtils;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Component;
-import ru.vtb.pmts.db.annotation.Storage;
 import ru.vtb.pmts.db.model.dto.*;
 
 import javax.annotation.processing.ProcessingEnvironment;
@@ -94,6 +91,12 @@ public class DomainClassBuilder {
                                                             .storage(
                                                                     getStorage(fieldElement, mainStorage, storageDtoMap)
                                                             )
+                                                            .historical(
+                                                                    Optional.ofNullable(
+                                                                            fieldElement.getAnnotation(Attribute.class)
+                                                                    ).isPresent()
+                                                            )
+                                                            .historyCluster(getHistoryCluster(fieldElement))
                                                             .build()
                                     )
                                     .toList()
@@ -142,6 +145,13 @@ public class DomainClassBuilder {
                                         a.name()
                         )
                 )
+                .orElse(null);
+    }
+
+    private static String getHistoryCluster(Element element) {
+        return Optional
+                .ofNullable(element.getAnnotation(Historical.class))
+                .map(Historical::cluster)
                 .orElse(null);
     }
 

@@ -141,6 +141,7 @@ public class ShardEntityManagerImpl implements ShardEntityManager {
             persist(entity, false, false, true);
             entity.getAttributeStorage()
                     .forEach(it -> persist(it, false, false, true));
+            entity.getAttributeStorage().clear();
         } finally {
             if (isAurTransaction) {
                 flush();
@@ -618,6 +619,7 @@ public class ShardEntityManagerImpl implements ShardEntityManager {
                         attributeStorage.setEntityId(entity.getId());
                         persist(attributeStorage, onlyChanged);
                     });
+            entity.getAttributeStorage().clear();
         } finally {
             if (isAurTransaction) {
                 flush();

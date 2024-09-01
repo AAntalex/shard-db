@@ -2,6 +2,7 @@ package ru.vtb.pmts.db.domain.abstraction;
 
 import lombok.AllArgsConstructor;
 import lombok.Data;
+import lombok.Getter;
 import ru.vtb.pmts.db.annotation.DomainEntity;
 import ru.vtb.pmts.db.entity.AttributeHistory;
 import ru.vtb.pmts.db.entity.AttributeStorage;
@@ -19,6 +20,7 @@ public abstract class BaseDomain implements Domain {
     private final Map<String, Boolean> changedStore = new HashMap<>();
     private final Map<String, Map<String, ControlledObject>> controlledObjects = new HashMap<>();
     private final Map<String, AttributeStorage> storage = new HashMap<>();
+    @Getter
     private final List<AttributeHistory> attributeHistory = new ArrayList<>();
 
     public BaseDomain () {
