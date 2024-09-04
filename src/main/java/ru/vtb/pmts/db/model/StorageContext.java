@@ -1,6 +1,6 @@
 package ru.vtb.pmts.db.model;
 
-import ru.vtb.pmts.db.service.impl.SharedEntityTransaction;
+import ru.vtb.pmts.db.service.impl.transaction.SharedEntityTransaction;
 import ru.vtb.pmts.db.utils.ShardUtils;
 import ru.vtb.pmts.db.utils.Utils;
 import lombok.Builder;

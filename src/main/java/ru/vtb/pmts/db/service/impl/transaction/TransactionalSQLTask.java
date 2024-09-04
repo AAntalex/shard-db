@@ -1,4 +1,4 @@
-package ru.vtb.pmts.db.service.impl;
+package ru.vtb.pmts.db.service.impl.transaction;
 
 import com.zaxxer.hikari.pool.ProxyConnection;
 import lombok.Getter;

@@ -2,12 +2,11 @@ package ru.vtb.pmts.db.domain.abstraction;
 
 import lombok.AllArgsConstructor;
 import lombok.Data;
-import lombok.Getter;
 import ru.vtb.pmts.db.annotation.DomainEntity;
-import ru.vtb.pmts.db.entity.AttributeHistory;
 import ru.vtb.pmts.db.entity.AttributeStorage;
 import ru.vtb.pmts.db.entity.abstraction.ShardInstance;
 import ru.vtb.pmts.db.exception.ShardDataBaseException;
+import ru.vtb.pmts.db.model.dto.AttributeHistory;
 import ru.vtb.pmts.db.utils.Utils;
 
 import java.util.*;
@@ -20,7 +19,6 @@ public abstract class BaseDomain implements Domain {
     private final Map<String, Boolean> changedStore = new HashMap<>();
     private final Map<String, Map<String, ControlledObject>> controlledObjects = new HashMap<>();
     private final Map<String, AttributeStorage> storage = new HashMap<>();
-    @Getter
     private final List<AttributeHistory> attributeHistory = new ArrayList<>();
 
     public BaseDomain () {
@@ -79,6 +77,11 @@ public abstract class BaseDomain implements Domain {
         storage.keySet().forEach(k -> changedStore.put(k, true));
     }
 
+    @Override
+    public List<AttributeHistory> getAttributeHistory() {
+        return attributeHistory;
+    }
+
     public void objectToControl(String storageName, String attribute, Object o, boolean replace) {
         if (o == null) {
             return;
@@ -120,6 +123,7 @@ public abstract class BaseDomain implements Domain {
 
     public void dropChanges() {
         this.changes = null;
+        this.attributeHistory.clear();
     }
 
     public void dropChanges(String storageName) {

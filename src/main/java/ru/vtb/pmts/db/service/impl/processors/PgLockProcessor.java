@@ -1,4 +1,4 @@
-package ru.vtb.pmts.db.service.impl;
+package ru.vtb.pmts.db.service.impl.processors;
 
 import org.postgresql.jdbc.PgConnection;
 import org.springframework.stereotype.Component;

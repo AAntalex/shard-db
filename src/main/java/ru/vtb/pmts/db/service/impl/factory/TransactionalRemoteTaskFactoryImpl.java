@@ -5,7 +5,7 @@ import ru.vtb.pmts.db.model.DataBaseInstance;
 import ru.vtb.pmts.db.service.api.TransactionalRemoteTaskFactory;
 import ru.vtb.pmts.db.service.api.TransactionalTask;
 import org.springframework.stereotype.Component;
-import ru.vtb.pmts.db.service.impl.TransactionalRemoteTask;
+import ru.vtb.pmts.db.service.impl.transaction.TransactionalRemoteTask;
 
 import java.util.concurrent.ExecutorService;
 

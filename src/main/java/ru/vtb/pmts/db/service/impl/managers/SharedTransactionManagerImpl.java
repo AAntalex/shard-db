@@ -2,7 +2,7 @@ package ru.vtb.pmts.db.service.impl.managers;
 
 import ru.vtb.pmts.db.model.TransactionInfo;
 import ru.vtb.pmts.db.service.SharedTransactionManager;
-import ru.vtb.pmts.db.service.impl.SharedEntityTransaction;
+import ru.vtb.pmts.db.service.impl.transaction.SharedEntityTransaction;
 import org.springframework.stereotype.Component;
 
 import javax.persistence.EntityTransaction;

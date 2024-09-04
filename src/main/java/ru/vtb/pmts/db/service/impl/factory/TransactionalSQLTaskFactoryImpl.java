@@ -4,7 +4,7 @@ import ru.vtb.pmts.db.model.DataBaseInstance;
 import ru.vtb.pmts.db.service.LockManager;
 import ru.vtb.pmts.db.service.api.TransactionalSQLTaskFactory;
 import ru.vtb.pmts.db.service.api.TransactionalTask;
-import ru.vtb.pmts.db.service.impl.TransactionalSQLTask;
+import ru.vtb.pmts.db.service.impl.transaction.TransactionalSQLTask;
 import org.springframework.stereotype.Component;
 
 import java.sql.Connection;

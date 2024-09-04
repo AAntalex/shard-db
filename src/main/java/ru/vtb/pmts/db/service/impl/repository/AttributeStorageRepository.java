@@ -1,4 +1,4 @@
-package ru.vtb.pmts.db.service.impl;
+package ru.vtb.pmts.db.service.impl.repository;
 
 import com.google.common.collect.ImmutableMap;
 import ru.vtb.pmts.db.entity.AttributeStorage;
@@ -81,7 +81,7 @@ public class AttributeStorageRepository implements ShardEntityRepository<Attribu
 
     @Override
     public Cluster getCluster(AttributeStorage entity) {
-        return entity.getCluster();
+        return Optional.ofNullable(entity).map(ShardInstance::getCluster).orElse(null);
     }
 
     @Override

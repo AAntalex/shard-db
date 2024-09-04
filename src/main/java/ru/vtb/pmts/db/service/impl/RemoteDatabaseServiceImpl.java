@@ -18,6 +18,7 @@ import ru.vtb.pmts.db.service.api.RemoteDatabaseService;
 import ru.vtb.pmts.db.service.api.ResultQuery;
 import ru.vtb.pmts.db.service.api.TransactionalQuery;
 import ru.vtb.pmts.db.service.api.TransactionalTask;
+import ru.vtb.pmts.db.service.impl.transaction.SharedEntityTransaction;
 
 import java.util.*;
 import java.util.stream.Collectors;

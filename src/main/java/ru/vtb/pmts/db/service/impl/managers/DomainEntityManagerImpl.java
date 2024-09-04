@@ -1,10 +1,13 @@
 package ru.vtb.pmts.db.service.impl.managers;
 
+import com.fasterxml.jackson.databind.ObjectMapper;
 import ru.vtb.pmts.db.domain.abstraction.Domain;
+import ru.vtb.pmts.db.entity.AttributeHistoryEntity;
 import ru.vtb.pmts.db.entity.AttributeStorage;
 import ru.vtb.pmts.db.entity.abstraction.ShardInstance;
 import ru.vtb.pmts.db.exception.ShardDataBaseException;
 import ru.vtb.pmts.db.model.DataStorage;
+import ru.vtb.pmts.db.model.dto.AttributeHistory;
 import ru.vtb.pmts.db.service.api.DataWrapper;
 import ru.vtb.pmts.db.service.api.DataWrapperFactory;
 import lombok.AllArgsConstructor;
@@ -32,10 +35,16 @@ public class DomainEntityManagerImpl implements DomainEntityManager {
 
     private final ShardEntityManager entityManager;
     private final DataWrapperFactory dataWrapperFactory;
+    private final ObjectMapper objectMapper;
 
-    DomainEntityManagerImpl(ShardEntityManager entityManager, DataWrapperFactory dataWrapperFactory) {
+    DomainEntityManagerImpl(
+            ShardEntityManager entityManager,
+            DataWrapperFactory dataWrapperFactory,
+            ObjectMapper objectMapper)
+    {
         this.entityManager = entityManager;
         this.dataWrapperFactory = dataWrapperFactory;
+        this.objectMapper = objectMapper;
     }
 
     @Autowired
@@ -159,7 +168,7 @@ public class DomainEntityManagerImpl implements DomainEntityManager {
         Mapper mapper = getMapper(clazz);
         return (List) domains.stream()
                 .map(mapper.domainEntityMapper::map)
-                .toList();
+                .collect(Collectors.toList());
     }
 
     @Override
@@ -167,7 +176,7 @@ public class DomainEntityManagerImpl implements DomainEntityManager {
         Mapper mapper = getMapper(clazz);
         return (List) entities.stream()
                 .map(mapper.domainEntityMapper::map)
-                .toList();
+                .collect(Collectors.toList());
     }
 
     @Override
@@ -175,8 +184,7 @@ public class DomainEntityManagerImpl implements DomainEntityManager {
         if (domain == null) {
             return null;
         }
-        Mapper mapper = getMapper(domain.getClass());
-        entityManager.save(mapper.domainEntityMapper.map(domain));
+        entityManager.save(getMapper(domain.getClass()).domainEntityMapper.map(domain));
         return domain;
     }
 
@@ -185,8 +193,7 @@ public class DomainEntityManagerImpl implements DomainEntityManager {
         if (domain == null) {
             return null;
         }
-        Mapper mapper = getMapper(domain.getClass());
-        entityManager.update(mapper.domainEntityMapper.map(domain));
+        entityManager.update(getMapper(domain.getClass()).domainEntityMapper.map(domain));
         return domain;
     }
 
@@ -200,10 +207,12 @@ public class DomainEntityManagerImpl implements DomainEntityManager {
         if (domain == null) {
             return;
         }
-        Mapper mapper = getMapper(domain.getClass());
-        ShardInstance entity = mapper.domainEntityMapper.map(domain);
+        ShardInstance entity = getMapper(domain.getClass()).domainEntityMapper.map(domain);
         entity.setAttributeStorage(
                 entityManager.findAll(AttributeStorage.class, "C_ENTITY_ID=?", domain.getId())
+        );
+        entity.setAttributeHistory(
+                entityManager.findAll(AttributeHistoryEntity.class, "C_ENTITY_ID=?", domain.getId())
         );
         domain.getStorage().putAll(
                 entity.getAttributeStorage()
@@ -286,6 +295,21 @@ public class DomainEntityManagerImpl implements DomainEntityManager {
     @Override
     public void addParallel() {
         entityManager.addParallel();
+    }
+
+    @Override
+    public <T extends Domain> List<AttributeHistory> getAttributeHistory(T domain, String attributeName) {
+        if (domain == null || attributeName == null) {
+            return Collections.EMPTY_LIST;
+        }
+        Mapper mapper = getMapper(domain.getClass());
+        List<AttributeHistory> attributeHistoryList = mapper.domainEntityMapper.mapAttributeHistory(
+                entityManager.findAll(
+                        AttributeHistoryEntity.class,
+                        "x0.C_ENTITY_ID=? and x0.C_ATTRIBUTE_NAME=?",
+                        domain.getId(), attributeName));
+        attributeHistoryList.addAll(domain.getAttributeHistory());
+        return attributeHistoryList;
     }
 
     private <T extends Domain> List<T> saveAll(List<T> domains, boolean isUpdate) {

@@ -16,8 +16,8 @@ import ru.vtb.pmts.db.service.ShardEntityRepository;
 import ru.vtb.pmts.db.service.SharedTransactionManager;
 import ru.vtb.pmts.db.service.api.ResultQuery;
 import ru.vtb.pmts.db.service.api.TransactionalQuery;
-import ru.vtb.pmts.db.service.impl.AttributeStorageRepository;
-import ru.vtb.pmts.db.service.impl.SharedEntityTransaction;
+import ru.vtb.pmts.db.service.impl.repository.AttributeStorageRepository;
+import ru.vtb.pmts.db.service.impl.transaction.SharedEntityTransaction;
 import ru.vtb.pmts.db.utils.ShardUtils;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.context.annotation.Primary;
@@ -139,9 +139,6 @@ public class ShardEntityManagerImpl implements ShardEntityManager {
         boolean isAurTransaction = startTransaction();
         try {
             persist(entity, false, false, true);
-            entity.getAttributeStorage()
-                    .forEach(it -> persist(it, false, false, true));
-            entity.getAttributeStorage().clear();
         } finally {
             if (isAurTransaction) {
                 flush();
@@ -609,17 +606,6 @@ public class ShardEntityManagerImpl implements ShardEntityManager {
         boolean isAurTransaction = startTransaction();
         try {
             persist(entity, onlyChanged, true, false);
-            entity.getAttributeStorage()
-                    .forEach(attributeStorage -> {
-                        if (Objects.isNull(attributeStorage.getCluster())) {
-                            attributeStorage.setCluster(entity.getStorageContext().getCluster());
-                        }
-                        setStorage(attributeStorage, entity);
-                        generateId(attributeStorage);
-                        attributeStorage.setEntityId(entity.getId());
-                        persist(attributeStorage, onlyChanged);
-                    });
-            entity.getAttributeStorage().clear();
         } finally {
             if (isAurTransaction) {
                 flush();
@@ -647,15 +633,31 @@ public class ShardEntityManagerImpl implements ShardEntityManager {
         if (
                 Optional.ofNullable(entity)
                         .map(ShardInstance::getStorageContext)
-                        .map(it -> it.isLazy() && !delete)
-                        .orElse(true))
+                        .map(it -> delete || !it.isLazy())
+                        .orElse(false) &&
+                        entity.setTransactionalContext(getTransaction()))
         {
-            return;
-        }
-        if (entity.setTransactionalContext(getTransaction())) {
             ShardEntityRepository<T> repository = getEntityRepository(entity.getClass());
             if (!delete) {
                 checkShardMap(entity, repository.getShardType(entity));
+                entity.getAttributeStorage()
+                        .forEach(attributeStorage -> {
+                            if (Objects.isNull(attributeStorage.getCluster())) {
+                                attributeStorage.setCluster(entity.getStorageContext().getCluster());
+                            }
+                            setStorage(attributeStorage, entity);
+                            generateId(attributeStorage);
+                            attributeStorage.setEntityId(entity.getId());
+                        });
+                entity.getAttributeHistory()
+                        .forEach(attributeHistory -> {
+                            if (Objects.isNull(attributeHistory.getCluster())) {
+                                attributeHistory.setCluster(entity.getStorageContext().getCluster());
+                            }
+                            setStorage(attributeHistory, entity);
+                            generateId(attributeHistory);
+                            attributeHistory.setEntityId(entity.getId());
+                        });
             }
             if (
                     delete && entity.isStored() ||
@@ -663,10 +665,14 @@ public class ShardEntityManagerImpl implements ShardEntityManager {
             ) {
                 repository.persist(entity, delete, onlyChanged);
                 entity.getStorageContext().persist(delete);
+                entity.getAttributeStorage().forEach(it -> persist(it, onlyChanged, force, delete));
+                entity.getAttributeHistory().forEach(it -> persist(it, onlyChanged, force, delete));
                 if (!delete) {
                     addEntity(entity.getId(), entity);
                 }
             }
+            entity.getAttributeStorage().clear();
+            entity.getAttributeHistory().clear();
         }
     }
 

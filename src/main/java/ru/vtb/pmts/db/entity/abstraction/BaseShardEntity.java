@@ -1,12 +1,13 @@
 package ru.vtb.pmts.db.entity.abstraction;
 
 import ru.vtb.pmts.db.annotation.ShardEntity;
+import ru.vtb.pmts.db.entity.AttributeHistoryEntity;
 import ru.vtb.pmts.db.entity.AttributeStorage;
 import ru.vtb.pmts.db.exception.ShardDataBaseException;
 import ru.vtb.pmts.db.model.Cluster;
 import ru.vtb.pmts.db.model.DataBaseInstance;
 import ru.vtb.pmts.db.model.StorageContext;
-import ru.vtb.pmts.db.service.impl.SharedEntityTransaction;
+import ru.vtb.pmts.db.service.impl.transaction.SharedEntityTransaction;
 import ru.vtb.pmts.db.utils.ShardUtils;
 
 import javax.persistence.EntityTransaction;
@@ -16,6 +17,7 @@ public abstract class BaseShardEntity implements ShardInstance {
     protected Long id;
     private StorageContext storageContext;
     private List<AttributeStorage> attributeStorage = new ArrayList<>();
+    private List<AttributeHistoryEntity> attributeHistory = new ArrayList<>();
     private boolean hasDomain;
     private Cluster cluster;
 
@@ -101,6 +103,16 @@ public abstract class BaseShardEntity implements ShardInstance {
     @Override
     public void setAttributeStorage(List<AttributeStorage> attributeStorage) {
         this.attributeStorage = attributeStorage;
+    }
+
+    @Override
+    public List<AttributeHistoryEntity> getAttributeHistory() {
+        return attributeHistory;
+    }
+
+    @Override
+    public void setAttributeHistory(List<AttributeHistoryEntity> attributeHistory) {
+        this.attributeHistory = attributeHistory;
     }
 
     @Override

@@ -1,5 +1,6 @@
 package ru.vtb.pmts.db.entity.abstraction;
 
+import ru.vtb.pmts.db.entity.AttributeHistoryEntity;
 import ru.vtb.pmts.db.entity.AttributeStorage;
 import ru.vtb.pmts.db.model.Cluster;
 import ru.vtb.pmts.db.model.DataBaseInstance;
@@ -22,6 +23,8 @@ public interface ShardInstance {
     boolean setTransactionalContext(EntityTransaction transaction);
     List<AttributeStorage> getAttributeStorage();
     void setAttributeStorage(List<AttributeStorage> attributeStorage);
+    List<AttributeHistoryEntity> getAttributeHistory();
+    void setAttributeHistory(List<AttributeHistoryEntity> attributeHistory);
     boolean hasDomain();
     void setHasDomain(boolean hasDomain);
     Cluster getCluster();
