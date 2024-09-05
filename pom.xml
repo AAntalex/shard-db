@@ -11,9 +11,9 @@
         <relativePath/> <!-- lookup parent from repository -->
     </parent>
 
-    <groupId>ru.vtb.pmts</groupId>
-    <artifactId>multi-db</artifactId>
-    <version>1.0.1-SNAPSHOT</version>
+    <groupId>com.antalex</groupId>
+    <artifactId>shard-db</artifactId>
+    <version>1.0-SNAPSHOT</version>
 
     <properties>
         <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
