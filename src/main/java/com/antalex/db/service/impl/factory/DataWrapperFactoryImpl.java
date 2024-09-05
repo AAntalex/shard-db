@@ -1,9 +1,9 @@
 package com.antalex.db.service.impl.factory;
 
+import com.antalex.db.service.impl.wrapers.JSonWrapper;
 import com.antalex.db.model.enums.DataFormat;
 import com.antalex.db.service.api.DataWrapper;
 import com.antalex.db.service.api.DataWrapperFactory;
-import com.antalex.db.service.impl.wrapers.JSonWrapper;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import org.springframework.stereotype.Component;
 

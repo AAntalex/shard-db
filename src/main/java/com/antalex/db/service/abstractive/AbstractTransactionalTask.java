@@ -1,11 +1,11 @@
 package com.antalex.db.service.abstractive;
 
+import com.antalex.db.exception.ShardDataBaseException;
+import com.antalex.db.model.DataBaseInstance;
 import com.antalex.db.model.enums.QueryType;
 import com.antalex.db.model.enums.TaskStatus;
-import com.antalex.db.service.api.TransactionalTask;
-import com.antalex.db.exception.ShardDataBaseException;
-import com.antalex.db.model.Shard;
 import com.antalex.db.service.api.TransactionalQuery;
+import com.antalex.db.service.api.TransactionalTask;
 import lombok.extern.slf4j.Slf4j;
 
 import java.util.*;
@@ -20,11 +20,12 @@ public abstract class AbstractTransactionalTask implements TransactionalTask {
     protected String errorCompletion;
     protected Future future;
     protected TaskStatus status = TaskStatus.CREATED;
-    protected boolean parallelCommit;
-    protected Shard shard;
+    protected DataBaseInstance shard;
+    protected boolean parallelRun;
+    protected String error;
+    protected final Map<String, TransactionalQuery> queries = new HashMap<>();
 
-    private String error;
-    private final Map<String, TransactionalQuery> queries = new HashMap<>();
+    private long duration;
     private final List<TransactionalQuery> dmlQueries = new ArrayList<>();
     private final Map<String, TransactionalQuery> dmlQueryMap = new HashMap<>();
     private TransactionalTask mainTask;
@@ -37,26 +38,27 @@ public abstract class AbstractTransactionalTask implements TransactionalTask {
     @Override
     public void run(Boolean parallelRun) {
         if (this.status == TaskStatus.CREATED) {
-            Runnable target = () ->
-                    steps.forEach(step -> {
-                                if (this.error == null) {
-                                    try {
-                                        log.trace(
-                                                "Running \"" + this.name + "\", step \"" + step.name + "\"..."
-                                        );
-                                        step.target.run();
-                                    } catch (Exception err) {
-                                        this.error = step.name + ":\n" + err.getMessage();
-                                    }
-                                }
-                            });
-            if (parallelRun) {
+            this.parallelRun = parallelRun;
+            Runnable target = () -> {
+                this.duration = System.currentTimeMillis();
+                steps.forEach(step -> {
+                    if (this.error == null) {
+                        try {
+                            log.trace("Running \"{}\", step \"{}\"...", this.name,  step.name);
+                            step.target.run();
+                        } catch (Exception err) {
+                            this.error = step.name + ":\n" + err.getMessage();
+                        }
+                    }
+                });
+                this.duration = System.currentTimeMillis() - this.duration;
+            };
+            if (this.parallelRun) {
                 this.future = this.executorService.submit(target);
                 this.status = TaskStatus.RUNNING;
             } else {
                 target.run();
                 this.status = TaskStatus.DONE;
-                this.parallelCommit = false;
             }
         }
     }
@@ -66,7 +68,7 @@ public abstract class AbstractTransactionalTask implements TransactionalTask {
         if (this.status == TaskStatus.RUNNING) {
             try {
                 log.trace("Waiting {}...", this.name);
-                this.future.get();
+               this.future.get();
             } catch (Exception err) {
                 throw new ShardDataBaseException(err);
             } finally {
@@ -114,7 +116,7 @@ public abstract class AbstractTransactionalTask implements TransactionalTask {
                                         }
                                     }
                                 });
-                if (this.parallelCommit) {
+                if (this.parallelRun) {
                     this.future = this.executorService.submit(target);
                 } else {
                     target.run();
@@ -210,7 +212,7 @@ public abstract class AbstractTransactionalTask implements TransactionalTask {
     public TransactionalQuery addQuery(String query, QueryType queryType, String name) {
         TransactionalQuery transactionalQuery = this.queries.get(query);
         if (transactionalQuery == null) {
-            log.trace("Create Query '" + query + "' on " + shard.getName());
+            log.trace("Create Query '{}' on {}", query, shard.getName());
             transactionalQuery = createQuery(query, queryType);
             this.queries.put(query, transactionalQuery);
             if (queryType == QueryType.DML) {
@@ -248,7 +250,13 @@ public abstract class AbstractTransactionalTask implements TransactionalTask {
         return executorService;
     }
 
-    private TransactionalTask getMainTask() {
-        return Optional.ofNullable(this.mainTask).orElse(this);
+    @Override
+    public long getDuration() {
+        return duration;
+    }
+
+    @Override
+    public DataBaseInstance getShard() {
+        return shard;
     }
 }

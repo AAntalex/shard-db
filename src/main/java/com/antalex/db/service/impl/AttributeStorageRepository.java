@@ -1,22 +1,22 @@
-package com.antalex.db.service.impl;
+package com.antalex.db.service.impl.repository;
 
+import com.antalex.db.entity.AttributeStorage;
 import com.antalex.db.entity.AttributeStorageInterceptor;
+import com.antalex.db.entity.abstraction.ShardInstance;
 import com.antalex.db.model.Cluster;
+import com.antalex.db.model.DataStorage;
+import com.antalex.db.model.StorageContext;
 import com.antalex.db.model.enums.DataFormat;
 import com.antalex.db.model.enums.QueryStrategy;
 import com.antalex.db.model.enums.QueryType;
 import com.antalex.db.model.enums.ShardType;
-import com.antalex.db.service.ShardEntityRepository;
-import com.google.common.collect.ImmutableMap;
-import com.antalex.db.entity.AttributeStorage;
-import com.antalex.db.entity.abstraction.ShardInstance;
-import com.antalex.db.model.DataStorage;
-import com.antalex.db.model.StorageContext;
 import com.antalex.db.service.ShardEntityManager;
+import com.antalex.db.service.ShardEntityRepository;
 import com.antalex.db.service.api.ResultQuery;
+import com.antalex.db.utils.Utils;
+import com.google.common.collect.ImmutableMap;
 import org.apache.commons.lang3.StringUtils;
 import org.springframework.stereotype.Component;
-import com.antalex.db.utils.Utils;
 
 import java.util.*;
 import java.util.stream.IntStream;
@@ -81,7 +81,7 @@ public class AttributeStorageRepository implements ShardEntityRepository<Attribu
 
     @Override
     public Cluster getCluster(AttributeStorage entity) {
-        return entity.getCluster();
+        return Optional.ofNullable(entity).map(ShardInstance::getCluster).orElse(null);
     }
 
     @Override

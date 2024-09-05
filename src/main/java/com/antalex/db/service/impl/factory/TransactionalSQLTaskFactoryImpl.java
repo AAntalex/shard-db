@@ -1,9 +1,10 @@
 package com.antalex.db.service.impl.factory;
 
+import com.antalex.db.service.LockManager;
+import com.antalex.db.service.impl.transaction.TransactionalSQLTask;
+import com.antalex.db.model.DataBaseInstance;
 import com.antalex.db.service.api.TransactionalSQLTaskFactory;
 import com.antalex.db.service.api.TransactionalTask;
-import com.antalex.db.service.impl.TransactionalSQLTask;
-import com.antalex.db.model.Shard;
 import org.springframework.stereotype.Component;
 
 import java.sql.Connection;
@@ -11,21 +12,20 @@ import java.util.concurrent.ExecutorService;
 
 @Component
 public class TransactionalSQLTaskFactoryImpl implements TransactionalSQLTaskFactory {
+    private final LockManager lockManager;
     private ExecutorService executorService;
-    private boolean parallelCommit;
+
+    TransactionalSQLTaskFactoryImpl (LockManager lockManager) {
+        this.lockManager = lockManager;
+    }
 
     @Override
-    public TransactionalTask createTask(Shard shard, Connection connection) {
-        return new TransactionalSQLTask(shard, connection, executorService, parallelCommit);
+    public TransactionalTask createTask(DataBaseInstance shard, Connection connection) {
+        return new TransactionalSQLTask(shard, connection, executorService, lockManager);
     }
 
     @Override
     public void setExecutorService(ExecutorService executorService) {
         this.executorService = executorService;
-    }
-
-    @Override
-    public void setParallelCommit(boolean parallelCommit) {
-        this.parallelCommit = parallelCommit;
     }
 }

@@ -1,10 +1,11 @@
 package com.antalex.db.domain.abstraction;
 
+import com.antalex.db.entity.abstraction.ShardInstance;
+import com.antalex.db.model.dto.AttributeHistory;
 import lombok.AllArgsConstructor;
 import lombok.Data;
 import com.antalex.db.annotation.DomainEntity;
 import com.antalex.db.entity.AttributeStorage;
-import com.antalex.db.entity.abstraction.ShardInstance;
 import com.antalex.db.exception.ShardDataBaseException;
 import com.antalex.db.utils.Utils;
 
@@ -18,6 +19,7 @@ public abstract class BaseDomain implements Domain {
     private final Map<String, Boolean> changedStore = new HashMap<>();
     private final Map<String, Map<String, ControlledObject>> controlledObjects = new HashMap<>();
     private final Map<String, AttributeStorage> storage = new HashMap<>();
+    private final List<AttributeHistory> attributeHistory = new ArrayList<>();
 
     public BaseDomain () {
         if (this.getClass().isAnnotationPresent(DomainEntity.class)) {
@@ -75,6 +77,11 @@ public abstract class BaseDomain implements Domain {
         storage.keySet().forEach(k -> changedStore.put(k, true));
     }
 
+    @Override
+    public List<AttributeHistory> getAttributeHistory() {
+        return attributeHistory;
+    }
+
     public void objectToControl(String storageName, String attribute, Object o, boolean replace) {
         if (o == null) {
             return;
@@ -116,6 +123,7 @@ public abstract class BaseDomain implements Domain {
 
     public void dropChanges() {
         this.changes = null;
+        this.attributeHistory.clear();
     }
 
     public void dropChanges(String storageName) {

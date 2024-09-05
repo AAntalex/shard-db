@@ -1,27 +1,27 @@
 package com.antalex.db.annotation.processors;
 
-import com.antalex.db.model.Cluster;
-import com.antalex.db.model.dto.EntityClassDto;
-import com.antalex.db.model.dto.EntityFieldDto;
-import com.antalex.db.model.enums.QueryStrategy;
-import com.antalex.db.model.enums.QueryType;
-import com.antalex.db.model.enums.ShardType;
-import com.antalex.db.service.ShardEntityRepository;
 import com.google.common.collect.ImmutableMap;
 import com.antalex.db.annotation.ParentShard;
 import com.antalex.db.annotation.ShardEntity;
 import com.antalex.db.entity.AttributeStorage;
 import com.antalex.db.entity.abstraction.ShardInstance;
+import com.antalex.db.model.Cluster;
 import com.antalex.db.model.DataStorage;
 import com.antalex.db.model.StorageContext;
+import com.antalex.db.model.enums.QueryStrategy;
+import com.antalex.db.model.enums.QueryType;
+import com.antalex.db.model.enums.ShardType;
 import com.antalex.db.service.ShardDataBaseManager;
 import com.antalex.db.service.ShardEntityManager;
+import com.antalex.db.service.ShardEntityRepository;
 import com.antalex.db.service.api.ResultQuery;
 import com.google.common.base.CaseFormat;
 import lombok.experimental.Accessors;
 import org.apache.commons.lang3.StringUtils;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Component;
+import com.antalex.db.model.dto.EntityClassDto;
+import com.antalex.db.model.dto.EntityFieldDto;
 import com.antalex.db.model.dto.IndexDto;
 import com.antalex.db.utils.Utils;
 
@@ -120,7 +120,7 @@ public class EntityClassBuilder {
                                                             .element(fieldElement)
                                                             .build()
                                     )
-                                    .collect(Collectors.toList())
+                                    .toList()
                     )
                     .indexes(
                             Optional.ofNullable(classElement.getAnnotation(Table.class))
@@ -164,7 +164,7 @@ public class EntityClassBuilder {
                 entityClassDto.getFields()
                         .stream()
                         .filter(field -> !field.getIsLinked() && Objects.nonNull(field.getColumnName()))
-                        .collect(Collectors.toList())
+                        .toList()
         );
         entityClassDto.getFields().forEach(field -> field.setIsLinkedEntity(isLinkedEntity(field)));
         entityClassDto.getFields()
@@ -177,7 +177,7 @@ public class EntityClassBuilder {
                 entityClassDto.getColumnFields()
                         .stream()
                         .filter(EntityFieldDto::isUnique)
-                        .collect(Collectors.toList())
+                        .toList()
         );
     }
 
@@ -1042,62 +1042,62 @@ public class EntityClassBuilder {
     private static String getResultObjectCode(EntityFieldDto field) {
         Class<?> clazz = ProcessorUtils.getClassByType(field.getElement().asType());
         if (clazz != null) {
-            if (clazz.isAssignableFrom(String.class)) {
-                return "result.getString(++index)";
-            }
-            if (clazz.isAssignableFrom(Byte.class)) {
-                return "result.getByte(++index)";
-            }
-            if (clazz.isAssignableFrom(Boolean.class)) {
-                return "result.getBoolean(++index)";
-            }
-            if (clazz.isAssignableFrom(Short.class)) {
-                return "result.getShort(++index)";
-            }
-            if (clazz.isAssignableFrom(Integer.class)) {
-                return "result.getInteger(++index)";
-            }
-            if (clazz.isAssignableFrom(Long.class)) {
-                return "result.getLong(++index)";
-            }
-            if (clazz.isAssignableFrom(Float.class)) {
-                return "result.getFloat(++index)";
-            }
-            if (clazz.isAssignableFrom(Double.class)) {
-                return "result.getDouble(++index)";
-            }
-            if (clazz.isAssignableFrom(BigDecimal.class)) {
+            if (BigDecimal.class.isAssignableFrom(clazz)) {
                 return "result.getBigDecimal(++index)";
             }
-            if (clazz.isAssignableFrom(Date.class)) {
-                return "result.getDate(++index)";
+            if (Byte.class.isAssignableFrom(clazz)) {
+                return "result.getByte(++index)";
             }
-            if (clazz.isAssignableFrom(Time.class)) {
-                return "result.getTime(++index)";
+            if (Boolean.class.isAssignableFrom(clazz)) {
+                return "result.getBoolean(++index)";
             }
-            if (clazz.isAssignableFrom(Timestamp.class)) {
-                return "result.getTimestamp(++index)";
+            if (Short.class.isAssignableFrom(clazz)) {
+                return "result.getShort(++index)";
             }
-            if (clazz.isAssignableFrom(Blob.class)) {
-                return "result.getBlob(++index)";
+            if (Integer.class.isAssignableFrom(clazz)) {
+                return "result.getInteger(++index)";
             }
-            if (clazz.isAssignableFrom(Clob.class)) {
-                return "result.getClob(++index)";
+            if (Long.class.isAssignableFrom(clazz)) {
+                return "result.getLong(++index)";
             }
-            if (clazz.isAssignableFrom(URL.class)) {
-                return "result.getURL(++index)";
+            if (Float.class.isAssignableFrom(clazz)) {
+                return "result.getFloat(++index)";
             }
-            if (clazz.isAssignableFrom(SQLXML.class)) {
-                return "result.getSQLXML(++index)";
+            if (Double.class.isAssignableFrom(clazz)) {
+                return "result.getDouble(++index)";
             }
-            if (clazz.isAssignableFrom(LocalDateTime.class)) {
-                return "result.getLocalDateTime(++index)";
-            }
-            if (clazz.isAssignableFrom(OffsetDateTime.class)) {
+            if (OffsetDateTime.class.isAssignableFrom(clazz)) {
                 return "result.getOffsetDateTime(++index)";
             }
-            if (clazz.isAssignableFrom(LocalDate.class)) {
+            if (LocalDateTime.class.isAssignableFrom(clazz)) {
+                return "result.getLocalDateTime(++index)";
+            }
+            if (LocalDate.class.isAssignableFrom(clazz)) {
                 return "result.getLocalDate(++index)";
+            }
+            if (Timestamp.class.isAssignableFrom(clazz)) {
+                return "result.getTimestamp(++index)";
+            }
+            if (Time.class.isAssignableFrom(clazz)) {
+                return "result.getTime(++index)";
+            }
+            if (Date.class.isAssignableFrom(clazz)) {
+                return "result.getDate(++index)";
+            }
+            if (Clob.class.isAssignableFrom(clazz)) {
+                return "result.getClob(++index)";
+            }
+            if (Blob.class.isAssignableFrom(clazz)) {
+                return "result.getBlob(++index)";
+            }
+            if (URL.class.isAssignableFrom(clazz)) {
+                return "result.getURL(++index)";
+            }
+            if (SQLXML.class.isAssignableFrom(clazz)) {
+                return "result.getSQLXML(++index)";
+            }
+            if (String.class.isAssignableFrom(clazz)) {
+                return "result.getString(++index)";
             }
         }
         return "result.getObject(++index, " + ProcessorUtils.getTypeField(field.getElement()) + ".class)";

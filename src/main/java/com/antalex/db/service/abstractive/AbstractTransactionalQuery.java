@@ -1,12 +1,12 @@
 package com.antalex.db.service.abstractive;
 
-import com.antalex.db.model.Shard;
+import com.antalex.db.entity.abstraction.ShardInstance;
+import com.antalex.db.exception.ShardDataBaseException;
+import com.antalex.db.model.DataBaseInstance;
 import com.antalex.db.model.enums.QueryType;
 import com.antalex.db.service.api.ResultQuery;
 import com.antalex.db.service.api.TransactionalQuery;
-import com.antalex.db.service.impl.ResultParallelQuery;
-import com.antalex.db.entity.abstraction.ShardInstance;
-import com.antalex.db.exception.ShardDataBaseException;
+import com.antalex.db.service.impl.results.ResultParallelQuery;
 import lombok.Data;
 import lombok.extern.slf4j.Slf4j;
 
@@ -24,7 +24,9 @@ public abstract class AbstractTransactionalQuery implements TransactionalQuery, 
     protected String query;
     protected ResultQuery result;
     protected Integer fetchLimit;
+    protected final List<TransactionalQuery> relatedQueries = new ArrayList<>();
 
+    private long duration;
     private int resultUpdate;
     private int[] resultUpdateBatch;
     private ExecutorService executorService;
@@ -33,8 +35,7 @@ public abstract class AbstractTransactionalQuery implements TransactionalQuery, 
     private int currentIndex;
     private boolean isButch;
     private int count;
-    private Shard shard;
-    private final List<TransactionalQuery> relatedQueries = new ArrayList<>();
+    private DataBaseInstance shard;
     private String error;
     private ResultParallelQuery parallelResult;
 
@@ -53,7 +54,7 @@ public abstract class AbstractTransactionalQuery implements TransactionalQuery, 
     @Override
     public void execute() {
         if (queryType != QueryType.DML) {
-            log.trace("Execute Query '" + this.query + "'");
+            log.trace("Execute Query '{}'", this.query);
             if (relatedQueries.isEmpty()) {
                 run();
             } else {
@@ -89,9 +90,30 @@ public abstract class AbstractTransactionalQuery implements TransactionalQuery, 
     }
 
     @Override
+    public TransactionalQuery bindAll(List<String> binds, List<Class<?>> types) {
+        IntStream.range(0, binds.size())
+                .forEach(idx ->
+                        bind(idx + 1, binds.get(idx), types.get(idx))
+                );
+        return this;
+    }
+
+    @Override
     public TransactionalQuery bind(int index, Object o) {
         try {
             bindOriginal(index, o);
+            relatedQueries.forEach(query -> query.bind(index, o));
+            this.currentIndex = index;
+        } catch (Exception err) {
+            throw new ShardDataBaseException(err);
+        }
+        return this;
+    }
+
+    @Override
+    public TransactionalQuery bind(int index, String o, Class<?> clazz) {
+        try {
+            bindOriginal(index, o, clazz);
             relatedQueries.forEach(query -> query.bind(index, o));
             this.currentIndex = index;
         } catch (Exception err) {
@@ -161,6 +183,7 @@ public abstract class AbstractTransactionalQuery implements TransactionalQuery, 
     @Override
     public void run() {
         try {
+            this.duration = System.currentTimeMillis();
             if (queryType == QueryType.DML) {
                 if (this.isButch) {
                     this.resultUpdateBatch = executeBatch();
@@ -172,7 +195,9 @@ public abstract class AbstractTransactionalQuery implements TransactionalQuery, 
                 this.increment();
                 this.result = executeQuery();
             }
+            this.duration = System.currentTimeMillis() - this.duration;
         } catch (Exception err) {
+            this.duration = System.currentTimeMillis() - this.duration;
             throw new ShardDataBaseException(err);
         }
     }
@@ -198,12 +223,12 @@ public abstract class AbstractTransactionalQuery implements TransactionalQuery, 
     }
 
     @Override
-    public void setShard(Shard shard) {
+    public void setShard(DataBaseInstance shard) {
         this.shard = shard;
     }
 
     @Override
-    public Shard getShard() {
+    public DataBaseInstance getShard() {
         return shard;
     }
 
@@ -237,6 +262,7 @@ public abstract class AbstractTransactionalQuery implements TransactionalQuery, 
         return this;
     }
 
+    @Override
     public int[] getResultUpdateBatch() {
         if (relatedQueries.isEmpty()) {
             return resultUpdateBatch;
@@ -252,6 +278,19 @@ public abstract class AbstractTransactionalQuery implements TransactionalQuery, 
         }
     }
 
+    @Override
+    public long getDuration() {
+        return duration;
+    }
+
+    protected void bindOriginal(int idx, String o, Class<?> clazz) throws Exception {
+        throw new UnsupportedOperationException();
+    }
+
+    protected void bindOriginal(int idx, Object o) throws Exception {
+        throw new UnsupportedOperationException();
+    }
+
     private RunInfo runQuery(TransactionalQuery transactionalQuery) {
         RunInfo runInfo = new RunInfo();
         runInfo.setName(
@@ -264,7 +303,7 @@ public abstract class AbstractTransactionalQuery implements TransactionalQuery, 
         runInfo.setFuture(
                 this.executorService.submit(() -> {
                     try {
-                        log.trace("Running " + runInfo.getName());
+                        log.trace("Running {}", runInfo.getName());
                         ((Runnable) transactionalQuery).run();
                     } catch (Exception err) {
                         runInfo.setError("ERROR: " + runInfo.getName() + ":\n" + err.getLocalizedMessage());
@@ -277,7 +316,7 @@ public abstract class AbstractTransactionalQuery implements TransactionalQuery, 
 
     private void waitRun(RunInfo runInfo) {
         try {
-            log.trace("Waiting " + runInfo.getName() + "...");
+            log.trace("Waiting {}}...", runInfo.getName());
             runInfo.getFuture().get();
         } catch (Exception err) {
             throw new ShardDataBaseException(err);

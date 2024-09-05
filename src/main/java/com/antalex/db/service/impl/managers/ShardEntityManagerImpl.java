@@ -1,24 +1,24 @@
 package com.antalex.db.service.impl.managers;
 
-import com.antalex.db.model.Cluster;
-import com.antalex.db.model.enums.QueryStrategy;
-import com.antalex.db.model.enums.QueryType;
-import com.antalex.db.model.enums.ShardType;
-import com.antalex.db.service.ShardEntityRepository;
-import com.antalex.db.utils.ShardUtils;
 import com.antalex.db.entity.AttributeStorage;
 import com.antalex.db.entity.abstraction.ShardInstance;
 import com.antalex.db.exception.ShardDataBaseException;
+import com.antalex.db.model.Cluster;
 import com.antalex.db.model.DataStorage;
-import com.antalex.db.model.Shard;
+import com.antalex.db.model.DataBaseInstance;
 import com.antalex.db.model.StorageContext;
+import com.antalex.db.model.enums.QueryStrategy;
+import com.antalex.db.model.enums.QueryType;
+import com.antalex.db.model.enums.ShardType;
 import com.antalex.db.service.ShardDataBaseManager;
 import com.antalex.db.service.ShardEntityManager;
+import com.antalex.db.service.ShardEntityRepository;
 import com.antalex.db.service.SharedTransactionManager;
 import com.antalex.db.service.api.ResultQuery;
 import com.antalex.db.service.api.TransactionalQuery;
-import com.antalex.db.service.impl.AttributeStorageRepository;
-import com.antalex.db.service.impl.SharedEntityTransaction;
+import com.antalex.db.service.impl.repository.AttributeStorageRepository;
+import com.antalex.db.service.impl.transaction.SharedEntityTransaction;
+import com.antalex.db.utils.ShardUtils;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.context.annotation.Primary;
 import org.springframework.core.GenericTypeResolver;
@@ -27,7 +27,6 @@ import org.springframework.stereotype.Component;
 import javax.persistence.EntityTransaction;
 import javax.persistence.FetchType;
 import java.util.*;
-import java.util.stream.Collectors;
 
 @Component
 @Primary
@@ -138,11 +137,12 @@ public class ShardEntityManagerImpl implements ShardEntityManager {
             return;
         }
         boolean isAurTransaction = startTransaction();
-        persist(entity, false, false, true);
-        entity.getAttributeStorage()
-                .forEach(it -> persist(it, false, false, true));
-        if (isAurTransaction) {
-            flush(true);
+        try {
+            persist(entity, false, false, true);
+        } finally {
+            if (isAurTransaction) {
+                flush();
+            }
         }
     }
 
@@ -152,9 +152,12 @@ public class ShardEntityManagerImpl implements ShardEntityManager {
             return;
         }
         boolean isAurTransaction = startTransaction();
-        entities.forEach(this::delete);
-        if (isAurTransaction) {
-            flush(false);
+        try {
+            entities.forEach(this::delete);
+        } finally {
+            if (isAurTransaction) {
+                flush();
+            }
         }
     }
 
@@ -193,9 +196,6 @@ public class ShardEntityManagerImpl implements ShardEntityManager {
             return;
         }
         Cluster cluster = getCluster(entity);
-
-
-
         ShardType shardType = getShardType(entity);
         if (
                 Optional.ofNullable(entity.getStorageContext())
@@ -360,7 +360,8 @@ public class ShardEntityManagerImpl implements ShardEntityManager {
 
     @Override
     public void flush() {
-        flush(false);
+        SharedEntityTransaction transaction = (SharedEntityTransaction) getTransaction();
+        transaction.commit();
     }
 
     @Override
@@ -397,10 +398,10 @@ public class ShardEntityManagerImpl implements ShardEntityManager {
                     Collections.singletonList(createQuery(entity, query, queryType, queryStrategy));
             case ALL_SHARDS -> dataBaseManager.getEntityShards(entity)
                     .map(shard -> this.createQuery(shard, query, queryType))
-                    .collect(Collectors.toList());
+                    .toList();
             case NEW_SHARDS -> dataBaseManager.getNewShards(entity)
                     .map(shard -> this.createQuery(shard, query, queryType))
-                    .collect(Collectors.toList());
+                    .toList();
         };
     }
 
@@ -422,7 +423,7 @@ public class ShardEntityManagerImpl implements ShardEntityManager {
     {
         return dataBaseManager.getEnabledShards(cluster)
                 .map(shard -> this.createQuery(shard, query, queryType))
-                .collect(Collectors.toList());
+                .toList();
     }
 
 
@@ -468,8 +469,15 @@ public class ShardEntityManagerImpl implements ShardEntityManager {
             String condition,
             Object... binds)
     {
-        ShardEntityRepository<T> repository = getEntityRepository(clazz);
-        return repository.find(storageMap, condition, binds);
+        boolean isAurTransaction = startTransaction();
+        try {
+            ShardEntityRepository<T> repository = getEntityRepository(clazz);
+            return repository.find(storageMap, condition, binds);
+        } finally {
+            if (isAurTransaction) {
+                flush();
+            }
+        }
     }
 
     @Override
@@ -480,10 +488,16 @@ public class ShardEntityManagerImpl implements ShardEntityManager {
             String condition,
             Object... binds)
     {
-        ShardEntityRepository<T> repository = getEntityRepository(clazz);
-        return repository.findAll(storageMap, limit, condition, binds);
+        boolean isAurTransaction = startTransaction();
+        try {
+            ShardEntityRepository<T> repository = getEntityRepository(clazz);
+            return repository.findAll(storageMap, limit, condition, binds);
+        } finally {
+            if (isAurTransaction) {
+                flush();
+            }
+        }
     }
-
 
     @Override
     public <T extends ShardInstance> List<T> findAll(
@@ -493,8 +507,15 @@ public class ShardEntityManagerImpl implements ShardEntityManager {
             String condition,
             Object... binds)
     {
-        ShardEntityRepository<T> repository = getEntityRepository(clazz);
-        return repository.findAll(parent, storageMap, condition, binds);
+        boolean isAurTransaction = startTransaction();
+        try {
+            ShardEntityRepository<T> repository = getEntityRepository(clazz);
+            return repository.findAll(parent, storageMap, condition, binds);
+        } finally {
+            if (isAurTransaction) {
+                flush();
+            }
+        }
     }
 
     @Override
@@ -563,8 +584,15 @@ public class ShardEntityManagerImpl implements ShardEntityManager {
         if (entity == null) {
             return null;
         }
-        ShardEntityRepository<T> repository = getEntityRepository(entity.getClass());
-        return repository.find(entity, storageMap);
+        boolean isAurTransaction = startTransaction();
+        try {
+            ShardEntityRepository<T> repository = getEntityRepository(entity.getClass());
+            return repository.find(entity, storageMap);
+        } finally {
+            if (isAurTransaction) {
+                flush();
+            }
+        }
     }
 
     @Override
@@ -572,29 +600,16 @@ public class ShardEntityManagerImpl implements ShardEntityManager {
         return attributeStorageRepository.find(parent, storage);
     }
 
-    private void flush(boolean shortTransaction) {
-        SharedEntityTransaction transaction = (SharedEntityTransaction) getTransaction();
-        transaction.setShort(shortTransaction);
-        transaction.commit();
-    }
-
     private <T extends ShardInstance> T save(T entity, boolean onlyChanged) {
         setStorage(entity, null, true);
         generateId(entity, true);
         boolean isAurTransaction = startTransaction();
-        persist(entity, onlyChanged, true, false);
-        entity.getAttributeStorage()
-                .forEach(attributeStorage -> {
-                    if (Objects.isNull(attributeStorage.getCluster())) {
-                        attributeStorage.setCluster(entity.getStorageContext().getCluster());
-                    }
-                    setStorage(attributeStorage, entity);
-                    generateId(attributeStorage);
-                    attributeStorage.setEntityId(entity.getId());
-                    persist(attributeStorage, onlyChanged);
-                });
-        if (isAurTransaction) {
-            flush(true);
+        try {
+            persist(entity, onlyChanged, true, false);
+        } finally {
+            if (isAurTransaction) {
+                flush();
+            }
         }
         return entity;
     }
@@ -604,9 +619,12 @@ public class ShardEntityManagerImpl implements ShardEntityManager {
             return null;
         }
         boolean isAurTransaction = startTransaction();
-        entities.forEach(it -> save(it, onlyChanged));
-        if (isAurTransaction) {
-            flush(false);
+        try {
+            entities.forEach(it -> save(it, onlyChanged));
+        } finally {
+            if (isAurTransaction) {
+                flush();
+            }
         }
         return entities;
     }
@@ -615,15 +633,31 @@ public class ShardEntityManagerImpl implements ShardEntityManager {
         if (
                 Optional.ofNullable(entity)
                         .map(ShardInstance::getStorageContext)
-                        .map(it -> it.isLazy() && !delete)
-                        .orElse(true))
+                        .map(it -> delete || !it.isLazy())
+                        .orElse(false) &&
+                        entity.setTransactionalContext(getTransaction()))
         {
-            return;
-        }
-        if (entity.setTransactionalContext(getTransaction())) {
             ShardEntityRepository<T> repository = getEntityRepository(entity.getClass());
             if (!delete) {
                 checkShardMap(entity, repository.getShardType(entity));
+                entity.getAttributeStorage()
+                        .forEach(attributeStorage -> {
+                            if (Objects.isNull(attributeStorage.getCluster())) {
+                                attributeStorage.setCluster(entity.getStorageContext().getCluster());
+                            }
+                            setStorage(attributeStorage, entity);
+                            generateId(attributeStorage);
+                            attributeStorage.setEntityId(entity.getId());
+                        });
+                entity.getAttributeHistory()
+                        .forEach(attributeHistory -> {
+                            if (Objects.isNull(attributeHistory.getCluster())) {
+                                attributeHistory.setCluster(entity.getStorageContext().getCluster());
+                            }
+                            setStorage(attributeHistory, entity);
+                            generateId(attributeHistory);
+                            attributeHistory.setEntityId(entity.getId());
+                        });
             }
             if (
                     delete && entity.isStored() ||
@@ -631,10 +665,14 @@ public class ShardEntityManagerImpl implements ShardEntityManager {
             ) {
                 repository.persist(entity, delete, onlyChanged);
                 entity.getStorageContext().persist(delete);
+                entity.getAttributeStorage().forEach(it -> persist(it, onlyChanged, force, delete));
+                entity.getAttributeHistory().forEach(it -> persist(it, onlyChanged, force, delete));
                 if (!delete) {
                     addEntity(entity.getId(), entity);
                 }
             }
+            entity.getAttributeStorage().clear();
+            entity.getAttributeHistory().clear();
         }
     }
 
@@ -665,7 +703,7 @@ public class ShardEntityManagerImpl implements ShardEntityManager {
         return mainQuery;
     }
 
-    private TransactionalQuery createQuery(Shard shard, String query, QueryType queryType) {
+    private TransactionalQuery createQuery(DataBaseInstance shard, String query, QueryType queryType) {
         TransactionalQuery transactionalQuery = dataBaseManager.getTransactionalTask(shard).addQuery(query, queryType);
         transactionalQuery.setShard(shard);
         if (queryType == QueryType.SELECT) {

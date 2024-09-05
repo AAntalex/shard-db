@@ -10,6 +10,7 @@ import java.util.Date;
 
 public interface ResultQuery {
     boolean next() throws Exception;
+    int getColumnCount() throws Exception;
     Object getObject(int idx) throws Exception;
     <T> T getObject(int idx, Class<T> clazz) throws Exception;
     Long getLong(int idx) throws Exception;

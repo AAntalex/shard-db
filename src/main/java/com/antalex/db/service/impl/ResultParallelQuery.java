@@ -1,4 +1,4 @@
-package com.antalex.db.service.impl;
+package com.antalex.db.service.impl.results;
 
 import com.antalex.db.service.api.ResultQuery;
 import org.apache.commons.lang3.StringUtils;
@@ -41,6 +41,11 @@ public class ResultParallelQuery implements ResultQuery {
             return next();
         }
         return true;
+    }
+
+    @Override
+    public int getColumnCount() throws Exception {
+        return currentResult.getColumnCount();
     }
 
     @Override

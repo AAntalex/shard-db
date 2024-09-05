@@ -13,11 +13,12 @@ public class ShardDataBaseConfig {
     public static final String CONFIG_NAME = "shard-db-config";
 
     private String segment;
-    private Integer timeOut;
+    private Integer processorTimeOut;
     private List<ClusterConfig> clusters;
     private LiquibaseConfig liquibase;
     private HikariSettings hikari;
     private ThreadPoolConfig threadPool;
+    private LockProcessorConfig lockProcessor;
     private SharedTransactionConfig transactionConfig;
     private ChecksConfig checks;
     private Integer sequenceCacheSize;

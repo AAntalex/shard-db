@@ -9,5 +9,4 @@ public class ChecksConfig {
     private Boolean checkClusterID;
     private Boolean checkClusterName;
     private Boolean checkClusterDefault;
-
 }

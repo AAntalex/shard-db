@@ -1,16 +1,18 @@
 package com.antalex.db.service.api;
 
-import com.antalex.db.model.enums.QueryType;
 import com.antalex.db.entity.abstraction.ShardInstance;
-import com.antalex.db.model.Shard;
+import com.antalex.db.model.DataBaseInstance;
+import com.antalex.db.model.enums.QueryType;
 
+import java.util.List;
 import java.util.concurrent.ExecutorService;
 
 public interface TransactionalQuery {
     TransactionalQuery bind(Object o, boolean skip);
-    TransactionalQuery bindAll(Object... objects);
     TransactionalQuery bind(int index, Object o);
-    void bindOriginal(int idx, Object o) throws Exception;
+    TransactionalQuery bind(int index, String o, Class<?> clazz);
+    TransactionalQuery bindAll(Object... objects);
+    TransactionalQuery bindAll(List<String> binds, List<Class<?>> types);
     TransactionalQuery bindShardMap(ShardInstance entity);
     TransactionalQuery addBatch();
     TransactionalQuery fetchLimit(Integer fetchLimit);
@@ -29,11 +31,12 @@ public interface TransactionalQuery {
     TransactionalQuery getMainQuery();
     void setExecutorService(ExecutorService executorService);
     void setParallelRun(Boolean parallelRun);
-    void setShard(Shard shard);
-    Shard getShard();
+    void setShard(DataBaseInstance shard);
+    DataBaseInstance getShard();
     void init();
     int getResultUpdate();
     int[] getResultUpdateBatch();
+    long getDuration();
 
     default TransactionalQuery bind(Object o) {
         return bind(o, false);

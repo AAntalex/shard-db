@@ -1,14 +1,14 @@
 package com.antalex.db.service;
 
-import com.antalex.db.entity.AttributeStorage;
-import com.antalex.db.model.Cluster;
+import com.antalex.db.entity.abstraction.ShardInstance;
 import com.antalex.db.model.enums.QueryStrategy;
 import com.antalex.db.model.enums.QueryType;
 import com.antalex.db.model.enums.ShardType;
-import com.antalex.db.entity.abstraction.ShardInstance;
-import com.antalex.db.model.DataStorage;
 import com.antalex.db.service.api.ResultQuery;
 import com.antalex.db.service.api.TransactionalQuery;
+import com.antalex.db.entity.AttributeStorage;
+import com.antalex.db.model.Cluster;
+import com.antalex.db.model.DataStorage;
 
 import javax.persistence.EntityTransaction;
 import java.util.List;

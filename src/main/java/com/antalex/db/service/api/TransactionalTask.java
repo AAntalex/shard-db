@@ -1,5 +1,6 @@
 package com.antalex.db.service.api;
 
+import com.antalex.db.model.DataBaseInstance;
 import com.antalex.db.model.enums.QueryType;
 
 import java.util.List;
@@ -34,4 +35,6 @@ public interface TransactionalTask {
     void setMainTask(TransactionalTask task);
     List<TransactionalQuery> getDmlQueries();
     ExecutorService getExecutorService();
+    long getDuration();
+    DataBaseInstance getShard();
 }

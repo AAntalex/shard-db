@@ -15,4 +15,6 @@ public class DomainFieldDto {
     private String setter;
     private EntityFieldDto entityField;
     private StorageDto storage;
+    private Boolean historical;
+    private String historyCluster;
 }

@@ -1,9 +1,9 @@
 package com.antalex.db.service.impl;
 
-import com.antalex.db.utils.ShardUtils;
-import com.antalex.db.exception.ShardDataBaseException;
-import com.antalex.db.model.Shard;
 import com.antalex.db.service.abstractive.AbstractSequenceGenerator;
+import com.antalex.db.exception.ShardDataBaseException;
+import com.antalex.db.model.DataBaseInstance;
+import com.antalex.db.utils.ShardUtils;
 
 import java.sql.Connection;
 import java.sql.PreparedStatement;
@@ -21,11 +21,11 @@ public class ApplicationSequenceGenerator extends AbstractSequenceGenerator {
     private static final String QUERY_UPDATE = "UPDATE $$$.APP_SEQUENCE SET LAST_VALUE = ? WHERE SEQUENCE_NAME = ?";
 
     private final String name;
-    private final Shard shard;
+    private final DataBaseInstance shard;
     private Integer cacheSize;
     private Connection connection;
 
-    public ApplicationSequenceGenerator(String name, Shard shard) {
+    public ApplicationSequenceGenerator(String name, DataBaseInstance shard) {
         this.name = name;
         this.shard = shard;
         this.cacheSize = shard.getSequenceCacheSize();

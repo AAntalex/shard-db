@@ -1,19 +1,20 @@
 package com.antalex.db.annotation.processors;
 
-import com.antalex.db.domain.abstraction.Domain;
-import com.antalex.db.model.Cluster;
+import com.antalex.db.annotation.*;
 import com.antalex.db.model.dto.*;
+import com.fasterxml.jackson.databind.ObjectMapper;
+import com.google.common.collect.ImmutableMap;
+import com.antalex.db.domain.abstraction.Domain;
+import com.antalex.db.entity.AttributeHistoryEntity;
+import com.antalex.db.entity.AttributeStorage;
+import com.antalex.db.entity.abstraction.ShardInstance;
+import com.antalex.db.exception.ShardDataBaseException;
+import com.antalex.db.model.Cluster;
+import com.antalex.db.model.DataStorage;
 import com.antalex.db.model.enums.DataFormat;
 import com.antalex.db.model.enums.MappingType;
 import com.antalex.db.model.enums.ShardType;
 import com.antalex.db.service.DomainEntityManager;
-import com.google.common.collect.ImmutableMap;
-import com.antalex.db.annotation.Attribute;
-import com.antalex.db.annotation.DomainEntity;
-import com.antalex.db.annotation.ShardEntity;
-import com.antalex.db.entity.AttributeStorage;
-import com.antalex.db.entity.abstraction.ShardInstance;
-import com.antalex.db.model.DataStorage;
 import com.antalex.db.service.DomainEntityMapper;
 import com.antalex.db.service.ShardDataBaseManager;
 import com.antalex.db.service.ShardEntityManager;
@@ -22,7 +23,6 @@ import lombok.experimental.Accessors;
 import org.apache.commons.lang3.StringUtils;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Component;
-import com.antalex.db.annotation.Storage;
 
 import javax.annotation.processing.ProcessingEnvironment;
 import javax.lang.model.element.Element;
@@ -95,9 +95,15 @@ public class DomainClassBuilder {
                                                             .storage(
                                                                     getStorage(fieldElement, mainStorage, storageDtoMap)
                                                             )
+                                                            .historical(
+                                                                    Optional.ofNullable(
+                                                                            fieldElement.getAnnotation(Historical.class)
+                                                                    ).isPresent()
+                                                            )
+                                                            .historyCluster(getHistoryCluster(fieldElement))
                                                             .build()
                                     )
-                                    .collect(Collectors.toList())
+                                    .toList()
                     )
                     .build();
 
@@ -143,6 +149,13 @@ public class DomainClassBuilder {
                                         a.name()
                         )
                 )
+                .orElse(null);
+    }
+
+    private static String getHistoryCluster(Element element) {
+        return Optional
+                .ofNullable(element.getAnnotation(Historical.class))
+                .map(Historical::cluster)
                 .orElse(null);
     }
 
@@ -204,7 +217,8 @@ public class DomainClassBuilder {
                                             DataStorage.class.getCanonicalName(),
                                             Map.class.getCanonicalName(),
                                             AttributeStorage.class.getCanonicalName(),
-                                            DataWrapper.class.getCanonicalName()
+                                            DataWrapper.class.getCanonicalName(),
+                                            AttributeHistory.class.getCanonicalName()
                                     )
                             )
                     )
@@ -266,7 +280,12 @@ public class DomainClassBuilder {
                                             DataWrapper.class.getCanonicalName(),
                                             FetchType.class.getCanonicalName(),
                                             Cluster.class.getCanonicalName(),
-                                            ImmutableMap.class.getCanonicalName()
+                                            ImmutableMap.class.getCanonicalName(),
+                                            ObjectMapper.class.getCanonicalName(),
+                                            AttributeHistoryEntity.class.getCanonicalName(),
+                                            ShardDataBaseException.class.getCanonicalName(),
+                                            AttributeHistory.class.getCanonicalName(),
+                                            Collectors.class.getCanonicalName()
                                     )
                             )
                     )
@@ -281,6 +300,9 @@ public class DomainClassBuilder {
                             "    private ThreadLocal<Map<Long, Domain>> domains = " +
                             "ThreadLocal.withInitial(HashMap::new);\n" +
                             "    private final Map<String, DataStorage> storageMap = new HashMap<>();\n" +
+                            "    private final Map<String, Cluster> historyCluster = new HashMap<>();\n" +
+                            "    private final Map<String, Class<?>> historyObjectTypes = new HashMap<>();\n" +
+                            "    private final ObjectMapper objectMapper;\n" +
                             "    private final Cluster cluster;\n\n" +
                             getConstructorMapperCode(domainClassDto, className) +
                             "\n\n" +
@@ -309,7 +331,11 @@ public class DomainClassBuilder {
             out.println();
             out.println(getMapToDomainCode(domainClassDto));
             out.println();
+            out.println(getMapAttributeHistoryCode());
+            out.println();
             out.println(getMapStorageToEntityCode(domainClassDto));
+            out.println();
+            out.println(getMapAttributeHistory(domainClassDto));
             out.println("}");
         }
     }
@@ -454,6 +480,17 @@ public class DomainClassBuilder {
                                                         "\", super." + field.getGetter() +
                                                         "(), true);\n"
                                 ) +
+                                (
+                                        field.getHistorical() ?
+                                                """
+                                                                    this.getAttributeHistory().add(
+                                                                            new AttributeHistory()
+                                                                                    .time(OffsetDateTime.now())
+                                                                                    .value(value)
+                                                                                    .attributeName(\"\
+                                                        """ + field.getFieldName() + "\"));\n" :
+                                                StringUtils.EMPTY
+                                        ) +
                                 "        }\n" +
                                 "        " + (classDto.getChainAccessors() ? "return " : StringUtils.EMPTY) +
                                 "super." + field.getSetter() + "(value);\n" +
@@ -486,7 +523,6 @@ public class DomainClassBuilder {
                                                 field.getEntityField().getElement(),
                                                 ShardEntity.class
                                         ) ?
-
                                                 "domainManager.map(" +
                                                         ProcessorUtils.getTypeField(field.getElement()) +
                                                         ".class, entity." +
@@ -572,8 +608,9 @@ public class DomainClassBuilder {
                                 " entity = domain.getEntity();",
                         String::concat
                 ) +
-                "\n        domain.dropChanges();\n" +
-                "        entity.setAttributeStorage(mapStorage(domain));\n" +
+                "\n        entity.setAttributeStorage(mapStorage(domain));\n" +
+                "        entity.setAttributeHistory(mapAttributeHistory(domain));\n" +
+                "        domain.dropChanges();\n" +
                 "        entity.setHasDomain(true);\n" +
                 "        return entity;\n" +
                 "    }";
@@ -597,6 +634,28 @@ public class DomainClassBuilder {
                 "        }\n" +
                 "        return storage;\n" +
                 "    }";
+    }
+
+    private static String getMapAttributeHistory(DomainClassDto classDto) {
+        return """
+                    private List<AttributeHistoryEntity> mapAttributeHistory(Domain domain) {
+                        return domain.getAttributeHistory().stream()
+                                .map(attributeHistory -> {
+                                    AttributeHistoryEntity attributeHistoryEntity = new AttributeHistoryEntity();
+                                    attributeHistoryEntity.setAttributeName(attributeHistory.attributeName());
+                                    attributeHistoryEntity.setTime(attributeHistory.time());
+                                    attributeHistoryEntity.setCluster(historyCluster.get(attributeHistory.attributeName()));
+                                    try {
+                                        attributeHistoryEntity.setValue(objectMapper.writeValueAsString(attributeHistory.value()));
+                                    } catch (Exception err) {
+                                        throw new ShardDataBaseException(err.getLocalizedMessage());
+                                    }
+                                    return attributeHistoryEntity;
+                                })
+                                .collect(Collectors.toList());
+                    }
+                """;
+
     }
 
     private static String getMapStorageCode(DomainClassDto classDto, String storageName) {
@@ -661,7 +720,7 @@ public class DomainClassBuilder {
                                         .map(DeclaredType::asElement)
                                         .map(Element::toString).map(ProcessorUtils::getClassByName)
                                         .map(clazz -> {
-                                            if  (clazz.isAssignableFrom(Map.class)) {
+                                            if  (Map.class.isAssignableFrom(clazz)) {
                                                 return
                                                         ProcessorUtils.getDeclaredType(field.getElement())
                                                                 .getTypeArguments()
@@ -677,7 +736,7 @@ public class DomainClassBuilder {
                                                                 ) +
                                                                 "), false);";
                                             }
-                                            if  (clazz.isAssignableFrom(List.class)) {
+                                            if  (List.class.isAssignableFrom(clazz)) {
                                                 return "getList(\"" +
                                                         field.getFieldName() + "\", " +
                                                         ProcessorUtils.getFinalType(field.getElement()) +
@@ -756,13 +815,30 @@ public class DomainClassBuilder {
                 )
                 .reduce(
                         "    @Autowired\n" +
-                                "    " + className + " (ShardDataBaseManager dataBaseManager) {",
+                                "    " + className +
+                                " (ShardDataBaseManager dataBaseManager, ObjectMapper objectMapper) {",
                         String::concat) +
+                classDto.getFields()
+                        .stream()
+                        .filter(it -> it.getHistorical() && !it.getHistoryCluster().isEmpty())
+                        .map(field ->
+                                "\n        historyCluster.put(\"" +
+                                        field.getFieldName() +
+                                        "\", dataBaseManager.getCluster(\"" +
+                                        field.getHistoryCluster()
+                                        + "\"));\n" +
+                                        "        historyObjectTypes.put(\"" +
+                                        field.getFieldName() +
+                                        "\", " +
+                                        ProcessorUtils.getTypeField(field.getElement()) +
+                                        ".class);")
+                        .reduce(StringUtils.EMPTY, String::concat) +
+                "\n        this.objectMapper = objectMapper;" +
                 "\n        this.cluster = " +
                 (
                         classDto.getCluster().isEmpty() ?
                                 "null;" :
-                                "dataBaseManager.getCluster(String.valueOf(\"" + classDto.getCluster() + "\"));"
+                                "dataBaseManager.getCluster(\"" + classDto.getCluster() + "\");"
                 )  +
                 "\n    }";
     }
@@ -790,4 +866,32 @@ public class DomainClassBuilder {
                     }\
                 """;
     }
+
+    private static String getMapAttributeHistoryCode() {
+        return """
+                    @Override
+                    public List<AttributeHistory> mapAttributeHistory(List<AttributeHistoryEntity> attributeHistoryEntities) {
+                        return attributeHistoryEntities.stream()
+                                .map(historyEntity ->
+                                        new AttributeHistory()
+                                                .attributeName(historyEntity.getAttributeName())
+                                                .time(historyEntity.getTime())
+                                                .value(getHistoryObject(historyEntity))
+                                )
+                                .collect(Collectors.toList());
+                    }
+                               \s
+                    private Object getHistoryObject(AttributeHistoryEntity historyEntity) {
+                        try {
+                            return objectMapper.readValue(
+                                    historyEntity.getValue(),
+                                    historyObjectTypes.get(historyEntity.getAttributeName())
+                            );
+                        } catch (Exception err) {
+                            throw new ShardDataBaseException(err);
+                        }
+                    }
+               """;
+    }
+
 }

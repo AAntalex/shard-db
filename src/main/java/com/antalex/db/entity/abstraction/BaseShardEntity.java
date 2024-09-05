@@ -1,13 +1,14 @@
 package com.antalex.db.entity.abstraction;
 
-import com.antalex.db.entity.AttributeStorage;
-import com.antalex.db.model.Cluster;
-import com.antalex.db.model.Shard;
-import com.antalex.db.model.StorageContext;
-import com.antalex.db.service.impl.SharedEntityTransaction;
-import com.antalex.db.utils.ShardUtils;
 import com.antalex.db.annotation.ShardEntity;
+import com.antalex.db.entity.AttributeHistoryEntity;
+import com.antalex.db.entity.AttributeStorage;
 import com.antalex.db.exception.ShardDataBaseException;
+import com.antalex.db.model.Cluster;
+import com.antalex.db.model.DataBaseInstance;
+import com.antalex.db.model.StorageContext;
+import com.antalex.db.service.impl.transaction.SharedEntityTransaction;
+import com.antalex.db.utils.ShardUtils;
 
 import javax.persistence.EntityTransaction;
 import java.util.*;
@@ -16,6 +17,7 @@ public abstract class BaseShardEntity implements ShardInstance {
     protected Long id;
     private StorageContext storageContext;
     private List<AttributeStorage> attributeStorage = new ArrayList<>();
+    private List<AttributeHistoryEntity> attributeHistory = new ArrayList<>();
     private boolean hasDomain;
     private Cluster cluster;
 
@@ -41,9 +43,9 @@ public abstract class BaseShardEntity implements ShardInstance {
     }
 
     @Override
-    public Long getOrderId() {
+    public Long getOrderedId() {
         return Optional.ofNullable(this.id)
-                .map(it -> it % (ShardUtils.MAX_SHARDS * ShardUtils.MAX_CLUSTERS))
+                .map(it -> it / (ShardUtils.MAX_REPLICATIONS * ShardUtils.MAX_SHARDS * ShardUtils.MAX_CLUSTERS))
                 .orElse(null);
     }
 
@@ -79,10 +81,10 @@ public abstract class BaseShardEntity implements ShardInstance {
     }
 
     @Override
-    public boolean isOurShard(Shard shard) {
+    public boolean isOurShard(DataBaseInstance shard) {
         return Optional.ofNullable(this.storageContext)
                 .map(StorageContext::getShard)
-                .map(Shard::getId)
+                .map(DataBaseInstance::getId)
                 .map(shardId -> shardId.equals(shard.getId()))
                 .orElse(false);
     }
@@ -101,6 +103,16 @@ public abstract class BaseShardEntity implements ShardInstance {
     @Override
     public void setAttributeStorage(List<AttributeStorage> attributeStorage) {
         this.attributeStorage = attributeStorage;
+    }
+
+    @Override
+    public List<AttributeHistoryEntity> getAttributeHistory() {
+        return attributeHistory;
+    }
+
+    @Override
+    public void setAttributeHistory(List<AttributeHistoryEntity> attributeHistory) {
+        this.attributeHistory = attributeHistory;
     }
 
     @Override

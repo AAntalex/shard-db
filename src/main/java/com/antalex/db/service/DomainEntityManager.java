@@ -3,6 +3,7 @@ package com.antalex.db.service;
 import com.antalex.db.domain.abstraction.Domain;
 import com.antalex.db.entity.AttributeStorage;
 import com.antalex.db.entity.abstraction.ShardInstance;
+import com.antalex.db.model.dto.AttributeHistory;
 import com.antalex.db.model.DataStorage;
 
 import javax.persistence.EntityTransaction;
@@ -28,6 +29,7 @@ public interface DomainEntityManager {
     <T extends Domain> List<T> updateAll(List<T> domains);
     <T extends Domain> boolean lock(T domain);
     <T extends Domain> Map<String, DataStorage> getDataStorage(Class<T> clazz);
+    <T extends Domain> List<AttributeHistory> getAttributeHistory(T domain, String attributeName);
     AttributeStorage getAttributeStorage(Domain domain, DataStorage dataStorage);
     EntityTransaction getTransaction();
     String getTransactionUUID();

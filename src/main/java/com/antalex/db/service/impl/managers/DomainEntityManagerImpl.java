@@ -1,11 +1,13 @@
 package com.antalex.db.service.impl.managers;
 
+import com.fasterxml.jackson.databind.ObjectMapper;
 import com.antalex.db.domain.abstraction.Domain;
-import com.antalex.db.service.DomainEntityManager;
+import com.antalex.db.entity.AttributeHistoryEntity;
 import com.antalex.db.entity.AttributeStorage;
 import com.antalex.db.entity.abstraction.ShardInstance;
 import com.antalex.db.exception.ShardDataBaseException;
 import com.antalex.db.model.DataStorage;
+import com.antalex.db.model.dto.AttributeHistory;
 import com.antalex.db.service.api.DataWrapper;
 import com.antalex.db.service.api.DataWrapperFactory;
 import lombok.AllArgsConstructor;
@@ -13,6 +15,7 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.context.annotation.Primary;
 import org.springframework.core.GenericTypeResolver;
 import org.springframework.stereotype.Component;
+import com.antalex.db.service.DomainEntityManager;
 import com.antalex.db.service.DomainEntityMapper;
 import com.antalex.db.service.ShardEntityManager;
 import com.antalex.db.utils.Utils;
@@ -32,10 +35,16 @@ public class DomainEntityManagerImpl implements DomainEntityManager {
 
     private final ShardEntityManager entityManager;
     private final DataWrapperFactory dataWrapperFactory;
+    private final ObjectMapper objectMapper;
 
-    DomainEntityManagerImpl(ShardEntityManager entityManager, DataWrapperFactory dataWrapperFactory) {
+    DomainEntityManagerImpl(
+            ShardEntityManager entityManager,
+            DataWrapperFactory dataWrapperFactory,
+            ObjectMapper objectMapper)
+    {
         this.entityManager = entityManager;
         this.dataWrapperFactory = dataWrapperFactory;
+        this.objectMapper = objectMapper;
     }
 
     @Autowired
@@ -175,8 +184,7 @@ public class DomainEntityManagerImpl implements DomainEntityManager {
         if (domain == null) {
             return null;
         }
-        Mapper mapper = getMapper(domain.getClass());
-        entityManager.save(mapper.domainEntityMapper.map(domain));
+        entityManager.save(getMapper(domain.getClass()).domainEntityMapper.map(domain));
         return domain;
     }
 
@@ -185,8 +193,7 @@ public class DomainEntityManagerImpl implements DomainEntityManager {
         if (domain == null) {
             return null;
         }
-        Mapper mapper = getMapper(domain.getClass());
-        entityManager.update(mapper.domainEntityMapper.map(domain));
+        entityManager.update(getMapper(domain.getClass()).domainEntityMapper.map(domain));
         return domain;
     }
 
@@ -200,10 +207,12 @@ public class DomainEntityManagerImpl implements DomainEntityManager {
         if (domain == null) {
             return;
         }
-        Mapper mapper = getMapper(domain.getClass());
-        ShardInstance entity = mapper.domainEntityMapper.map(domain);
+        ShardInstance entity = getMapper(domain.getClass()).domainEntityMapper.map(domain);
         entity.setAttributeStorage(
                 entityManager.findAll(AttributeStorage.class, "C_ENTITY_ID=?", domain.getId())
+        );
+        entity.setAttributeHistory(
+                entityManager.findAll(AttributeHistoryEntity.class, "C_ENTITY_ID=?", domain.getId())
         );
         domain.getStorage().putAll(
                 entity.getAttributeStorage()
@@ -286,6 +295,21 @@ public class DomainEntityManagerImpl implements DomainEntityManager {
     @Override
     public void addParallel() {
         entityManager.addParallel();
+    }
+
+    @Override
+    public <T extends Domain> List<AttributeHistory> getAttributeHistory(T domain, String attributeName) {
+        if (domain == null || attributeName == null) {
+            return Collections.EMPTY_LIST;
+        }
+        Mapper mapper = getMapper(domain.getClass());
+        List<AttributeHistory> attributeHistoryList = mapper.domainEntityMapper.mapAttributeHistory(
+                entityManager.findAll(
+                        AttributeHistoryEntity.class,
+                        "x0.C_ENTITY_ID=? and x0.C_ATTRIBUTE_NAME=?",
+                        domain.getId(), attributeName));
+        attributeHistoryList.addAll(domain.getAttributeHistory());
+        return attributeHistoryList;
     }
 
     private <T extends Domain> List<T> saveAll(List<T> domains, boolean isUpdate) {
