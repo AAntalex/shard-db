@@ -11,8 +11,6 @@ import java.util.Date;
 import java.util.Optional;
 
 public class ResultSQLQuery extends AbstractResultQuery {
-    private static final ZoneOffset DEFAULT_TIME_ZONE = OffsetDateTime.now().getOffset();
-
     private final ResultSet result;
     private final Integer fetchLimit;
     private int count;
