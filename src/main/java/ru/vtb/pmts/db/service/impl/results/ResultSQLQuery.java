@@ -5,8 +5,6 @@ import ru.vtb.pmts.db.service.abstractive.AbstractResultQuery;
 import java.math.BigDecimal;
 import java.sql.*;
 import java.time.LocalDate;
-import java.time.OffsetDateTime;
-import java.time.ZoneOffset;
 import java.util.Date;
 import java.util.Optional;
 

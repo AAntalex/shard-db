@@ -732,6 +732,9 @@ public class ShardDatabaseManagerImpl implements ShardDataBaseManager {
         getHikariConfigValue(shardDataBaseConfig, clusterConfig, shardConfig, HikariSettings::getMaxLifetime)
                 .map(SECONDS::toMillis)
                 .ifPresent(config::setMaxLifetime);
+        getHikariConfigValue(shardDataBaseConfig, clusterConfig, shardConfig, HikariSettings::getKeepAliveTime)
+                .map(SECONDS::toMillis)
+                .ifPresent(config::setKeepaliveTime);
         setHikariConfigValue(shardDataBaseConfig, clusterConfig, shardConfig,
                 HikariSettings::getPoolName, config::setPoolName
         );
