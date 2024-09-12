@@ -41,6 +41,8 @@ import java.util.function.Consumer;
 import java.util.function.Function;
 import java.util.stream.Stream;
 
+import static java.util.concurrent.TimeUnit.SECONDS;
+
 @Slf4j
 @Service
 public class ShardDatabaseManagerImpl implements ShardDataBaseManager {
@@ -117,14 +119,14 @@ public class ShardDatabaseManagerImpl implements ShardDataBaseManager {
     public TransactionalTask getTransactionalTask(DataBaseInstance shard) {
         SharedEntityTransaction transaction = (SharedEntityTransaction) sharedTransactionManager.getTransaction();
         return Optional.ofNullable(
-                transaction.getCurrentTask(
-                        shard,
-                        !shard.getRemote() &&
-                                ((HikariDataSource) shard.getDataSource())
-                                        .getHikariPoolMXBean()
-                                        .getActiveConnections() > parallelLimit
+                        transaction.getCurrentTask(
+                                shard,
+                                !shard.getRemote() &&
+                                        ((HikariDataSource) shard.getDataSource())
+                                                .getHikariPoolMXBean()
+                                                .getActiveConnections() > parallelLimit
+                        )
                 )
-        )
                 .orElseGet(() -> {
                     try {
                         TransactionalTask task = shard.getRemote() ?
@@ -217,7 +219,7 @@ public class ShardDatabaseManagerImpl implements ShardDataBaseManager {
         }
         entity.setId(
                 (sequenceNextVal(MAIN_SEQUENCE, storageContext.getCluster()) * ShardUtils.MAX_REPLICATIONS
-                         * ShardUtils.MAX_CLUSTERS + storageContext.getCluster().getId() - 1
+                        * ShardUtils.MAX_CLUSTERS + storageContext.getCluster().getId() - 1
                 ) * ShardUtils.MAX_SHARDS + storageContext.getShard().getId() - 1
         );
     }
@@ -253,7 +255,7 @@ public class ShardDatabaseManagerImpl implements ShardDataBaseManager {
             return getShardsFromValue(
                     entity,
                     entity.getStorageContext().getOriginalShardMap() ^
-                                    entity.getStorageContext().getShardMap(),
+                            entity.getStorageContext().getShardMap(),
                     true
             );
         } else {
@@ -541,11 +543,13 @@ public class ShardDatabaseManagerImpl implements ShardDataBaseManager {
                 dynamicDataBaseInfo.setAccessible(resultSet.getBoolean(2));
             }
             task.finish();
+            ((SharedEntityTransaction) sharedTransactionManager.getTransaction()).close();
         } catch (Exception err) {
             if (err instanceof SQLTransientConnectionException) {
                 dynamicDataBaseInfo.setAvailable(false);
                 log.trace("The shard '{}' is not available", shard.getName());
             } else {
+                err.printStackTrace();
                 throw new ShardDataBaseException(err);
             }
         }
@@ -645,9 +649,9 @@ public class ShardDatabaseManagerImpl implements ShardDataBaseManager {
     }
 
     private <T> Optional<T> getTransactionConfigValue(ShardDataBaseConfig shardDataBaseConfig,
-                                          ClusterConfig clusterConfig,
-                                          ShardConfig shardConfig,
-                                          Function<SharedTransactionConfig, T> functionGet)
+                                                      ClusterConfig clusterConfig,
+                                                      ShardConfig shardConfig,
+                                                      Function<SharedTransactionConfig, T> functionGet)
     {
         return Optional.ofNullable(
                 Optional.ofNullable(shardConfig.getTransactionConfig())
@@ -664,13 +668,12 @@ public class ShardDatabaseManagerImpl implements ShardDataBaseManager {
         );
     }
 
-    private <T> void setHikariConfigValue(ShardDataBaseConfig shardDataBaseConfig,
-                                          ClusterConfig clusterConfig,
-                                          ShardConfig shardConfig,
-                                          Function<HikariSettings, T> functionGet,
-                                          Consumer<T> functionSet)
+    private <T> Optional<T> getHikariConfigValue(ShardDataBaseConfig shardDataBaseConfig,
+                                                 ClusterConfig clusterConfig,
+                                                 ShardConfig shardConfig,
+                                                 Function<HikariSettings, T> functionGet)
     {
-        Optional.ofNullable(
+        return Optional.ofNullable(
                 Optional.ofNullable(shardConfig.getHikari())
                         .map(functionGet)
                         .orElse(
@@ -682,7 +685,16 @@ public class ShardDatabaseManagerImpl implements ShardDataBaseManager {
                                                         .orElse(null)
                                         )
                         )
-        ).ifPresent(functionSet);
+        );
+    }
+
+    private <T> void setHikariConfigValue(ShardDataBaseConfig shardDataBaseConfig,
+                                          ClusterConfig clusterConfig,
+                                          ShardConfig shardConfig,
+                                          Function<HikariSettings, T> functionGet,
+                                          Consumer<T> functionSet)
+    {
+        getHikariConfigValue(shardDataBaseConfig, clusterConfig, shardConfig, functionGet).ifPresent(functionSet);
     }
 
     private static <T> void setDataBaseConfigValue(DataSourceConfig dataSourceConfig,
@@ -700,7 +712,7 @@ public class ShardDatabaseManagerImpl implements ShardDataBaseManager {
         setDataBaseConfigValue(dataSourceConfig, DataSourceConfig::getPassword, config::setPassword);
     }
 
-    private void setOptionalHikariConfig(
+    private void  setOptionalHikariConfig(
             HikariConfig config,
             ShardDataBaseConfig shardDataBaseConfig,
             ClusterConfig clusterConfig,
@@ -712,15 +724,15 @@ public class ShardDatabaseManagerImpl implements ShardDataBaseManager {
         setHikariConfigValue(shardDataBaseConfig, clusterConfig, shardConfig,
                 HikariSettings::getMaximumPoolSize, config::setMaximumPoolSize
         );
-        setHikariConfigValue(shardDataBaseConfig, clusterConfig, shardConfig,
-                HikariSettings::getIdleTimeout, config::setIdleTimeout
-        );
-        setHikariConfigValue(shardDataBaseConfig, clusterConfig, shardConfig,
-                HikariSettings::getConnectionTimeout, config::setConnectionTimeout
-        );
-        setHikariConfigValue(shardDataBaseConfig, clusterConfig, shardConfig,
-                HikariSettings::getMaxLifetime, config::setMaxLifetime
-        );
+        getHikariConfigValue(shardDataBaseConfig, clusterConfig, shardConfig, HikariSettings::getIdleTimeout)
+                .map(SECONDS::toMillis)
+                .ifPresent(config::setIdleTimeout);
+        getHikariConfigValue(shardDataBaseConfig, clusterConfig, shardConfig, HikariSettings::getConnectionTimeout)
+                .map(SECONDS::toMillis)
+                .ifPresent(config::setConnectionTimeout);
+        getHikariConfigValue(shardDataBaseConfig, clusterConfig, shardConfig, HikariSettings::getMaxLifetime)
+                .map(SECONDS::toMillis)
+                .ifPresent(config::setMaxLifetime);
         setHikariConfigValue(shardDataBaseConfig, clusterConfig, shardConfig,
                 HikariSettings::getPoolName, config::setPoolName
         );
@@ -853,14 +865,14 @@ public class ShardDatabaseManagerImpl implements ShardDataBaseManager {
                     shard.setRemote(true);
                     shard.setUrl(
                             Optional.ofNullable(shardConfig.getRemote())
-                            .map(RemoteConfig::getUrl)
-                            .orElse(null)
+                                    .map(RemoteConfig::getUrl)
+                                    .orElse(null)
                     );
                     Assert.isTrue(
                             Objects.nonNull(shard.getUrl()),
                             String.format(
                                     "Properties '%s.clusters.shards.datasource.url' or '%s.clusters.shards.remote.url'" +
-                                    " must not be empty",
+                                            " must not be empty",
                                     ShardDataBaseConfig.CONFIG_NAME,
                                     ShardDataBaseConfig.CONFIG_NAME
                             )
@@ -1079,26 +1091,26 @@ public class ShardDatabaseManagerImpl implements ShardDataBaseManager {
                             .ifPresent(clustersPath -> {
                                 runLiquibaseFromPath(clustersPath);
                                 clusters.forEach((clusterName, cluster) ->
-                                    Optional.of(clustersPath + File.separatorChar + clusterName)
-                                            .filter(src -> resourceLoader.getResource(src).exists())
-                                            .ifPresent(clusterPath -> {
-                                                runLiquibaseFromPath(clusterPath, cluster);
-                                                Optional.of(clusterPath + File.separatorChar + SHARDS_PATH)
-                                                        .filter(src -> resourceLoader.getResource(src).exists())
-                                                        .ifPresent(shardsPath -> {
-                                                            runLiquibaseFromPath(shardsPath, cluster);
-                                                            cluster
-                                                                    .getShards()
-                                                                    .forEach(shard ->
-                                                                            runLiquibaseFromPath(
-                                                                                    shardsPath +
-                                                                                            File.separatorChar +
-                                                                                            shard.getId()
-                                                                                    , shard
-                                                                            )
-                                                                    );
-                                                        });
-                                            })
+                                        Optional.of(clustersPath + File.separatorChar + clusterName)
+                                                .filter(src -> resourceLoader.getResource(src).exists())
+                                                .ifPresent(clusterPath -> {
+                                                    runLiquibaseFromPath(clusterPath, cluster);
+                                                    Optional.of(clusterPath + File.separatorChar + SHARDS_PATH)
+                                                            .filter(src -> resourceLoader.getResource(src).exists())
+                                                            .ifPresent(shardsPath -> {
+                                                                runLiquibaseFromPath(shardsPath, cluster);
+                                                                cluster
+                                                                        .getShards()
+                                                                        .forEach(shard ->
+                                                                                runLiquibaseFromPath(
+                                                                                        shardsPath +
+                                                                                                File.separatorChar +
+                                                                                                shard.getId()
+                                                                                        , shard
+                                                                                )
+                                                                        );
+                                                            });
+                                                })
                                 );
                             });
                     runLiquibaseFromPath(path, getDefaultCluster().getMainShard());
