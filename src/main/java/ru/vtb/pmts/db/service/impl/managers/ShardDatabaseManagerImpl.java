@@ -40,6 +40,8 @@ import java.util.function.Consumer;
 import java.util.function.Function;
 import java.util.stream.Stream;
 
+import static java.util.concurrent.TimeUnit.SECONDS;
+
 @Slf4j
 @Service
 public class ShardDatabaseManagerImpl implements ShardDataBaseManager {
@@ -540,11 +542,13 @@ public class ShardDatabaseManagerImpl implements ShardDataBaseManager {
                 dynamicDataBaseInfo.setAccessible(resultSet.getBoolean(2));
             }
             task.finish();
+            ((SharedEntityTransaction) sharedTransactionManager.getTransaction()).close();
         } catch (Exception err) {
             if (err instanceof SQLTransientConnectionException) {
                 dynamicDataBaseInfo.setAvailable(false);
                 log.trace("The shard '{}' is not available", shard.getName());
             } else {
+                err.printStackTrace();
                 throw new ShardDataBaseException(err);
             }
         }
@@ -663,13 +667,12 @@ public class ShardDatabaseManagerImpl implements ShardDataBaseManager {
         );
     }
 
-    private <T> void setHikariConfigValue(ShardDataBaseConfig shardDataBaseConfig,
-                                          ClusterConfig clusterConfig,
-                                          ShardConfig shardConfig,
-                                          Function<HikariSettings, T> functionGet,
-                                          Consumer<T> functionSet)
+    private <T> Optional<T> getHikariConfigValue(ShardDataBaseConfig shardDataBaseConfig,
+                                                 ClusterConfig clusterConfig,
+                                                 ShardConfig shardConfig,
+                                                 Function<HikariSettings, T> functionGet)
     {
-        Optional.ofNullable(
+        return Optional.ofNullable(
                 Optional.ofNullable(shardConfig.getHikari())
                         .map(functionGet)
                         .orElse(
@@ -681,7 +684,16 @@ public class ShardDatabaseManagerImpl implements ShardDataBaseManager {
                                                         .orElse(null)
                                         )
                         )
-        ).ifPresent(functionSet);
+        );
+    }
+
+    private <T> void setHikariConfigValue(ShardDataBaseConfig shardDataBaseConfig,
+                                          ClusterConfig clusterConfig,
+                                          ShardConfig shardConfig,
+                                          Function<HikariSettings, T> functionGet,
+                                          Consumer<T> functionSet)
+    {
+        getHikariConfigValue(shardDataBaseConfig, clusterConfig, shardConfig, functionGet).ifPresent(functionSet);
     }
 
     private static <T> void setDataBaseConfigValue(DataSourceConfig dataSourceConfig,
@@ -699,7 +711,7 @@ public class ShardDatabaseManagerImpl implements ShardDataBaseManager {
         setDataBaseConfigValue(dataSourceConfig, DataSourceConfig::getPassword, config::setPassword);
     }
 
-    private void setOptionalHikariConfig(
+    private void  setOptionalHikariConfig(
             HikariConfig config,
             ShardDataBaseConfig shardDataBaseConfig,
             ClusterConfig clusterConfig,
@@ -711,15 +723,15 @@ public class ShardDatabaseManagerImpl implements ShardDataBaseManager {
         setHikariConfigValue(shardDataBaseConfig, clusterConfig, shardConfig,
                 HikariSettings::getMaximumPoolSize, config::setMaximumPoolSize
         );
-        setHikariConfigValue(shardDataBaseConfig, clusterConfig, shardConfig,
-                HikariSettings::getIdleTimeout, config::setIdleTimeout
-        );
-        setHikariConfigValue(shardDataBaseConfig, clusterConfig, shardConfig,
-                HikariSettings::getConnectionTimeout, config::setConnectionTimeout
-        );
-        setHikariConfigValue(shardDataBaseConfig, clusterConfig, shardConfig,
-                HikariSettings::getMaxLifetime, config::setMaxLifetime
-        );
+        getHikariConfigValue(shardDataBaseConfig, clusterConfig, shardConfig, HikariSettings::getIdleTimeout)
+                .map(SECONDS::toMillis)
+                .ifPresent(config::setIdleTimeout);
+        getHikariConfigValue(shardDataBaseConfig, clusterConfig, shardConfig, HikariSettings::getConnectionTimeout)
+                .map(SECONDS::toMillis)
+                .ifPresent(config::setConnectionTimeout);
+        getHikariConfigValue(shardDataBaseConfig, clusterConfig, shardConfig, HikariSettings::getMaxLifetime)
+                .map(SECONDS::toMillis)
+                .ifPresent(config::setMaxLifetime);
         setHikariConfigValue(shardDataBaseConfig, clusterConfig, shardConfig,
                 HikariSettings::getPoolName, config::setPoolName
         );

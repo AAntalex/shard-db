@@ -951,7 +951,9 @@ public class EntityClassBuilder {
                         .reduce(StringUtils.EMPTY, String::concat) +
                 "                entities.add(entity);\n" +
                 "            }\n" +
+                "            if (!entities.isEmpty()) {\n" +
                 getProcessLinkedEntityCode(entityClassDto) +
+                "            }\n" +
                 "        } catch (Exception err) {\n" +
                 "            throw new RuntimeException(err);\n" +
                 "        }\n" +
@@ -974,23 +976,23 @@ public class EntityClassBuilder {
                 .stream()
                 .filter(it -> it.getIsLinkedEntity() && !isLazyList(it))
                 .map(field ->
-                        "            entityManager.findAll(\n" +
-                                "                            " + ProcessorUtils.getFinalType(field.getElement()) +
+                        "                entityManager.findAll(\n" +
+                                "                                " + ProcessorUtils.getFinalType(field.getElement()) +
                                 ".class,\n" +
-                                "                            \"x0.C_B_REF in (\" + \n" +
-                                "                                    entities\n" +
-                                "                                            .stream()\n" +
-                                "                                            .map(it -> \"?\")\n" +
-                                "                                            .collect(Collectors.joining(\", \")) + \n" +
-                                "                                    \")\",\n" +
-                                "                            entities\n" +
-                                "                                    .stream()\n" +
-                                "                                    .map(ShardInstance::getId)\n" +
-                                "                                    .toList()\n" +
-                                "                                    .toArray()\n" +
-                                "                    )\n" +
-                                "                    .forEach(l ->\n" +
-                                "                            ((" + entityClassDto.getTargetClassName() +
+                                "                                \"x0.C_B_REF in (\" + \n" +
+                                "                                        entities\n" +
+                                "                                                .stream()\n" +
+                                "                                                .map(it -> \"?\")\n" +
+                                "                                                .collect(Collectors.joining(\", \")) + \n" +
+                                "                                        \")\",\n" +
+                                "                                entities\n" +
+                                "                                        .stream()\n" +
+                                "                                        .map(ShardInstance::getId)\n" +
+                                "                                        .toList()\n" +
+                                "                                        .toArray()\n" +
+                                "                        )\n" +
+                                "                        .forEach(l ->\n" +
+                                "                                ((" + entityClassDto.getTargetClassName() +
                                 ProcessorUtils.CLASS_INTERCEPT_POSTFIX + ") " +
                                 (
                                         ProcessorUtils.isAnnotationPresentByType(
@@ -1002,9 +1004,9 @@ public class EntityClassBuilder {
                                                         ".class, l." + field.getLinkedField().getGetter() + "())"
                                 ) +
                                 ")\n" +
-                                "                                    ." + field.getGetter() + "(false)\n" +
-                                "                                    .add(l)\n" +
-                                "                    );\n"
+                                "                                        ." + field.getGetter() + "(false)\n" +
+                                "                                        .add(l)\n" +
+                                "                        );\n"
                 )
                 .reduce(StringUtils.EMPTY, String::concat);
     }
