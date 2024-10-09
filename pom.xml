@@ -120,7 +120,19 @@
             <version>${jackson.version}</version>
         </dependency>
 
+        <!-- AspectJ dependencies -->
+        <dependency>
+            <groupId>org.aspectj</groupId>
+            <artifactId>aspectjrt</artifactId>
+            <version>${aspectj.version}</version>
+        </dependency>
+        <dependency>
+            <groupId>org.aspectj</groupId>
+            <artifactId>aspectjweaver</artifactId>
+            <version>${aspectj.version}</version>
+        </dependency>
 
+        <!-- DataBases -->
         <dependency>
             <groupId>com.oracle</groupId>
             <artifactId>ojdbc6</artifactId>
@@ -131,6 +143,5 @@
             <artifactId>postgresql</artifactId>
             <version>42.3.3</version>
         </dependency>
-
     </dependencies>
 </project>
