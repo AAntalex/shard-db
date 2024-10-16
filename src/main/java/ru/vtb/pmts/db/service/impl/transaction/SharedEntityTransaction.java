@@ -35,6 +35,7 @@ public class SharedEntityTransaction implements EntityTransaction {
     private UUID uuid;
     @Getter
     private final Boolean parallelRun;
+    private final Map<Class<?>, Map<Long, Object>> persistentObjects = new HashMap<>();
     private Long duration;
 
     private final List<TransactionalTask> tasks = new ArrayList<>();
@@ -171,6 +172,17 @@ public class SharedEntityTransaction implements EntityTransaction {
 
     public void close() {
         this.completed = true;
+    }
+
+    @SuppressWarnings("unchecked")
+    public <V> V getPersistentObject(Class<V> clazz, Long id) {
+        return (V) Optional.ofNullable(persistentObjects.get(clazz))
+                .map(objects -> objects.get(id))
+                .orElse(null);
+    }
+
+    public void addPersistentObject(Long id, Object o) {
+        persistentObjects.put(o.getClass(), Map.of(id, o));
     }
 
     private String processTask(

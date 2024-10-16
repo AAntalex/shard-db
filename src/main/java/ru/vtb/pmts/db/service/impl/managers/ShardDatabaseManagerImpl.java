@@ -315,7 +315,7 @@ public class ShardDatabaseManagerImpl implements ShardDataBaseManager {
         DataBaseInstance shard = getShard(cluster, ShardUtils.getShardIdFromEntityId(id));
         return StorageContext.builder()
                 .stored(true)
-                .isLazy(true)
+                .lazy(true)
                 .cluster(cluster)
                 .shard(shard)
                 .build();

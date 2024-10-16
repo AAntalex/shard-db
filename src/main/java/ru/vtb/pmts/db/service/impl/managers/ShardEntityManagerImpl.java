@@ -35,7 +35,6 @@ public class ShardEntityManagerImpl implements ShardEntityManager {
 
     private final ThreadLocal<ShardEntityRepository<?>> currentShardEntityRepository = new ThreadLocal<>();
     private final ThreadLocal<Class<?>> currentSourceClass = new ThreadLocal<>();
-    private final ThreadLocal<Map<Long, ShardInstance>> entities = ThreadLocal.withInitial(HashMap::new);
 
     private final ShardDataBaseManager dataBaseManager;
     private final SharedTransactionManager sharedTransactionManager;
@@ -448,11 +447,11 @@ public class ShardEntityManagerImpl implements ShardEntityManager {
         if (Optional.ofNullable(id).map(it -> it.equals(0L)).orElse(true)) {
             return null;
         }
-        T entity = getEntity(id);
+        T entity = ((SharedEntityTransaction) getTransaction()).getPersistentObject(clazz, id);
         if (Objects.isNull(entity)) {
             ShardEntityRepository<T> repository = getEntityRepository(clazz);
             entity = repository.getEntity(id, dataBaseManager.getStorageContext(id));
-            addEntity(id, entity);
+            addEntity(entity);
         }
         return entity;
     }
@@ -668,7 +667,7 @@ public class ShardEntityManagerImpl implements ShardEntityManager {
                 entity.getAttributeStorage().forEach(it -> persist(it, onlyChanged, force, delete));
                 entity.getAttributeHistory().forEach(it -> persist(it, onlyChanged, force, delete));
                 if (!delete) {
-                    addEntity(entity.getId(), entity);
+                    addEntity(entity);
                 }
             }
             entity.getAttributeStorage().clear();
@@ -676,19 +675,11 @@ public class ShardEntityManagerImpl implements ShardEntityManager {
         }
     }
 
-    @SuppressWarnings("unchecked")
-    private <T extends ShardInstance> T getEntity(Long id) {
-        if (id == null) {
-            return null;
-        }
-        return (T) entities.get().get(id);
-    }
-
-    private <T extends ShardInstance> void addEntity(Long id, T entity) {
+    private <T extends ShardInstance> void addEntity(T entity) {
         if (entity == null) {
             return;
         }
-        entities.get().put(id, entity);
+        ((SharedEntityTransaction) getTransaction()).addPersistentObject(entity.getId(), entity);
     }
 
     private TransactionalQuery getMainQuery(Iterable<TransactionalQuery> queries) {

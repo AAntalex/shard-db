@@ -1,5 +1,7 @@
 package ru.vtb.pmts.db.model;
 
+import lombok.Data;
+import lombok.EqualsAndHashCode;
 import ru.vtb.pmts.db.service.impl.transaction.SharedEntityTransaction;
 import ru.vtb.pmts.db.utils.ShardUtils;
 import ru.vtb.pmts.db.utils.Utils;
@@ -8,7 +10,9 @@ import lombok.Builder;
 import java.util.Objects;
 import java.util.Optional;
 
+@Data
 @Builder
+@EqualsAndHashCode(exclude = {"transactionalContext"})
 public class StorageContext {
     private Cluster cluster;
     private DataBaseInstance shard;
@@ -16,7 +20,7 @@ public class StorageContext {
     private Long originalShardMap;
     private Boolean stored;
     private Long changes;
-    private boolean isLazy;
+    private boolean lazy;
     private boolean temporary;
     private TransactionalContext transactionalContext;
 
@@ -115,42 +119,6 @@ public class StorageContext {
     public boolean hasMainShard() {
         return this.shardMap.equals(0L) ||
                 (ShardUtils.getShardMap(this.cluster.getMainShard().getId()) & this.shardMap) > 0L;
-    }
-
-    public DataBaseInstance getShard() {
-        return shard;
-    }
-
-    public void setShard(DataBaseInstance shard) {
-        this.shard = shard;
-    }
-
-    public Long getShardMap() {
-        return shardMap;
-    }
-
-    public void setShardMap(Long shardMap) {
-        this.shardMap = shardMap;
-    }
-
-    public void setOriginalShardMap(Long originalShardMap) {
-        this.originalShardMap = originalShardMap;
-    }
-
-    public Cluster getCluster() {
-        return cluster;
-    }
-
-    public boolean isTemporary() {
-        return temporary;
-    }
-
-    public void setLazy(boolean lazy) {
-        isLazy = lazy;
-    }
-
-    public boolean isLazy() {
-        return isLazy;
     }
 
     private static class TransactionalContext {
