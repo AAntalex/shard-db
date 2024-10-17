@@ -90,7 +90,7 @@ public class ShardDatabaseManagerImpl implements ShardDataBaseManager {
     private int timeOutDbProcessor;
     private int parallelLimit;
 
-    ShardDatabaseManagerImpl(
+    private ShardDatabaseManagerImpl(
             ResourceLoader resourceLoader,
             ShardDataBaseConfig shardDataBaseConfig,
             SharedTransactionManager sharedTransactionManager,
@@ -156,7 +156,7 @@ public class ShardDatabaseManagerImpl implements ShardDataBaseManager {
         }
         Cluster cluster = clusterIds.get(id);
         if (cluster == null) {
-            throw new ShardDataBaseException("Отсутсвует кластер с идентификатором " + id);
+            throw new ShardDataBaseException("Отсутствует кластер с идентификатором " + id);
         }
         return cluster;
     }
@@ -182,7 +182,7 @@ public class ShardDatabaseManagerImpl implements ShardDataBaseManager {
         DataBaseInstance shard = cluster.getShardMap().get(id);
         if (shard == null) {
             throw new ShardDataBaseException(
-                    String.format("Отсутсвует шарда с идентификатором '%d' в кластере '%s'", id, cluster.getName())
+                    String.format("Отсутствует шарда с идентификатором '%d' в кластере '%s'", id, cluster.getName())
             );
         }
         return shard;
@@ -376,7 +376,7 @@ public class ShardDatabaseManagerImpl implements ShardDataBaseManager {
                     String.format(
                             "Идентификатор шарды в настройках '%s.clusters.shards.id' = '%d' " +
                                     "кластера '%s' " +
-                                    "не соответсвует идентификатору в БД = '%d'.",
+                                    "не соответствует идентификатору в БД = '%d'.",
                             ShardDataBaseConfig.CONFIG_NAME, shard.getId(), cluster.getName(), shardId
                     )
             );
@@ -412,7 +412,7 @@ public class ShardDatabaseManagerImpl implements ShardDataBaseManager {
                             cluster.getId().equals(clusterId),
                     String.format(
                             "Идентификатор кластера '%s' в настройках '%s.clusters.id' = '%d' " +
-                                    "не соответсвует идентификатору в БД (%s) = '%d'.",
+                                    "не соответствует идентификатору в БД (%s) = '%d'.",
                             ShardDataBaseConfig.CONFIG_NAME, cluster.getName(), cluster.getId(), shardName, clusterId
                     )
             );
@@ -428,7 +428,7 @@ public class ShardDatabaseManagerImpl implements ShardDataBaseManager {
                         cluster.getName().equals(clusterName),
                 String.format(
                         "Наименование кластера '%s' в настройках '%s.clusters.name' = '%s' " +
-                                "не соответсвует наименованию в БД (%s) = '%s'.",
+                                "не соответствует наименованию в БД (%s) = '%s'.",
                         ShardDataBaseConfig.CONFIG_NAME, cluster.getName(), cluster.getName(), shardName, clusterName
                 )
         );
@@ -457,7 +457,7 @@ public class ShardDatabaseManagerImpl implements ShardDataBaseManager {
             }
         }
         throw new ShardDataBaseException(
-                String.format("Отсутсвует свободный идентификатор для шарды в кластере %s", cluster.getName())
+                String.format("Отсутствует свободный идентификатор для шарды в кластере %s", cluster.getName())
         );
     }
 
@@ -467,7 +467,7 @@ public class ShardDatabaseManagerImpl implements ShardDataBaseManager {
                 return i;
             }
         }
-        throw new ShardDataBaseException("Отсутсвует свободный идентификатор для кластера");
+        throw new ShardDataBaseException("Отсутствует свободный идентификатор для кластера");
     }
 
     private void checkDataBaseInfo(Cluster cluster, DataBaseInstance shard) {
