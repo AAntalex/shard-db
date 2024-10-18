@@ -1,4 +1,4 @@
-package ru.vtb.pmts.db.service.impl;
+package ru.vtb.pmts.db.service.impl.sequences;
 
 import ru.vtb.pmts.db.exception.ShardDataBaseException;
 import ru.vtb.pmts.db.model.DataBaseInstance;

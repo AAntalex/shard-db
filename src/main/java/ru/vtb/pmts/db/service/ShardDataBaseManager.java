@@ -28,6 +28,10 @@ public interface ShardDataBaseManager {
     long sequenceNextVal(String sequenceName, Cluster cluster);
     long sequenceNextVal(String sequenceName);
     long sequenceNextVal();
+    long sequenceCurVal(String sequenceName, DataBaseInstance shard);
+    long sequenceCurVal(String sequenceName, Cluster cluster);
+    long sequenceCurVal(String sequenceName);
+    long sequenceCurVal();
     TransactionalTask getTransactionalTask(DataBaseInstance shard);
     Boolean isEnabled(DataBaseInstance shard);
     void saveTransactionInfo();

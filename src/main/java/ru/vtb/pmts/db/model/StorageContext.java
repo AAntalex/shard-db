@@ -1,18 +1,18 @@
 package ru.vtb.pmts.db.model;
 
 import lombok.Data;
-import lombok.EqualsAndHashCode;
 import ru.vtb.pmts.db.service.impl.transaction.SharedEntityTransaction;
+import ru.vtb.pmts.db.service.impl.transaction.TransactionState;
 import ru.vtb.pmts.db.utils.ShardUtils;
 import ru.vtb.pmts.db.utils.Utils;
 import lombok.Builder;
 
 import java.util.Objects;
 import java.util.Optional;
+import java.util.UUID;
 
 @Data
 @Builder
-@EqualsAndHashCode(exclude = {"transactionalContext"})
 public class StorageContext {
     private Cluster cluster;
     private DataBaseInstance shard;
@@ -33,17 +33,19 @@ public class StorageContext {
             this.transactionalContext.stored = Optional.ofNullable(this.stored).orElse(false);
             this.transactionalContext.changes = this.changes;
             this.transactionalContext.originalShardMap = this.originalShardMap;
-            this.transactionalContext.transaction = transaction;
+            this.transactionalContext.transactionUuid = transaction.getUuid();
+            this.transactionalContext.transactionState = transaction.getState();
             this.transactionalContext.persist = false;
             return true;
         }
-        if (!this.transactionalContext.persist && this.transactionalContext.transaction == transaction) {
+        if (!this.transactionalContext.persist &&
+                this.transactionalContext.transactionUuid.equals(transaction.getUuid())) {
             return false;
         }
-        Optional.ofNullable(this.transactionalContext.transaction)
-                .filter(SharedEntityTransaction::isCompleted)
+        Optional.ofNullable(this.transactionalContext.transactionState)
+                .filter(TransactionState::isCompleted)
                 .ifPresent(it -> {
-                    if (it.hasError()) {
+                    if (it.isHasError()) {
                         this.transactionalContext.changes = this.changes;
                         this.transactionalContext.stored = Optional.ofNullable(this.stored).orElse(false);
                         this.transactionalContext.originalShardMap = this.originalShardMap;
@@ -54,7 +56,8 @@ public class StorageContext {
                     }
                 });
         this.transactionalContext.persist = false;
-        this.transactionalContext.transaction = transaction;
+        this.transactionalContext.transactionUuid = transaction.getUuid();
+        this.transactionalContext.transactionState = transaction.getState();
         return true;
     }
 
@@ -75,7 +78,7 @@ public class StorageContext {
     }
 
     public Long getChanges() {
-        if (this.transactionalContext == null || this.transactionalContext.transaction.hasError()) {
+        if (this.transactionalContext == null || this.transactionalContext.transactionState.isHasError()) {
             return this.changes;
         } else {
             return this.transactionalContext.changes;
@@ -84,28 +87,28 @@ public class StorageContext {
 
     public Boolean isChanged() {
         return Optional.ofNullable(this.transactionalContext)
-                .filter(it -> !it.transaction.hasError())
+                .filter(it -> !it.transactionState.isHasError())
                 .map(it -> Objects.nonNull(it.changes))
                 .orElse(Objects.nonNull(this.changes));
     }
 
     public Boolean isChanged(int index) {
         return Optional.ofNullable(this.transactionalContext)
-                .filter(it -> !it.transaction.hasError())
+                .filter(it -> !it.transactionState.isHasError())
                 .map(it -> Utils.isChanged(index, it.changes))
                 .orElse(Utils.isChanged(index, this.changes));
     }
 
     public Boolean isStored() {
         return Optional.ofNullable(this.transactionalContext)
-                .filter(it -> !it.transaction.hasError())
+                .filter(it -> !it.transactionState.isHasError())
                 .map(it -> it.stored)
                 .orElse(this.stored);
     }
 
     public Long getOriginalShardMap() {
         return Optional.ofNullable(this.transactionalContext)
-                .filter(it -> !it.transaction.hasError())
+                .filter(it -> !it.transactionState.isHasError())
                 .map(it -> it.originalShardMap)
                 .orElse(this.originalShardMap);
     }
@@ -122,7 +125,8 @@ public class StorageContext {
     }
 
     private static class TransactionalContext {
-        private SharedEntityTransaction transaction;
+        private TransactionState transactionState;
+        private UUID transactionUuid;
         private Long changes;
         private Long originalShardMap;
         private Boolean stored;

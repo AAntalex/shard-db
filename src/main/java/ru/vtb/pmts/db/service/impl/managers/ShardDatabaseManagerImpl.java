@@ -9,6 +9,8 @@ import ru.vtb.pmts.db.service.LockManager;
 import ru.vtb.pmts.db.service.ShardDataBaseManager;
 import ru.vtb.pmts.db.service.SharedTransactionManager;
 import ru.vtb.pmts.db.service.api.*;
+import ru.vtb.pmts.db.service.impl.sequences.ApplicationSequenceGenerator;
+import ru.vtb.pmts.db.service.impl.sequences.SimpleSequenceGenerator;
 import ru.vtb.pmts.db.service.impl.transaction.SharedEntityTransaction;
 import ru.vtb.pmts.db.service.impl.transaction.TransactionalSQLTask;
 import ru.vtb.pmts.db.utils.ShardUtils;
@@ -29,7 +31,6 @@ import org.springframework.stereotype.Service;
 import org.springframework.util.Assert;
 import ru.vtb.pmts.db.config.*;
 import ru.vtb.pmts.db.model.*;
-import ru.vtb.pmts.db.service.impl.*;
 
 import javax.sql.DataSource;
 import java.io.File;
@@ -262,8 +263,13 @@ public class ShardDatabaseManagerImpl implements ShardDataBaseManager {
         }
     }
 
-    @Override
-    public long sequenceNextVal(String sequenceName, DataBaseInstance shard) {
+    private SequenceGenerator getSequenceGenerator(String sequenceName, DataBaseInstance shard) {
+        return Optional.ofNullable(sequences.get(sequenceName))
+                .map(shardSequences -> shardSequences.get(shard.getHashCode()))
+                .orElse(getOrCreateSequenceGenerator(sequenceName, shard));
+    }
+
+    private synchronized SequenceGenerator getOrCreateSequenceGenerator(String sequenceName, DataBaseInstance shard) {
         Map<Integer, SequenceGenerator> shardSequences = sequences.get(sequenceName);
         if (Objects.isNull(shardSequences)) {
             shardSequences = new HashMap<>();
@@ -274,7 +280,12 @@ public class ShardDatabaseManagerImpl implements ShardDataBaseManager {
             sequenceGenerator = new ApplicationSequenceGenerator(sequenceName, shard);
             shardSequences.put(shard.getHashCode(), sequenceGenerator);
         }
-        return sequenceGenerator.nextValue();
+        return sequenceGenerator;
+    }
+
+    @Override
+    public long sequenceNextVal(String sequenceName, DataBaseInstance shard) {
+        return getSequenceGenerator(sequenceName, shard).nextValue();
     }
 
     @Override
@@ -290,6 +301,26 @@ public class ShardDatabaseManagerImpl implements ShardDataBaseManager {
     @Override
     public long sequenceNextVal() {
         return sequenceNextVal(MAIN_SEQUENCE, getDefaultCluster());
+    }
+
+    @Override
+    public long sequenceCurVal(String sequenceName, DataBaseInstance shard) {
+        return getSequenceGenerator(sequenceName, shard).curValue();
+    }
+
+    @Override
+    public long sequenceCurVal(String sequenceName, Cluster cluster) {
+        return sequenceCurVal(sequenceName, cluster.getMainShard());
+    }
+
+    @Override
+    public long sequenceCurVal(String sequenceName) {
+        return sequenceCurVal(sequenceName, getDefaultCluster());
+    }
+
+    @Override
+    public long sequenceCurVal() {
+        return sequenceCurVal(MAIN_SEQUENCE, getDefaultCluster());
     }
 
     @Override

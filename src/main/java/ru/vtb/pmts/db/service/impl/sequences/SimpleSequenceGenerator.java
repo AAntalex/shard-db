@@ -1,4 +1,4 @@
-package ru.vtb.pmts.db.service.impl;
+package ru.vtb.pmts.db.service.impl.sequences;
 
 import ru.vtb.pmts.db.service.abstractive.AbstractSequenceGenerator;
 

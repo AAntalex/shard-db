@@ -26,9 +26,10 @@ public class SharedEntityTransaction implements EntityTransaction {
     @Getter
     private SharedEntityTransaction parentTransaction;
     private boolean active;
+
     @Getter
-    private boolean completed;
-    private boolean hasError;
+    private final TransactionState state = new TransactionState();
+
     private String error;
     private String errorCommit;
     @Getter
@@ -58,7 +59,7 @@ public class SharedEntityTransaction implements EntityTransaction {
 
     @Override
     public void rollback() {
-        if (this.completed) {
+        if (this.state.isCompleted()) {
             return;
         }
         this.tasks.forEach(task -> task.completion(true, true));
@@ -66,7 +67,7 @@ public class SharedEntityTransaction implements EntityTransaction {
         tasks.clear();
         currentTasks.clear();
         buckets.clear();
-        this.completed = true;
+        this.state.setCompleted(true);
     }
 
     @Override
@@ -90,7 +91,7 @@ public class SharedEntityTransaction implements EntityTransaction {
     }
 
     public void commit(boolean enableTransactionStat) {
-        if (this.completed) {
+        if (this.state.isCompleted()) {
             return;
         }
         this.duration = System.currentTimeMillis();
@@ -100,7 +101,7 @@ public class SharedEntityTransaction implements EntityTransaction {
             task.waitTask();
             this.error = processTask(task, task.getError(), this.error, SQL_ERROR_TEXT);
         });
-        this.tasks.forEach(task -> task.completion(this.hasError, false));
+        this.tasks.forEach(task -> task.completion(this.state.isHasError(), false));
         this.tasks.forEach(TransactionalTask::finish);
         this.duration = System.currentTimeMillis() - this.duration;
         if (enableTransactionStat) {
@@ -112,11 +113,11 @@ public class SharedEntityTransaction implements EntityTransaction {
                                 task,
                                 task.getErrorCompletion(),
                                 this.errorCommit,
-                                this.hasError ? SQL_ERROR_ROLLBACK_TEXT : SQL_ERROR_COMMIT_TEXT
+                                this.state.isHasError() ? SQL_ERROR_ROLLBACK_TEXT : SQL_ERROR_COMMIT_TEXT
                         )
         );
-        this.completed = true;
-        if (this.hasError) {
+        this.state.setCompleted(true);
+        if (this.state.isHasError()) {
             throw new ShardDataBaseException(
                     Optional.ofNullable(this.error)
                             .map(it -> it.concat(StringUtils.LF))
@@ -130,7 +131,7 @@ public class SharedEntityTransaction implements EntityTransaction {
     }
 
     public boolean hasError() {
-        return this.hasError;
+        return this.state.isHasError();
     }
 
     public TransactionalTask getCurrentTask(DataBaseInstance shard, boolean limitParallel) {
@@ -171,7 +172,7 @@ public class SharedEntityTransaction implements EntityTransaction {
     }
 
     public void close() {
-        this.completed = true;
+        this.state.setCompleted(true);
     }
 
     @SuppressWarnings("unchecked")
@@ -192,7 +193,7 @@ public class SharedEntityTransaction implements EntityTransaction {
             String errorPrefix)
     {
         if (Objects.nonNull(errorTask)) {
-            this.hasError = true;
+            this.state.setHasError(true);
             return Optional.ofNullable(errorText)
                     .orElse(errorPrefix)
                     .concat(TASK_PREFIX)
@@ -217,7 +218,7 @@ public class SharedEntityTransaction implements EntityTransaction {
                         new TransactionInfo()
                                 .uuid(this.uuid)
                                 .executeTime(OffsetDateTime.now())
-                                .failed(this.hasError)
+                                .failed(this.state.isHasError())
                                 .shard(
                                         Optional
                                                 .ofNullable(bucket.mainTask())
