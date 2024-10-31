@@ -12,7 +12,6 @@ import ru.vtb.pmts.db.service.abstractive.AbstractTransactionalTask;
 import ru.vtb.pmts.db.service.api.TransactionalQuery;
 import ru.vtb.pmts.db.utils.ShardUtils;
 
-import java.sql.SQLException;
 import java.util.Optional;
 import java.util.UUID;
 import java.util.concurrent.ExecutorService;
@@ -42,12 +41,12 @@ public class TransactionalRemoteTask extends AbstractTransactionalTask {
     }
 
     @Override
-    public void commit() throws SQLException {
+    public void commit() throws ShardDataBaseException {
         commitOrRollbackRequest(true);
     }
 
     @Override
-    public void rollback() throws SQLException {
+    public void rollback() throws ShardDataBaseException {
         commitOrRollbackRequest(false);
     }
 
