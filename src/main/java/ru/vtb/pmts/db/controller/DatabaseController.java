@@ -6,9 +6,12 @@ import org.apache.commons.lang3.StringUtils;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
+import ru.vtb.pmts.db.exception.ShardDataBaseException;
 import ru.vtb.pmts.db.model.dto.QueryDto;
 import ru.vtb.pmts.db.service.api.RemoteDatabaseService;
 
+import java.sql.SQLTransientConnectionException;
+import java.util.Objects;
 import java.util.UUID;
 
 @Slf4j
@@ -28,7 +31,7 @@ public class DatabaseController {
         } catch (Exception err) {
             return ResponseEntity
                     .status(HttpStatus.INTERNAL_SERVER_ERROR)
-                    .body(databaseService.getResponseError(err.getLocalizedMessage()));
+                    .body(databaseService.getResponseError(getErrorMessage(err)));
         }
     }
 
@@ -42,7 +45,7 @@ public class DatabaseController {
         } catch (Exception err) {
             return ResponseEntity
                     .status(HttpStatus.INTERNAL_SERVER_ERROR)
-                    .body(databaseService.getResponseError(err.getLocalizedMessage()));
+                    .body(databaseService.getResponseError(getErrorMessage(err)));
         }
     }
 
@@ -56,7 +59,7 @@ public class DatabaseController {
         } catch (Exception err) {
             return ResponseEntity
                     .status(HttpStatus.INTERNAL_SERVER_ERROR)
-                    .body(databaseService.getResponseError(err.getLocalizedMessage()));
+                    .body(databaseService.getResponseError(getErrorMessage(err)));
         }
     }
 
@@ -73,7 +76,7 @@ public class DatabaseController {
         } catch (Exception err) {
             return ResponseEntity
                     .status(HttpStatus.INTERNAL_SERVER_ERROR)
-                    .body(err.getLocalizedMessage());
+                    .body(getErrorMessage(err));
         }
     }
 
@@ -90,7 +93,14 @@ public class DatabaseController {
         } catch (Exception err) {
             return ResponseEntity
                     .status(HttpStatus.INTERNAL_SERVER_ERROR)
-                    .body(err.getLocalizedMessage());
+                    .body(getErrorMessage(err));
         }
+    }
+
+    private String getErrorMessage(Exception err) {
+        return err instanceof SQLTransientConnectionException ||
+                Objects.nonNull(err.getCause()) && err.getCause() instanceof SQLTransientConnectionException ?
+                ShardDataBaseException.NOT_AVAILABLE :
+                err.getLocalizedMessage();
     }
 }

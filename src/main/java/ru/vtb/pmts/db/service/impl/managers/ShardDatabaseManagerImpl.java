@@ -579,7 +579,6 @@ public class ShardDatabaseManagerImpl implements ShardDataBaseManager {
                 dynamicDataBaseInfo.setAvailable(false);
                 log.trace("The shard '{}' is not available", shard.getName());
             } else {
-                err.printStackTrace();
                 throw new ShardDataBaseException(err);
             }
         }
@@ -771,9 +770,9 @@ public class ShardDatabaseManagerImpl implements ShardDataBaseManager {
         );
     }
 
-    private void setOptionalHikariConfig(ShardDataBaseConfig shardDataBaseConfig,
-                                         ClusterConfig clusterConfig,
-                                         ShardConfig shardConfig) {
+    private void setTransactionConfig(ShardDataBaseConfig shardDataBaseConfig,
+                                      ClusterConfig clusterConfig,
+                                      ShardConfig shardConfig) {
         this.parallelLimit = getTransactionConfigValue(shardDataBaseConfig, clusterConfig, shardConfig,
                 SharedTransactionConfig::getActiveConnectionParallelLimit)
                 .orElse(0);
@@ -882,7 +881,7 @@ public class ShardDatabaseManagerImpl implements ShardDataBaseManager {
 
             clusterConfig.getShards().forEach(shardConfig-> {
                 DataBaseInstance shard = new DataBaseInstance();
-                setOptionalHikariConfig(shardDataBaseConfig, clusterConfig, shardConfig);
+                setTransactionConfig(shardDataBaseConfig, clusterConfig, shardConfig);
                 if (Optional.ofNullable(shardConfig.getDataSource()).map(DataSourceConfig::getUrl).isPresent()) {
                     HikariDataSource dataSource = new HikariDataSource(
                             getHikariConfig(shardDataBaseConfig, clusterConfig, shardConfig)

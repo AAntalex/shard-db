@@ -24,6 +24,7 @@ public abstract class AbstractTransactionalQuery implements TransactionalQuery, 
     protected String query;
     protected ResultQuery result;
     protected Integer fetchLimit;
+    protected DataBaseInstance shard;
     protected final List<TransactionalQuery> relatedQueries = new ArrayList<>();
 
     private long duration;
@@ -35,7 +36,6 @@ public abstract class AbstractTransactionalQuery implements TransactionalQuery, 
     private int currentIndex;
     private boolean isButch;
     private int count;
-    private DataBaseInstance shard;
     private String error;
     private ResultParallelQuery parallelResult;
 

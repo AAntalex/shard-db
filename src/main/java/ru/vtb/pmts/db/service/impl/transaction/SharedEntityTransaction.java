@@ -67,7 +67,7 @@ public class SharedEntityTransaction implements EntityTransaction {
         tasks.clear();
         currentTasks.clear();
         buckets.clear();
-        this.state.setCompleted(true);
+        close();
     }
 
     @Override
@@ -116,7 +116,7 @@ public class SharedEntityTransaction implements EntityTransaction {
                                 this.state.isHasError() ? SQL_ERROR_ROLLBACK_TEXT : SQL_ERROR_COMMIT_TEXT
                         )
         );
-        this.state.setCompleted(true);
+        close();
         if (this.state.isHasError()) {
             throw new ShardDataBaseException(
                     Optional.ofNullable(this.error)
@@ -128,10 +128,6 @@ public class SharedEntityTransaction implements EntityTransaction {
                             )
             );
         }
-    }
-
-    public boolean hasError() {
-        return this.state.isHasError();
     }
 
     public TransactionalTask getCurrentTask(DataBaseInstance shard, boolean limitParallel) {
