@@ -85,7 +85,7 @@ public class ApplicationSequenceGenerator extends AbstractSequenceGenerator {
                             connection.rollback();
                             throw new ShardDataBaseException(
                                     String.format(
-                                            "Достигли придельнго значения счетчика \"%s\" - %d",
+                                            "Достигли придельного значения счетчика \"%s\" - %d",
                                             this.name,
                                             this.maxValue
                                     )
