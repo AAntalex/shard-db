@@ -49,7 +49,7 @@ public class ApplicationSequenceGenerator extends AbstractSequenceGenerator {
                 this.connection.close();
             }
         } catch (Exception err) {
-            throw new ShardDataBaseException(err);
+            throw new ShardDataBaseException(err, this.shard);
         }
     }
 
@@ -103,7 +103,7 @@ public class ApplicationSequenceGenerator extends AbstractSequenceGenerator {
             }
             connection.commit();
         } catch (Exception err) {
-            throw new ShardDataBaseException(err);
+            throw new ShardDataBaseException(err, this.shard);
         } finally {
             closeConnection();
         }

@@ -105,7 +105,7 @@ public abstract class AbstractTransactionalQuery implements TransactionalQuery, 
             relatedQueries.forEach(query -> query.bind(index, o));
             this.currentIndex = index;
         } catch (Exception err) {
-            throw new ShardDataBaseException(err);
+            throw new ShardDataBaseException(err, this.shard);
         }
         return this;
     }
@@ -117,7 +117,7 @@ public abstract class AbstractTransactionalQuery implements TransactionalQuery, 
             relatedQueries.forEach(query -> query.bind(index, o));
             this.currentIndex = index;
         } catch (Exception err) {
-            throw new ShardDataBaseException(err);
+            throw new ShardDataBaseException(err, this.shard);
         }
         return this;
     }
@@ -139,7 +139,7 @@ public abstract class AbstractTransactionalQuery implements TransactionalQuery, 
             addBatchOriginal();
             relatedQueries.forEach(TransactionalQuery::addBatch);
         } catch (Exception err) {
-            throw new ShardDataBaseException(err);
+            throw new ShardDataBaseException(err, this.shard);
         }
         return this;
     }
@@ -198,7 +198,7 @@ public abstract class AbstractTransactionalQuery implements TransactionalQuery, 
             this.duration = System.currentTimeMillis() - this.duration;
         } catch (Exception err) {
             this.duration = System.currentTimeMillis() - this.duration;
-            throw new ShardDataBaseException(err);
+            throw new ShardDataBaseException(err, this.shard);
         }
     }
 
@@ -319,7 +319,7 @@ public abstract class AbstractTransactionalQuery implements TransactionalQuery, 
             log.trace("Waiting {}}...", runInfo.getName());
             runInfo.getFuture().get();
         } catch (Exception err) {
-            throw new ShardDataBaseException(err);
+            throw new ShardDataBaseException(err, this.shard);
         }
     }
 

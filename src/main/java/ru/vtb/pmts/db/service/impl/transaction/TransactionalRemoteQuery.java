@@ -152,7 +152,7 @@ public class TransactionalRemoteQuery extends AbstractTransactionalQuery {
                     try {
                         return objectMapper.readValue(jsonData, clazz);
                     } catch (Exception err) {
-                        throw new ShardDataBaseException(err);
+                        throw new ShardDataBaseException(err, this.shard);
                     }
                 })
                 .orElseThrow(() ->

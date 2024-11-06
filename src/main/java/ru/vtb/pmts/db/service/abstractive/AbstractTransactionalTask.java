@@ -70,7 +70,7 @@ public abstract class AbstractTransactionalTask implements TransactionalTask {
                 log.trace("Waiting {}...", this.name);
                this.future.get();
             } catch (Exception err) {
-                throw new ShardDataBaseException(err);
+                throw new ShardDataBaseException(err, this.shard);
             } finally {
                 this.status = TaskStatus.DONE;
             }

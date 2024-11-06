@@ -54,7 +54,7 @@ public class TransactionalSQLTask extends AbstractTransactionalTask {
         try {
             return !this.connection.isClosed() && !this.connection.getAutoCommit();
         } catch (SQLException err) {
-            throw new ShardDataBaseException(err);
+            throw new ShardDataBaseException(err, this.shard);
         }
     }
 
@@ -92,7 +92,7 @@ public class TransactionalSQLTask extends AbstractTransactionalTask {
             String sql = ShardUtils.transformSQL(query, shard);
             return new TransactionalSQLQuery(sql, queryType, connection.prepareStatement(sql));
         } catch (SQLException err) {
-            throw new ShardDataBaseException(err);
+            throw new ShardDataBaseException(err, this.shard);
         }
     }
 
@@ -130,16 +130,10 @@ public class TransactionalSQLTask extends AbstractTransactionalTask {
                     }
                 }
             } catch (Exception err) {
-                throw new ShardDataBaseException(err);
+                throw new ShardDataBaseException(err, this.shard);
             } finally {
                 this.status = TaskStatus.DONE;
             }
         }
-    }
-
-    private Object getDelegateConnection(ProxyConnection connection) throws Exception {
-        Field field = ProxyConnection.class.getDeclaredField("delegate");
-        field.setAccessible(true);
-        return field.get(connection);
     }
 }

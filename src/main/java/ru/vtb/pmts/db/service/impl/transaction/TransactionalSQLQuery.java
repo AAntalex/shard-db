@@ -162,7 +162,7 @@ public class TransactionalSQLQuery extends AbstractTransactionalQuery {
         try {
             this.preparedStatement.addBatch();
         } catch (SQLException e) {
-            throw new ShardDataBaseException(e);
+            throw new ShardDataBaseException(e, this.shard);
         }
     }
 
@@ -171,7 +171,7 @@ public class TransactionalSQLQuery extends AbstractTransactionalQuery {
         try {
             return this.preparedStatement.executeBatch();
         } catch (SQLException e) {
-            throw new ShardDataBaseException(e);
+            throw new ShardDataBaseException(e, this.shard);
         }
     }
 
@@ -180,7 +180,7 @@ public class TransactionalSQLQuery extends AbstractTransactionalQuery {
         try {
             return this.preparedStatement.executeUpdate();
         } catch (SQLException e) {
-            throw new ShardDataBaseException(e);
+            throw new ShardDataBaseException(e, this.shard);
         }
     }
 
@@ -190,7 +190,7 @@ public class TransactionalSQLQuery extends AbstractTransactionalQuery {
             this.preparedStatement.setFetchSize(Optional.ofNullable(this.fetchLimit).orElse(FETCH_SIZE));
             return new ResultSQLQuery(this.preparedStatement.executeQuery(), this.fetchLimit);
         } catch (SQLException e) {
-            throw new ShardDataBaseException(e);
+            throw new ShardDataBaseException(e, this.shard);
         }
     }
 
@@ -198,7 +198,7 @@ public class TransactionalSQLQuery extends AbstractTransactionalQuery {
         try {
             this.preparedStatement.cancel();
         } catch (SQLException e) {
-            throw new ShardDataBaseException(e);
+            throw new ShardDataBaseException(e, this.shard);
         }
     }
 }

@@ -135,7 +135,7 @@ public class ShardDatabaseManagerImpl implements ShardDataBaseManager {
                         transaction.addTask(shard, task);
                         return task;
                     } catch (Exception err) {
-                        throw new ShardDataBaseException(err);
+                        throw new ShardDataBaseException(err, shard);
                     }
                 });
     }
@@ -579,7 +579,7 @@ public class ShardDatabaseManagerImpl implements ShardDataBaseManager {
                 dynamicDataBaseInfo.setAvailable(false);
                 log.trace("The shard '{}' is not available", shard.getName());
             } else {
-                throw new ShardDataBaseException(err);
+                throw new ShardDataBaseException(err, shard);
             }
         }
     }
@@ -617,7 +617,7 @@ public class ShardDatabaseManagerImpl implements ShardDataBaseManager {
                                 dynamicDBInfo.setAccessible(resultSet.getBoolean(7));
                             }
                         } catch (Exception err) {
-                            throw new ShardDataBaseException(err);
+                            throw new ShardDataBaseException(err, shard);
                         }
                     });
                 });
@@ -1050,7 +1050,7 @@ public class ShardDatabaseManagerImpl implements ShardDataBaseManager {
                             )
                             .execute();
                 } catch (LiquibaseException err) {
-                    throw new ShardDataBaseException(err);
+                    throw new ShardDataBaseException(err, shard);
                 }
             }, changeLog);
         }
