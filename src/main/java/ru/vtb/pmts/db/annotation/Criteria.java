@@ -9,6 +9,7 @@ import java.lang.annotation.*;
 @Retention(RetentionPolicy.RUNTIME)
 public @interface Criteria {
     Class<? extends ShardInstance> from();
+    String alias();
     Join[] joins() default {};
     String where() default "";
 }
