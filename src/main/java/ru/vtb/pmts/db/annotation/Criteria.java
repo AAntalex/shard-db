@@ -12,4 +12,5 @@ public @interface Criteria {
     String alias();
     Join[] joins() default {};
     String where() default "";
+    CacheManager cacheManager() default @CacheManager;
 }
