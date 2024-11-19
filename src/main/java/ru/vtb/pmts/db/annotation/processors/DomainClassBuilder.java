@@ -297,8 +297,6 @@ public class DomainClassBuilder {
                             domainClassDto.getEntityClass().getTargetClassName() + "> {\n" +
                             getFieldMapCode(domainClassDto) +
                             "\n\n    private DomainEntityManager domainManager;\n\n" +
-                            "    private ThreadLocal<Map<Long, Domain>> domains = " +
-                            "ThreadLocal.withInitial(HashMap::new);\n" +
                             "    private final Map<String, DataStorage> storageMap = new HashMap<>();\n" +
                             "    private final Map<String, Cluster> historyCluster = new HashMap<>();\n" +
                             "    private final Map<String, Class<?>> historyObjectTypes = new HashMap<>();\n" +
@@ -335,7 +333,7 @@ public class DomainClassBuilder {
             out.println();
             out.println(getMapStorageToEntityCode(domainClassDto));
             out.println();
-            out.println(getMapAttributeHistory(domainClassDto));
+            out.println(getMapAttributeHistory());
             out.println("}");
         }
     }
@@ -487,7 +485,7 @@ public class DomainClassBuilder {
                                                                             new AttributeHistory()
                                                                                     .time(OffsetDateTime.now())
                                                                                     .value(value)
-                                                                                    .attributeName(\"\
+                                                                                    .attributeName("\
                                                         """ + field.getFieldName() + "\"));\n" :
                                                 StringUtils.EMPTY
                                         ) +
@@ -549,11 +547,13 @@ public class DomainClassBuilder {
                         "        if (!Optional.ofNullable(entity).map(ShardInstance::getId).isPresent()) {\n" +
                         "            return null;\n" +
                         "        }\n" +
-                        "        " + classDto.getTargetClassName() + " domain = (" + classDto.getTargetClassName() +
-                        ") domains.get().get(entity.getId());\n" +
+                        "        " + classDto.getTargetClassName() + " domain = ((SharedEntityTransaction) " +
+                        "domainManager.getTransaction())\n" +
+                        "                .getPersistentObject(TestBDomain.class, entity.getId());" +
                         "        if (Objects.isNull(domain)) {\n" +
                         "            domain = newDomain(entity);\n" +
-                        "            domains.get().put(entity.getId(), domain);\n" +
+                        "            ((SharedEntityTransaction) domainManager.getTransaction())." +
+                        "addPersistentObject(entity.getId(), domain);\n" +
                         "        }\n" +
                         "        for (String storageName : storageMap.keySet()) {\n" +
                         "            domain.setLazy(storageName, true);\n" +
@@ -636,7 +636,7 @@ public class DomainClassBuilder {
                 "    }";
     }
 
-    private static String getMapAttributeHistory(DomainClassDto classDto) {
+    private static String getMapAttributeHistory() {
         return """
                     private List<AttributeHistoryEntity> mapAttributeHistory(Domain domain) {
                         return domain.getAttributeHistory().stream()

@@ -16,5 +16,5 @@ public @interface CacheManager {
     Class<? extends CriteriaCacheManager> implement() default TransactionalCacheManager.class;
     FetchType fetch() default FetchType.LAZY;
     String[] key() default {};
-    int refreshTimeOut() default 0;
+    int retentionTime() default 0;
 }
