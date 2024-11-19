@@ -23,6 +23,7 @@ import org.apache.commons.lang3.StringUtils;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Component;
 import ru.vtb.pmts.db.model.dto.*;
+import ru.vtb.pmts.db.service.impl.transaction.SharedEntityTransaction;
 
 import javax.annotation.processing.ProcessingEnvironment;
 import javax.lang.model.element.Element;
@@ -285,7 +286,8 @@ public class DomainClassBuilder {
                                             AttributeHistoryEntity.class.getCanonicalName(),
                                             ShardDataBaseException.class.getCanonicalName(),
                                             AttributeHistory.class.getCanonicalName(),
-                                            Collectors.class.getCanonicalName()
+                                            Collectors.class.getCanonicalName(),
+                                            SharedEntityTransaction.class.getCanonicalName()
                                     )
                             )
                     )
@@ -549,7 +551,8 @@ public class DomainClassBuilder {
                         "        }\n" +
                         "        " + classDto.getTargetClassName() + " domain = ((SharedEntityTransaction) " +
                         "domainManager.getTransaction())\n" +
-                        "                .getPersistentObject(TestBDomain.class, entity.getId());" +
+                        "                .getPersistentObject(" + classDto.getTargetClassName() +
+                        ".class, entity.getId());\n" +
                         "        if (Objects.isNull(domain)) {\n" +
                         "            domain = newDomain(entity);\n" +
                         "            ((SharedEntityTransaction) domainManager.getTransaction())." +
