@@ -214,7 +214,9 @@ public class ShardEntityManagerImpl implements ShardEntityManager {
                                                             storage.setShardMap(
                                                                     ShardUtils.addShardMap(
                                                                             storage.getShardMap(),
-                                                                            entityStorage.getShardMap()
+                                                                            ShardUtils.getShardMap(
+                                                                                    entityStorage.getShard().getId()
+                                                                            )
                                                                     )
                                                             );
                                                             return false;

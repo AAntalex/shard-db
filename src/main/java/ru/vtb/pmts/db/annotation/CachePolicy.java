@@ -12,7 +12,7 @@ import java.lang.annotation.Target;
 @Documented
 @Target({})
 @Retention(RetentionPolicy.RUNTIME)
-public @interface CacheManager {
+public @interface CachePolicy {
     Class<? extends CriteriaCacheManager> implement() default TransactionalCacheManager.class;
     FetchType fetch() default FetchType.LAZY;
     String[] key() default {};
