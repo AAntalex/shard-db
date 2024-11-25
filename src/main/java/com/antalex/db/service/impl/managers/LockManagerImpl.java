@@ -1,7 +1,5 @@
 package com.antalex.db.service.impl.managers;
 
-import com.antalex.db.service.LockManager;
-import com.antalex.db.service.LockProcessor;
 import com.zaxxer.hikari.pool.ProxyConnection;
 import lombok.Getter;
 import lombok.Setter;
@@ -12,6 +10,8 @@ import org.springframework.core.GenericTypeResolver;
 import org.springframework.stereotype.Component;
 import com.antalex.db.exception.ShardDataBaseException;
 import com.antalex.db.model.DataBaseInstance;
+import com.antalex.db.service.LockManager;
+import com.antalex.db.service.LockProcessor;
 
 import java.lang.reflect.Field;
 import java.sql.Connection;

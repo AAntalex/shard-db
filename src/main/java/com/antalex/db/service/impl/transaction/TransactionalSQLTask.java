@@ -1,19 +1,17 @@
 package com.antalex.db.service.impl.transaction;
 
+import com.antalex.db.model.DataBaseInstance;
+import com.antalex.db.model.enums.TaskStatus;
 import com.antalex.db.service.LockManager;
-import com.zaxxer.hikari.pool.ProxyConnection;
+import com.antalex.db.service.abstractive.AbstractTransactionalTask;
+import com.antalex.db.utils.ShardUtils;
 import lombok.Getter;
 import org.apache.commons.lang3.StringUtils;
 import com.antalex.db.exception.ShardDataBaseException;
-import com.antalex.db.model.DataBaseInstance;
 import com.antalex.db.model.enums.QueryType;
-import com.antalex.db.model.enums.TaskStatus;
-import com.antalex.db.service.abstractive.AbstractTransactionalTask;
 import com.antalex.db.service.api.TransactionalQuery;
-import com.antalex.db.utils.ShardUtils;
 import lombok.extern.slf4j.Slf4j;
 
-import java.lang.reflect.Field;
 import java.sql.Connection;
 import java.sql.SQLException;
 import java.util.Optional;
@@ -54,7 +52,7 @@ public class TransactionalSQLTask extends AbstractTransactionalTask {
         try {
             return !this.connection.isClosed() && !this.connection.getAutoCommit();
         } catch (SQLException err) {
-            throw new ShardDataBaseException(err);
+            throw new ShardDataBaseException(err, this.shard);
         }
     }
 
@@ -92,7 +90,7 @@ public class TransactionalSQLTask extends AbstractTransactionalTask {
             String sql = ShardUtils.transformSQL(query, shard);
             return new TransactionalSQLQuery(sql, queryType, connection.prepareStatement(sql));
         } catch (SQLException err) {
-            throw new ShardDataBaseException(err);
+            throw new ShardDataBaseException(err, this.shard);
         }
     }
 
@@ -130,16 +128,10 @@ public class TransactionalSQLTask extends AbstractTransactionalTask {
                     }
                 }
             } catch (Exception err) {
-                throw new ShardDataBaseException(err);
+                throw new ShardDataBaseException(err, this.shard);
             } finally {
                 this.status = TaskStatus.DONE;
             }
         }
-    }
-
-    private Object getDelegateConnection(ProxyConnection connection) throws Exception {
-        Field field = ProxyConnection.class.getDeclaredField("delegate");
-        field.setAccessible(true);
-        return field.get(connection);
     }
 }

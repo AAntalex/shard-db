@@ -3,8 +3,8 @@ package com.antalex.db.service;
 import com.antalex.db.domain.abstraction.Domain;
 import com.antalex.db.entity.AttributeStorage;
 import com.antalex.db.entity.abstraction.ShardInstance;
-import com.antalex.db.model.dto.AttributeHistory;
 import com.antalex.db.model.DataStorage;
+import com.antalex.db.model.dto.AttributeHistory;
 
 import javax.persistence.EntityTransaction;
 import java.util.List;

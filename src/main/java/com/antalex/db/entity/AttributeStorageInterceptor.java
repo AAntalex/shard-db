@@ -1,7 +1,7 @@
 package com.antalex.db.entity;
 
-import com.antalex.db.model.enums.DataFormat;
 import com.antalex.db.service.ShardEntityManager;
+import com.antalex.db.model.enums.DataFormat;
 import lombok.Setter;
 
 @Setter

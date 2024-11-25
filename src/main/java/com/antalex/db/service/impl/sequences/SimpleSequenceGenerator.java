@@ -1,4 +1,4 @@
-package com.antalex.db.service.impl;
+package com.antalex.db.service.impl.sequences;
 
 import com.antalex.db.service.abstractive.AbstractSequenceGenerator;
 

@@ -1,5 +1,6 @@
 package com.antalex.db.service.impl.transaction;
 
+import com.antalex.db.exception.ShardDataBaseException;
 import com.antalex.db.model.enums.QueryType;
 import com.antalex.db.service.abstractive.AbstractTransactionalQuery;
 import com.antalex.db.service.api.ResultQuery;
@@ -157,27 +158,47 @@ public class TransactionalSQLQuery extends AbstractTransactionalQuery {
     }
 
     @Override
-    public void addBatchOriginal() throws SQLException {
-        this.preparedStatement.addBatch();
+    public void addBatchOriginal() throws ShardDataBaseException {
+        try {
+            this.preparedStatement.addBatch();
+        } catch (SQLException e) {
+            throw new ShardDataBaseException(e, this.shard);
+        }
     }
 
     @Override
-    public int[] executeBatch() throws SQLException {
-        return this.preparedStatement.executeBatch();
+    public int[] executeBatch() throws ShardDataBaseException {
+        try {
+            return this.preparedStatement.executeBatch();
+        } catch (SQLException e) {
+            throw new ShardDataBaseException(e, this.shard);
+        }
     }
 
     @Override
-    public int executeUpdate() throws SQLException {
-        return this.preparedStatement.executeUpdate();
+    public int executeUpdate() throws ShardDataBaseException {
+        try {
+            return this.preparedStatement.executeUpdate();
+        } catch (SQLException e) {
+            throw new ShardDataBaseException(e, this.shard);
+        }
     }
 
     @Override
-    public ResultQuery executeQuery() throws SQLException {
-        this.preparedStatement.setFetchSize(Optional.ofNullable(this.fetchLimit).orElse(FETCH_SIZE));
-        return new ResultSQLQuery(this.preparedStatement.executeQuery(), this.fetchLimit);
+    public ResultQuery executeQuery() throws ShardDataBaseException {
+        try {
+            this.preparedStatement.setFetchSize(Optional.ofNullable(this.fetchLimit).orElse(FETCH_SIZE));
+            return new ResultSQLQuery(this.preparedStatement.executeQuery(), this.fetchLimit);
+        } catch (SQLException e) {
+            throw new ShardDataBaseException(e, this.shard);
+        }
     }
 
-    public void cancel() throws SQLException {
-        this.preparedStatement.cancel();
+    public void cancel() throws ShardDataBaseException {
+        try {
+            this.preparedStatement.cancel();
+        } catch (SQLException e) {
+            throw new ShardDataBaseException(e, this.shard);
+        }
     }
 }

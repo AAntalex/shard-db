@@ -1,9 +1,9 @@
 package com.antalex.db.service.abstractive;
 
-import com.antalex.db.exception.ShardDataBaseException;
 import com.antalex.db.model.DataBaseInstance;
-import com.antalex.db.model.enums.QueryType;
 import com.antalex.db.model.enums.TaskStatus;
+import com.antalex.db.exception.ShardDataBaseException;
+import com.antalex.db.model.enums.QueryType;
 import com.antalex.db.service.api.TransactionalQuery;
 import com.antalex.db.service.api.TransactionalTask;
 import lombok.extern.slf4j.Slf4j;
@@ -70,7 +70,7 @@ public abstract class AbstractTransactionalTask implements TransactionalTask {
                 log.trace("Waiting {}...", this.name);
                this.future.get();
             } catch (Exception err) {
-                throw new ShardDataBaseException(err);
+                throw new ShardDataBaseException(err, this.shard);
             } finally {
                 this.status = TaskStatus.DONE;
             }

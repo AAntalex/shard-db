@@ -18,7 +18,6 @@ import com.antalex.db.service.impl.results.ResultRemoteQuery;
 import java.net.URL;
 import java.sql.Blob;
 import java.sql.Clob;
-import java.sql.SQLException;
 import java.util.*;
 
 public class TransactionalRemoteQuery extends AbstractTransactionalQuery {
@@ -44,7 +43,7 @@ public class TransactionalRemoteQuery extends AbstractTransactionalQuery {
     }
 
     @Override
-    protected void bindOriginal(int idx, Object o) throws SQLException {
+    protected void bindOriginal(int idx, Object o) throws Exception {
         if (Objects.isNull(o)) {
             bindOriginal(idx, null, null);
             return;
@@ -87,7 +86,7 @@ public class TransactionalRemoteQuery extends AbstractTransactionalQuery {
     }
 
     @Override
-    public void addBatchOriginal() throws Exception {
+    public void addBatchOriginal() {
         this.batchBinds.add(this.binds);
         this.binds = new ArrayList<>();
     }
@@ -144,7 +143,7 @@ public class TransactionalRemoteQuery extends AbstractTransactionalQuery {
                                                                 return err.getLocalizedMessage();
                                                             }
                                                         })
-                                                        .map(ShardDataBaseException::new)
+                                                        .map(err -> new ShardDataBaseException(err, this.shard))
                                 )
                                 .bodyToMono(String.class)
                                 .block()
@@ -153,7 +152,7 @@ public class TransactionalRemoteQuery extends AbstractTransactionalQuery {
                     try {
                         return objectMapper.readValue(jsonData, clazz);
                     } catch (Exception err) {
-                        throw new ShardDataBaseException(err);
+                        throw new ShardDataBaseException(err, this.shard);
                     }
                 })
                 .orElseThrow(() ->

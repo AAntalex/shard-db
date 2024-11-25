@@ -1,7 +1,7 @@
 package com.antalex.db.service.impl.results;
 
-import com.antalex.db.exception.ShardDataBaseException;
 import com.antalex.db.service.abstractive.AbstractResultQuery;
+import com.antalex.db.exception.ShardDataBaseException;
 
 import javax.sql.rowset.serial.SerialBlob;
 import java.math.BigDecimal;
@@ -45,12 +45,12 @@ public class ResultRemoteQuery extends AbstractResultQuery {
     }
 
     @Override
-    public Boolean getBoolean(int idx) throws Exception {
+    public Boolean getBoolean(int idx) {
         return Optional.ofNullable(currentResult.get(idx-1)).map(Boolean::parseBoolean).orElse(null);
     }
 
     @Override
-    public Short getShort(int idx) throws Exception {
+    public Short getShort(int idx) {
         return Optional.ofNullable(currentResult.get(idx-1)).map(Short::parseShort).orElse(null);
     }
 
@@ -60,32 +60,32 @@ public class ResultRemoteQuery extends AbstractResultQuery {
     }
 
     @Override
-    public BigDecimal getBigDecimal(int idx) throws Exception {
+    public BigDecimal getBigDecimal(int idx) {
         return Optional.ofNullable(currentResult.get(idx-1)).map(BigDecimal::new).orElse(null);
     }
 
     @Override
-    public Byte getByte(int idx) throws Exception {
+    public Byte getByte(int idx) {
         return Optional.ofNullable(currentResult.get(idx-1)).map(Byte::parseByte).orElse(null);
     }
 
     @Override
-    public Double getDouble(int idx) throws Exception {
+    public Double getDouble(int idx) {
         return Optional.ofNullable(currentResult.get(idx-1)).map(Double::parseDouble).orElse(null);
     }
 
     @Override
-    public Float getFloat(int idx) throws Exception {
+    public Float getFloat(int idx) {
         return Optional.ofNullable(currentResult.get(idx-1)).map(Float::parseFloat).orElse(null);
     }
 
     @Override
-    public Integer getInteger(int idx) throws Exception {
+    public Integer getInteger(int idx) {
         return Optional.ofNullable(currentResult.get(idx-1)).map(Integer::parseInt).orElse(null);
     }
 
     @Override
-    public Date getDate(int idx) throws Exception {
+    public Date getDate(int idx) {
         return Optional.ofNullable(currentResult.get(idx-1)).map(java.sql.Date::valueOf).orElse(null);
     }
 
@@ -95,12 +95,12 @@ public class ResultRemoteQuery extends AbstractResultQuery {
     }
 
     @Override
-    public Timestamp getTimestamp(int idx) throws Exception {
+    public Timestamp getTimestamp(int idx) {
         return Optional.ofNullable(currentResult.get(idx-1)).map(Timestamp::valueOf).orElse(null);
     }
 
     @Override
-    public Blob getBlob(int idx) throws Exception {
+    public Blob getBlob(int idx) {
         return Optional
                 .ofNullable(currentResult.get(idx-1))
                 .map(it -> {
@@ -114,7 +114,7 @@ public class ResultRemoteQuery extends AbstractResultQuery {
     }
 
     @Override
-    public RowId getRowId(int idx) throws Exception {
+    public RowId getRowId(int idx) {
         if (Objects.isNull(currentResult.get(idx-1))) {
             return null;
         }
@@ -122,7 +122,7 @@ public class ResultRemoteQuery extends AbstractResultQuery {
     }
 
     @Override
-    public SQLXML getSQLXML(int idx) throws Exception {
+    public SQLXML getSQLXML(int idx) {
         if (Objects.isNull(currentResult.get(idx-1))) {
             return null;
         }

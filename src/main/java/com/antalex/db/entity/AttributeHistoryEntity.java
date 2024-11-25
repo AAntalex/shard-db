@@ -1,8 +1,8 @@
 package com.antalex.db.entity;
 
-import com.antalex.db.entity.abstraction.BaseShardEntity;
 import lombok.Data;
 import lombok.EqualsAndHashCode;
+import com.antalex.db.entity.abstraction.BaseShardEntity;
 
 import java.time.OffsetDateTime;
 

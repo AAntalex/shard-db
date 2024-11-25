@@ -1,10 +1,10 @@
 package com.antalex.db.service.impl.processors;
 
-import com.antalex.db.service.LockProcessor;
 import org.postgresql.jdbc.PgConnection;
 import org.springframework.stereotype.Component;
 import com.antalex.db.exception.ShardDataBaseException;
 import com.antalex.db.model.DataBaseInstance;
+import com.antalex.db.service.LockProcessor;
 
 import java.sql.Connection;
 import java.sql.PreparedStatement;
@@ -13,10 +13,11 @@ import java.sql.SQLException;
 
 @Component
 public class PgLockProcessor implements LockProcessor<PgConnection> {
-    private static final String QUERY = "select bs.pid, bs.application_name, bs.client_addr, bs.usename, bs.state, s.query\n" +
-            "from pg_stat_activity s\n" +
-            "  join pg_stat_activity bs on bs.backend_xid = s.backend_xmin and bs.state like 'idle%'\n" +
-            "where s.pid = ?";
+    private static final String QUERY = """
+            select bs.pid, bs.application_name, bs.client_addr, bs.usename, bs.state, s.query
+            from pg_stat_activity s
+              join pg_stat_activity bs on bs.backend_xid = s.backend_xmin and bs.state like 'idle%'
+            where s.pid = ?""";
 
     @Override
     public String getLockInfo(PgConnection targetConnection, DataBaseInstance instance) {

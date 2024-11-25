@@ -1,11 +1,11 @@
 package com.antalex.db.service.impl.factory;
 
-import com.antalex.db.service.api.TransactionalTask;
-import com.antalex.db.service.impl.transaction.TransactionalRemoteTask;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.antalex.db.model.DataBaseInstance;
 import com.antalex.db.service.api.TransactionalRemoteTaskFactory;
+import com.antalex.db.service.api.TransactionalTask;
 import org.springframework.stereotype.Component;
+import com.antalex.db.service.impl.transaction.TransactionalRemoteTask;
 
 import java.util.concurrent.ExecutorService;
 

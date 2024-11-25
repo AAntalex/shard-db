@@ -1,10 +1,10 @@
 package com.antalex.db.service.impl.factory;
 
-import com.antalex.db.service.LockManager;
-import com.antalex.db.service.impl.transaction.TransactionalSQLTask;
 import com.antalex.db.model.DataBaseInstance;
-import com.antalex.db.service.api.TransactionalSQLTaskFactory;
+import com.antalex.db.service.LockManager;
 import com.antalex.db.service.api.TransactionalTask;
+import com.antalex.db.service.api.TransactionalSQLTaskFactory;
+import com.antalex.db.service.impl.transaction.TransactionalSQLTask;
 import org.springframework.stereotype.Component;
 
 import java.sql.Connection;

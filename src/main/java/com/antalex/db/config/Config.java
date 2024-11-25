@@ -1,9 +1,9 @@
 package com.antalex.db.config;
 
-import com.antalex.db.service.ShardDataBaseManager;
 import liquibase.integration.spring.SpringLiquibase;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
+import com.antalex.db.service.ShardDataBaseManager;
 
 import javax.sql.DataSource;
 

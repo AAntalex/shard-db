@@ -1,18 +1,17 @@
 package com.antalex.db.service.impl.transaction;
 
+import com.antalex.db.model.DataBaseInstance;
+import com.antalex.db.model.RemoteTaskContainer;
+import com.antalex.db.model.enums.TaskStatus;
+import com.antalex.db.service.abstractive.AbstractTransactionalTask;
+import com.antalex.db.utils.ShardUtils;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.HttpStatusCode;
 import com.antalex.db.exception.ShardDataBaseException;
-import com.antalex.db.model.RemoteTaskContainer;
-import com.antalex.db.model.DataBaseInstance;
 import com.antalex.db.model.enums.QueryType;
-import com.antalex.db.model.enums.TaskStatus;
-import com.antalex.db.service.abstractive.AbstractTransactionalTask;
 import com.antalex.db.service.api.TransactionalQuery;
-import com.antalex.db.utils.ShardUtils;
 
-import java.sql.SQLException;
 import java.util.Optional;
 import java.util.UUID;
 import java.util.concurrent.ExecutorService;
@@ -42,12 +41,12 @@ public class TransactionalRemoteTask extends AbstractTransactionalTask {
     }
 
     @Override
-    public void commit() throws SQLException {
+    public void commit() throws ShardDataBaseException {
         commitOrRollbackRequest(true);
     }
 
     @Override
-    public void rollback() throws SQLException {
+    public void rollback() throws ShardDataBaseException {
         commitOrRollbackRequest(false);
     }
 

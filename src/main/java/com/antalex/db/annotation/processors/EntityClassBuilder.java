@@ -1,8 +1,11 @@
 package com.antalex.db.annotation.processors;
 
 import com.google.common.collect.ImmutableMap;
+import com.google.common.collect.Lists;
+import org.springframework.beans.factory.annotation.Value;
 import com.antalex.db.annotation.ParentShard;
 import com.antalex.db.annotation.ShardEntity;
+import com.antalex.db.config.ShardDataBaseConfig;
 import com.antalex.db.entity.AttributeStorage;
 import com.antalex.db.entity.abstraction.ShardInstance;
 import com.antalex.db.model.Cluster;
@@ -46,6 +49,9 @@ import java.util.stream.Collectors;
 import java.util.stream.IntStream;
 
 public class EntityClassBuilder {
+    public static final int SQL_IN_CLAUSE_LIMIT = 1000;
+    public static final String SQL_IN_CLAUSE_LIMIT_PARAM_NAME = "sql-in-clause-limit";
+
     private static final Map<Element, EntityClassDto> ENTITY_CLASSES = new HashMap<>();
 
     private static List<IndexDto> getIndexes(Index[] indexes) {
@@ -363,6 +369,7 @@ public class EntityClassBuilder {
                                             ShardEntityManager.class.getCanonicalName(),
                                             Component.class.getCanonicalName(),
                                             Autowired.class.getCanonicalName(),
+                                            Value.class.getCanonicalName(),
                                             ShardType.class.getCanonicalName(),
                                             Cluster.class.getCanonicalName(),
                                             ShardDataBaseManager.class.getCanonicalName(),
@@ -384,12 +391,12 @@ public class EntityClassBuilder {
                                             FetchType.class.getCanonicalName(),
                                             ImmutableMap.class.getCanonicalName(),
                                             Utils.class.getCanonicalName(),
-                                            Collectors.class.getCanonicalName()
+                                            Collectors.class.getCanonicalName(),
+                                            Lists.class.getCanonicalName()
                                     )
                             )
                     )
             );
-            out.println();
             out.println("@Component");
             out.println("public class " +
                     className +
@@ -440,6 +447,10 @@ public class EntityClassBuilder {
             out.println(getColumnListCode(entityClassDto));
             out.println(getFieldMapCode(entityClassDto));
             out.println();
+
+            out.println("    @Value(\"${" + ShardDataBaseConfig.CONFIG_NAME + "." + SQL_IN_CLAUSE_LIMIT_PARAM_NAME
+                    + ":" + SQL_IN_CLAUSE_LIMIT+ "}\")");
+            out.println("    private int sqlInClauseLimit;\n");
             out.println("    private Map<Long, String> updateQueries = new HashMap<>();");
             out.println("    private ShardEntityManager entityManager;");
             out.println("    private final Cluster cluster;");
@@ -975,38 +986,41 @@ public class EntityClassBuilder {
         return entityClassDto.getFields()
                 .stream()
                 .filter(it -> it.getIsLinkedEntity() && !isLazyList(it))
-                .map(field ->
+                .map(field -> "                Lists.partition(entities, sqlInClauseLimit)\n" +
+                        "                        .forEach(partEntities ->\n" +
                         "                entityManager.findAll(\n" +
-                                "                                " + ProcessorUtils.getFinalType(field.getElement()) +
-                                ".class,\n" +
-                                "                                \"x0.C_B_REF in (\" + \n" +
-                                "                                        entities\n" +
-                                "                                                .stream()\n" +
-                                "                                                .map(it -> \"?\")\n" +
-                                "                                                .collect(Collectors.joining(\", \")) + \n" +
-                                "                                        \")\",\n" +
-                                "                                entities\n" +
-                                "                                        .stream()\n" +
-                                "                                        .map(ShardInstance::getId)\n" +
-                                "                                        .toList()\n" +
-                                "                                        .toArray()\n" +
-                                "                        )\n" +
-                                "                        .forEach(l ->\n" +
-                                "                                ((" + entityClassDto.getTargetClassName() +
-                                ProcessorUtils.CLASS_INTERCEPT_POSTFIX + ") " +
-                                (
-                                        ProcessorUtils.isAnnotationPresentByType(
-                                                field.getLinkedField().getElement(),
-                                                ShardEntity.class
-                                        ) ?
-                                                "l." + field.getLinkedField().getGetter() + "()" :
-                                                "entityManager.getEntity(" + entityClassDto.getTargetClassName() +
-                                                        ".class, l." + field.getLinkedField().getGetter() + "())"
-                                ) +
-                                ")\n" +
-                                "                                        ." + field.getGetter() + "(false)\n" +
-                                "                                        .add(l)\n" +
-                                "                        );\n"
+                        "                                                " +
+                        ProcessorUtils.getFinalType(field.getElement()) + ".class,\n" +
+                        "                                                \"x0.C_B_REF in (\" + \n" +
+                        "                                                        partEntities\n" +
+                        "                                                                .stream()\n" +
+                        "                                                                .map(it -> \"?\")\n" +
+                        "                                                                .collect(Collectors." +
+                        "joining(\", \")) + \n" +
+                        "                                                        \")\",\n" +
+                        "                                                partEntities\n" +
+                        "                                                        .stream()\n" +
+                        "                                                        .map(ShardInstance::getId)\n" +
+                        "                                                        .toList()\n" +
+                        "                                                        .toArray()\n" +
+                        "                                        )\n" +
+                        "                                        .forEach(l ->\n" +
+                        "                                                ((" + entityClassDto.getTargetClassName() +
+                        ProcessorUtils.CLASS_INTERCEPT_POSTFIX + ") " +
+                        (
+                                ProcessorUtils.isAnnotationPresentByType(
+                                        field.getLinkedField().getElement(),
+                                        ShardEntity.class
+                                ) ?
+                                        "l." + field.getLinkedField().getGetter() + "()" :
+                                        "entityManager.getEntity(" + entityClassDto.getTargetClassName() +
+                                                ".class, l." + field.getLinkedField().getGetter() + "())"
+                        ) +
+                        ")\n" +
+                        "                                                        ." + field.getGetter() + "(false)\n" +
+                        "                                                        .add(l)\n" +
+                        "                                        )\n" +
+                        "                        );\n"
                 )
                 .reduce(StringUtils.EMPTY, String::concat);
     }

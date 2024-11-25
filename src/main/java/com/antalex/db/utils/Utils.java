@@ -30,7 +30,7 @@ public class Utils {
             if (curIdx > 0) {
                 resCondition.append(condition, startIdx, curIdx);
             }
-            int endIdx = condition.indexOf("}", curIdx + 2);
+            int endIdx = condition.indexOf('}', curIdx + 2);
             if (endIdx < 0) {
                 resCondition.append(condition.substring(curIdx));
                 return resCondition.toString();

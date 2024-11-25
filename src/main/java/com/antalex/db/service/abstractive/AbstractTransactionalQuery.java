@@ -3,10 +3,10 @@ package com.antalex.db.service.abstractive;
 import com.antalex.db.entity.abstraction.ShardInstance;
 import com.antalex.db.exception.ShardDataBaseException;
 import com.antalex.db.model.DataBaseInstance;
-import com.antalex.db.model.enums.QueryType;
 import com.antalex.db.service.api.ResultQuery;
-import com.antalex.db.service.api.TransactionalQuery;
 import com.antalex.db.service.impl.results.ResultParallelQuery;
+import com.antalex.db.model.enums.QueryType;
+import com.antalex.db.service.api.TransactionalQuery;
 import lombok.Data;
 import lombok.extern.slf4j.Slf4j;
 
@@ -24,6 +24,7 @@ public abstract class AbstractTransactionalQuery implements TransactionalQuery, 
     protected String query;
     protected ResultQuery result;
     protected Integer fetchLimit;
+    protected DataBaseInstance shard;
     protected final List<TransactionalQuery> relatedQueries = new ArrayList<>();
 
     private long duration;
@@ -35,7 +36,6 @@ public abstract class AbstractTransactionalQuery implements TransactionalQuery, 
     private int currentIndex;
     private boolean isButch;
     private int count;
-    private DataBaseInstance shard;
     private String error;
     private ResultParallelQuery parallelResult;
 
@@ -105,7 +105,7 @@ public abstract class AbstractTransactionalQuery implements TransactionalQuery, 
             relatedQueries.forEach(query -> query.bind(index, o));
             this.currentIndex = index;
         } catch (Exception err) {
-            throw new ShardDataBaseException(err);
+            throw new ShardDataBaseException(err, this.shard);
         }
         return this;
     }
@@ -117,7 +117,7 @@ public abstract class AbstractTransactionalQuery implements TransactionalQuery, 
             relatedQueries.forEach(query -> query.bind(index, o));
             this.currentIndex = index;
         } catch (Exception err) {
-            throw new ShardDataBaseException(err);
+            throw new ShardDataBaseException(err, this.shard);
         }
         return this;
     }
@@ -139,7 +139,7 @@ public abstract class AbstractTransactionalQuery implements TransactionalQuery, 
             addBatchOriginal();
             relatedQueries.forEach(TransactionalQuery::addBatch);
         } catch (Exception err) {
-            throw new ShardDataBaseException(err);
+            throw new ShardDataBaseException(err, this.shard);
         }
         return this;
     }
@@ -198,7 +198,7 @@ public abstract class AbstractTransactionalQuery implements TransactionalQuery, 
             this.duration = System.currentTimeMillis() - this.duration;
         } catch (Exception err) {
             this.duration = System.currentTimeMillis() - this.duration;
-            throw new ShardDataBaseException(err);
+            throw new ShardDataBaseException(err, this.shard);
         }
     }
 
@@ -319,7 +319,7 @@ public abstract class AbstractTransactionalQuery implements TransactionalQuery, 
             log.trace("Waiting {}}...", runInfo.getName());
             runInfo.getFuture().get();
         } catch (Exception err) {
-            throw new ShardDataBaseException(err);
+            throw new ShardDataBaseException(err, this.shard);
         }
     }
 

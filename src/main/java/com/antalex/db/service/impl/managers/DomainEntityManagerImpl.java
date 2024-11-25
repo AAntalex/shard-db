@@ -1,6 +1,5 @@
 package com.antalex.db.service.impl.managers;
 
-import com.fasterxml.jackson.databind.ObjectMapper;
 import com.antalex.db.domain.abstraction.Domain;
 import com.antalex.db.entity.AttributeHistoryEntity;
 import com.antalex.db.entity.AttributeStorage;
@@ -35,16 +34,13 @@ public class DomainEntityManagerImpl implements DomainEntityManager {
 
     private final ShardEntityManager entityManager;
     private final DataWrapperFactory dataWrapperFactory;
-    private final ObjectMapper objectMapper;
 
     DomainEntityManagerImpl(
             ShardEntityManager entityManager,
-            DataWrapperFactory dataWrapperFactory,
-            ObjectMapper objectMapper)
+            DataWrapperFactory dataWrapperFactory)
     {
         this.entityManager = entityManager;
         this.dataWrapperFactory = dataWrapperFactory;
-        this.objectMapper = objectMapper;
     }
 
     @Autowired

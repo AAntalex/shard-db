@@ -1,8 +1,8 @@
 package com.antalex.db.domain.abstraction;
 
 import com.antalex.db.entity.abstraction.ShardInstance;
-import com.antalex.db.model.dto.AttributeHistory;
 import com.antalex.db.entity.AttributeStorage;
+import com.antalex.db.model.dto.AttributeHistory;
 
 import java.util.List;
 import java.util.Map;

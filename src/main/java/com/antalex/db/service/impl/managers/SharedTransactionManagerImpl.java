@@ -20,7 +20,7 @@ public class SharedTransactionManagerImpl implements SharedTransactionManager {
     @Override
     public EntityTransaction getTransaction() {
         return Optional.ofNullable(this.transaction.get())
-                .filter(it -> !it.isCompleted())
+                .filter(it -> !it.getState().isCompleted())
                 .orElseGet(() -> {
                     this.transaction.set(
                             Optional.ofNullable(this.transaction.get())

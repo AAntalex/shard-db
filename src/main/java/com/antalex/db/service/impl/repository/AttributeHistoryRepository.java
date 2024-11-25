@@ -1,5 +1,6 @@
 package com.antalex.db.service.impl.repository;
 
+import com.antalex.db.model.StorageContext;
 import com.google.common.collect.ImmutableMap;
 import org.apache.commons.lang3.StringUtils;
 import org.springframework.stereotype.Component;
@@ -7,7 +8,6 @@ import com.antalex.db.entity.AttributeHistoryEntity;
 import com.antalex.db.entity.abstraction.ShardInstance;
 import com.antalex.db.model.Cluster;
 import com.antalex.db.model.DataStorage;
-import com.antalex.db.model.StorageContext;
 import com.antalex.db.model.enums.QueryStrategy;
 import com.antalex.db.model.enums.QueryType;
 import com.antalex.db.model.enums.ShardType;

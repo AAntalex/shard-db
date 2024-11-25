@@ -1,11 +1,11 @@
 package com.antalex.db.service.impl.transaction;
 
-import com.antalex.db.exception.ShardDataBaseException;
 import com.antalex.db.model.DataBaseInstance;
 import com.antalex.db.model.QueryInfo;
 import com.antalex.db.model.TransactionInfo;
-import com.antalex.db.service.api.TransactionalQuery;
 import com.antalex.db.service.api.TransactionalTask;
+import com.antalex.db.exception.ShardDataBaseException;
+import com.antalex.db.service.api.TransactionalQuery;
 import lombok.Getter;
 import lombok.Setter;
 import org.apache.commons.lang3.StringUtils;
@@ -26,15 +26,17 @@ public class SharedEntityTransaction implements EntityTransaction {
     @Getter
     private SharedEntityTransaction parentTransaction;
     private boolean active;
+
     @Getter
-    private boolean completed;
-    private boolean hasError;
+    private final TransactionState state = new TransactionState();
+
     private String error;
     private String errorCommit;
     @Getter
     private UUID uuid;
     @Getter
     private final Boolean parallelRun;
+    private final Map<Class<?>, Map<Long, Object>> persistentObjects = new HashMap<>();
     private Long duration;
 
     private final List<TransactionalTask> tasks = new ArrayList<>();
@@ -57,7 +59,7 @@ public class SharedEntityTransaction implements EntityTransaction {
 
     @Override
     public void rollback() {
-        if (this.completed) {
+        if (this.state.isCompleted()) {
             return;
         }
         this.tasks.forEach(task -> task.completion(true, true));
@@ -65,7 +67,7 @@ public class SharedEntityTransaction implements EntityTransaction {
         tasks.clear();
         currentTasks.clear();
         buckets.clear();
-        this.completed = true;
+        close();
     }
 
     @Override
@@ -89,7 +91,7 @@ public class SharedEntityTransaction implements EntityTransaction {
     }
 
     public void commit(boolean enableTransactionStat) {
-        if (this.completed) {
+        if (this.state.isCompleted()) {
             return;
         }
         this.duration = System.currentTimeMillis();
@@ -99,7 +101,7 @@ public class SharedEntityTransaction implements EntityTransaction {
             task.waitTask();
             this.error = processTask(task, task.getError(), this.error, SQL_ERROR_TEXT);
         });
-        this.tasks.forEach(task -> task.completion(this.hasError, false));
+        this.tasks.forEach(task -> task.completion(this.state.isHasError(), false));
         this.tasks.forEach(TransactionalTask::finish);
         this.duration = System.currentTimeMillis() - this.duration;
         if (enableTransactionStat) {
@@ -111,11 +113,11 @@ public class SharedEntityTransaction implements EntityTransaction {
                                 task,
                                 task.getErrorCompletion(),
                                 this.errorCommit,
-                                this.hasError ? SQL_ERROR_ROLLBACK_TEXT : SQL_ERROR_COMMIT_TEXT
+                                this.state.isHasError() ? SQL_ERROR_ROLLBACK_TEXT : SQL_ERROR_COMMIT_TEXT
                         )
         );
-        this.completed = true;
-        if (this.hasError) {
+        close();
+        if (this.state.isHasError()) {
             throw new ShardDataBaseException(
                     Optional.ofNullable(this.error)
                             .map(it -> it.concat(StringUtils.LF))
@@ -126,10 +128,6 @@ public class SharedEntityTransaction implements EntityTransaction {
                             )
             );
         }
-    }
-
-    public boolean hasError() {
-        return this.hasError;
     }
 
     public TransactionalTask getCurrentTask(DataBaseInstance shard, boolean limitParallel) {
@@ -170,7 +168,18 @@ public class SharedEntityTransaction implements EntityTransaction {
     }
 
     public void close() {
-        this.completed = true;
+        this.state.setCompleted(true);
+    }
+
+    @SuppressWarnings("unchecked")
+    public <V> V getPersistentObject(Class<V> clazz, Long id) {
+        return (V) Optional.ofNullable(persistentObjects.get(clazz))
+                .map(objects -> objects.get(id))
+                .orElse(null);
+    }
+
+    public void addPersistentObject(Long id, Object o) {
+        persistentObjects.put(o.getClass(), Map.of(id, o));
     }
 
     private String processTask(
@@ -180,7 +189,7 @@ public class SharedEntityTransaction implements EntityTransaction {
             String errorPrefix)
     {
         if (Objects.nonNull(errorTask)) {
-            this.hasError = true;
+            this.state.setHasError(true);
             return Optional.ofNullable(errorText)
                     .orElse(errorPrefix)
                     .concat(TASK_PREFIX)
@@ -205,7 +214,7 @@ public class SharedEntityTransaction implements EntityTransaction {
                         new TransactionInfo()
                                 .uuid(this.uuid)
                                 .executeTime(OffsetDateTime.now())
-                                .failed(this.hasError)
+                                .failed(this.state.isHasError())
                                 .shard(
                                         Optional
                                                 .ofNullable(bucket.mainTask())
