@@ -683,41 +683,6 @@ public class ShardEntityManagerImpl implements ShardEntityManager {
         ((SharedEntityTransaction) getTransaction()).addPersistentObject(entity.getId(), entity);
     }
 
-
-
-
-
-
-
-
-
-
-
-    private TransactionalQuery getMainQuery(Iterable<TransactionalQuery> queries) {
-        TransactionalQuery mainQuery = null;
-        for (TransactionalQuery query : queries) {
-            if (Objects.isNull(mainQuery)) {
-                mainQuery = query;
-            } else {
-                mainQuery.addRelatedQuery(query);
-            }
-        }
-        return mainQuery;
-    }
-
-    private TransactionalQuery createQuery(DataBaseInstance shard, String query, QueryType queryType) {
-        TransactionalQuery transactionalQuery = dataBaseManager.getTransactionalTask(shard).addQuery(query, queryType);
-        transactionalQuery.setShard(shard);
-        if (queryType == QueryType.SELECT) {
-            transactionalQuery.setParallelRun(((SharedEntityTransaction) getTransaction()).getParallelRun());
-        }
-        return transactionalQuery;
-    }
-
-
-
-
-
     private boolean startTransaction() {
         if (!getTransaction().isActive()) {
             getTransaction().begin();

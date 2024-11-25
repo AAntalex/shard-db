@@ -365,6 +365,29 @@ public class ShardDatabaseManagerImpl implements ShardDataBaseManager {
                 .orElse(true);
     }
 
+
+    private TransactionalQuery getMainQuery(Iterable<TransactionalQuery> queries) {
+        TransactionalQuery mainQuery = null;
+        for (TransactionalQuery query : queries) {
+            if (Objects.isNull(mainQuery)) {
+                mainQuery = query;
+            } else {
+                mainQuery.addRelatedQuery(query);
+            }
+        }
+        return mainQuery;
+    }
+
+    private TransactionalQuery createQuery(DataBaseInstance shard, String query, QueryType queryType) {
+        TransactionalQuery transactionalQuery = getTransactionalTask(shard).addQuery(query, queryType);
+        transactionalQuery.setShard(shard);
+        if (queryType == QueryType.SELECT) {
+            transactionalQuery.setParallelRun(((SharedEntityTransaction) sharedTransactionManager.getTransaction()).getParallelRun());
+        }
+        return transactionalQuery;
+    }
+
+
     private Stream<DataBaseInstance> getShardsFromValue(ShardInstance entity, Long shardMap, boolean onlyNew) {
         return entity
                 .getStorageContext()
@@ -770,6 +793,14 @@ public class ShardDatabaseManagerImpl implements ShardDataBaseManager {
         );
     }
 
+
+
+
+
+
+
+
+
     private void setTransactionConfig(ShardDataBaseConfig shardDataBaseConfig,
                                       ClusterConfig clusterConfig,
                                       ShardConfig shardConfig) {
@@ -782,6 +813,13 @@ public class ShardDatabaseManagerImpl implements ShardDataBaseManager {
                         .orElse(true)
         );
     }
+
+
+
+
+
+
+
 
     private HikariConfig getHikariConfig(
             ShardDataBaseConfig shardDataBaseConfig,

@@ -34,7 +34,6 @@ public class SharedEntityTransaction implements EntityTransaction {
     private String errorCommit;
     @Getter
     private UUID uuid;
-    @Getter
     private final Boolean parallelRun;
     private final Map<Class<?>, Map<Long, Object>> persistentObjects = new HashMap<>();
     private Long duration;
