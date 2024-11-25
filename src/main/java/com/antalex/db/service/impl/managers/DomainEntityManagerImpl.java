@@ -107,11 +107,11 @@ public class DomainEntityManagerImpl implements DomainEntityManager {
     }
 
     @Override
-    public <T extends Domain> List<T> findAll(Class<T> clazz, Integer limit, String condition, Object... binds) {
+    public <T extends Domain> List<T> findAllLimit(Class<T> clazz, Integer limit, String condition, Object... binds) {
         Mapper mapper = getMapper(clazz);
         return mapAllToDomains(
                 clazz,
-                entityManager.findAll(
+                entityManager.findAllLimit(
                         mapper.entityClass,
                         mapper.domainEntityMapper.getDataStorage(),
                         limit,

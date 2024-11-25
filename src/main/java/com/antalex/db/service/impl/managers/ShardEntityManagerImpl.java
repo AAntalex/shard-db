@@ -482,7 +482,7 @@ public class ShardEntityManagerImpl implements ShardEntityManager {
     }
 
     @Override
-    public <T extends ShardInstance> List<T> findAll(
+    public <T extends ShardInstance> List<T> findAllLimit(
             Class<T> clazz,
             Map<String, DataStorage> storageMap,
             Integer limit,
@@ -683,6 +683,16 @@ public class ShardEntityManagerImpl implements ShardEntityManager {
         ((SharedEntityTransaction) getTransaction()).addPersistentObject(entity.getId(), entity);
     }
 
+
+
+
+
+
+
+
+
+
+
     private TransactionalQuery getMainQuery(Iterable<TransactionalQuery> queries) {
         TransactionalQuery mainQuery = null;
         for (TransactionalQuery query : queries) {
@@ -703,6 +713,10 @@ public class ShardEntityManagerImpl implements ShardEntityManager {
         }
         return transactionalQuery;
     }
+
+
+
+
 
     private boolean startTransaction() {
         if (!getTransaction().isActive()) {
