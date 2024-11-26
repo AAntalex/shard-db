@@ -89,7 +89,6 @@ public class ShardDatabaseManagerImpl implements ShardDataBaseManager {
     private Boolean liquibaseEnable;
     private String segment;
     private int timeOutDbProcessor;
-    private int parallelLimit;
 
     private ShardDatabaseManagerImpl(
             ResourceLoader resourceLoader,
@@ -124,7 +123,7 @@ public class ShardDatabaseManagerImpl implements ShardDataBaseManager {
                         !shard.getRemote() &&
                                 ((HikariDataSource) shard.getDataSource())
                                         .getHikariPoolMXBean()
-                                        .getActiveConnections() > parallelLimit
+                                        .getActiveConnections() > shard.getActiveConnectionParallelLimit()
                 )
         )
                 .orElseGet(() -> {
@@ -365,28 +364,49 @@ public class ShardDatabaseManagerImpl implements ShardDataBaseManager {
                 .orElse(true);
     }
 
-
-    private TransactionalQuery getMainQuery(Iterable<TransactionalQuery> queries) {
-        TransactionalQuery mainQuery = null;
-        for (TransactionalQuery query : queries) {
-            if (Objects.isNull(mainQuery)) {
-                mainQuery = query;
-            } else {
-                mainQuery.addRelatedQuery(query);
+    @Override
+    public void saveTransactionInfo() {
+        if (!sharedTransactionManager.getTransactionInfoList().isEmpty()) {
+            log.trace("Save transaction info...");
+            List<TransactionInfo> copyTransactionInfoList;
+            synchronized (sharedTransactionManager.getTransactionInfoList()) {
+                copyTransactionInfoList = sharedTransactionManager.getTransactionInfoList().stream().toList();
+                sharedTransactionManager.getTransactionInfoList().clear();
             }
+            sharedTransactionManager.getTransaction().begin();
+            copyTransactionInfoList.forEach(transactionInfo -> {
+                getTransactionalTask(transactionInfo.shard())
+                        .addQuery(SAVE_TRANSACTION_QUERY, QueryType.DML)
+                        .bind(transactionInfo.uuid())
+                        .bind(transactionInfo.executeTime())
+                        .bind(transactionInfo.chunks())
+                        .bind(transactionInfo.elapsedTime())
+                        .bind(transactionInfo.allElapsedTime())
+                        .bind(transactionInfo.failed())
+                        .bind(transactionInfo.error())
+                        .addBatch();
+                transactionInfo.queries().forEach(queryInfo -> getTransactionalTask(transactionInfo.shard())
+                        .addQuery(SAVE_DML_QUERY, QueryType.DML)
+                        .bind(transactionInfo.uuid())
+                        .bind(queryInfo.order())
+                        .bind(queryInfo.sql())
+                        .bind(queryInfo.rows())
+                        .bind(queryInfo.elapsedTime())
+                        .addBatch());
+            });
+            ((SharedEntityTransaction) sharedTransactionManager.getTransaction()).commit(false);
         }
-        return mainQuery;
     }
 
-    private TransactionalQuery createQuery(DataBaseInstance shard, String query, QueryType queryType) {
+    @Override
+    public TransactionalQuery createQuery(DataBaseInstance shard, String query, QueryType queryType) {
         TransactionalQuery transactionalQuery = getTransactionalTask(shard).addQuery(query, queryType);
         transactionalQuery.setShard(shard);
         if (queryType == QueryType.SELECT) {
-            transactionalQuery.setParallelRun(((SharedEntityTransaction) sharedTransactionManager.getTransaction()).getParallelRun());
+            transactionalQuery.setParallelRun(shardDataBaseConfig.getParallelRun());
         }
         return transactionalQuery;
     }
-
 
     private Stream<DataBaseInstance> getShardsFromValue(ShardInstance entity, Long shardMap, boolean onlyNew) {
         return entity
@@ -547,39 +567,6 @@ public class ShardDatabaseManagerImpl implements ShardDataBaseManager {
                 .forEach(this::checkDataBaseInfo);
     }
 
-    public void saveTransactionInfo() {
-        if (!sharedTransactionManager.getTransactionInfoList().isEmpty()) {
-            log.trace("Save transaction info...");
-            List<TransactionInfo> copyTransactionInfoList;
-            synchronized (sharedTransactionManager.getTransactionInfoList()) {
-                copyTransactionInfoList = sharedTransactionManager.getTransactionInfoList().stream().toList();
-                sharedTransactionManager.getTransactionInfoList().clear();
-            }
-            sharedTransactionManager.getTransaction().begin();
-            copyTransactionInfoList.forEach(transactionInfo -> {
-                getTransactionalTask(transactionInfo.shard())
-                        .addQuery(SAVE_TRANSACTION_QUERY, QueryType.DML)
-                        .bind(transactionInfo.uuid())
-                        .bind(transactionInfo.executeTime())
-                        .bind(transactionInfo.chunks())
-                        .bind(transactionInfo.elapsedTime())
-                        .bind(transactionInfo.allElapsedTime())
-                        .bind(transactionInfo.failed())
-                        .bind(transactionInfo.error())
-                        .addBatch();
-                transactionInfo.queries().forEach(queryInfo -> getTransactionalTask(transactionInfo.shard())
-                        .addQuery(SAVE_DML_QUERY, QueryType.DML)
-                        .bind(transactionInfo.uuid())
-                        .bind(queryInfo.order())
-                        .bind(queryInfo.sql())
-                        .bind(queryInfo.rows())
-                        .bind(queryInfo.elapsedTime())
-                        .addBatch());
-            });
-            ((SharedEntityTransaction) sharedTransactionManager.getTransaction()).commit(false);
-        }
-    }
-
     private void getDynamicDataBaseInfo(DataBaseInstance shard) {
         log.trace("Read dynamic DB info on '{}'...", shard.getName());
         TransactionalTask task = getTransactionalTask(shard);
@@ -700,26 +687,6 @@ public class ShardDatabaseManagerImpl implements ShardDataBaseManager {
         ((SharedEntityTransaction) sharedTransactionManager.getTransaction()).commit(false);
     }
 
-    private <T> Optional<T> getTransactionConfigValue(ShardDataBaseConfig shardDataBaseConfig,
-                                          ClusterConfig clusterConfig,
-                                          ShardConfig shardConfig,
-                                          Function<SharedTransactionConfig, T> functionGet)
-    {
-        return Optional.ofNullable(
-                Optional.ofNullable(shardConfig.getTransactionConfig())
-                        .map(functionGet)
-                        .orElse(
-                                Optional.ofNullable(clusterConfig.getTransactionConfig())
-                                        .map(functionGet)
-                                        .orElse(
-                                                Optional.ofNullable(shardDataBaseConfig.getTransactionConfig())
-                                                        .map(functionGet)
-                                                        .orElse(null)
-                                        )
-                        )
-        );
-    }
-
     private <T> Optional<T> getHikariConfigValue(ShardDataBaseConfig shardDataBaseConfig,
                                                  ClusterConfig clusterConfig,
                                                  ShardConfig shardConfig,
@@ -793,34 +760,6 @@ public class ShardDatabaseManagerImpl implements ShardDataBaseManager {
         );
     }
 
-
-
-
-
-
-
-
-
-    private void setTransactionConfig(ShardDataBaseConfig shardDataBaseConfig,
-                                      ClusterConfig clusterConfig,
-                                      ShardConfig shardConfig) {
-        this.parallelLimit = getTransactionConfigValue(shardDataBaseConfig, clusterConfig, shardConfig,
-                SharedTransactionConfig::getActiveConnectionParallelLimit)
-                .orElse(0);
-        this.sharedTransactionManager.setParallelRun(
-                getTransactionConfigValue(shardDataBaseConfig, clusterConfig, shardConfig,
-                        SharedTransactionConfig::getParallelRun)
-                        .orElse(true)
-        );
-    }
-
-
-
-
-
-
-
-
     private HikariConfig getHikariConfig(
             ShardDataBaseConfig shardDataBaseConfig,
             ClusterConfig clusterConfig,
@@ -885,6 +824,8 @@ public class ShardDatabaseManagerImpl implements ShardDataBaseManager {
         this.processLiquibaseConfig();
         this.processThreadPoolConfig();
         this.processLockConfig();
+        this.sharedTransactionManager.setParallelRun(
+                Optional.ofNullable(shardDataBaseConfig.getParallelRun()).orElse(true));
         Assert.notEmpty(
                 shardDataBaseConfig.getClusters(),
                 String.format("Property '%s.clusters' must not be empty", ShardDataBaseConfig.CONFIG_NAME)
@@ -919,7 +860,16 @@ public class ShardDatabaseManagerImpl implements ShardDataBaseManager {
 
             clusterConfig.getShards().forEach(shardConfig-> {
                 DataBaseInstance shard = new DataBaseInstance();
-                setTransactionConfig(shardDataBaseConfig, clusterConfig, shardConfig);
+                shard.setActiveConnectionParallelLimit(
+                        Optional.ofNullable(shardConfig.getActiveConnectionParallelLimit())
+                                .orElse(
+                                        Optional.ofNullable(clusterConfig.getActiveConnectionParallelLimit())
+                                                .orElse(
+                                                        Optional.ofNullable(shardDataBaseConfig.getActiveConnectionParallelLimit())
+                                                                .orElse(0)
+                                                )
+                                )
+                );
                 if (Optional.ofNullable(shardConfig.getDataSource()).map(DataSourceConfig::getUrl).isPresent()) {
                     HikariDataSource dataSource = new HikariDataSource(
                             getHikariConfig(shardDataBaseConfig, clusterConfig, shardConfig)

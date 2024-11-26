@@ -19,7 +19,8 @@ public class ShardDataBaseConfig {
     private HikariSettings hikari;
     private ThreadPoolConfig threadPool;
     private LockProcessorConfig lockProcessor;
-    private SharedTransactionConfig transactionConfig;
+    private Integer activeConnectionParallelLimit;
+    private Boolean parallelRun;
     private ChecksConfig checks;
     private Integer sequenceCacheSize;
 }

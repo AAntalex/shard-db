@@ -4,6 +4,8 @@ import com.antalex.db.entity.abstraction.ShardInstance;
 import com.antalex.db.model.Cluster;
 import com.antalex.db.model.DataBaseInstance;
 import com.antalex.db.model.StorageContext;
+import com.antalex.db.model.enums.QueryType;
+import com.antalex.db.service.api.TransactionalQuery;
 import com.antalex.db.service.api.TransactionalTask;
 
 import javax.sql.DataSource;
@@ -35,4 +37,5 @@ public interface ShardDataBaseManager {
     TransactionalTask getTransactionalTask(DataBaseInstance shard);
     Boolean isEnabled(DataBaseInstance shard);
     void saveTransactionInfo();
+    TransactionalQuery createQuery(DataBaseInstance shard, String query, QueryType queryType);
 }

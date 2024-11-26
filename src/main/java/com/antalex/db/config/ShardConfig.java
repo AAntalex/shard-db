@@ -9,7 +9,7 @@ public class ShardConfig {
     private DataSourceConfig dataSource;
     private RemoteConfig remote;
     private HikariSettings hikari;
-    private SharedTransactionConfig transactionConfig;
+    private Integer activeConnectionParallelLimit;
     private Integer sequenceCacheSize;
     private String segment;
     private Boolean accessible;

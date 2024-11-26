@@ -11,6 +11,6 @@ public class ClusterConfig {
     private Boolean defaultCluster;
     private List<ShardConfig> shards;
     private HikariSettings hikari;
-    private SharedTransactionConfig transactionConfig;
+    private Integer activeConnectionParallelLimit;
     private Integer sequenceCacheSize;
 }

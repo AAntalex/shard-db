@@ -5,7 +5,6 @@ import com.antalex.db.entity.abstraction.ShardInstance;
 import com.antalex.db.exception.ShardDataBaseException;
 import com.antalex.db.model.Cluster;
 import com.antalex.db.model.DataStorage;
-import com.antalex.db.model.DataBaseInstance;
 import com.antalex.db.model.StorageContext;
 import com.antalex.db.model.enums.QueryStrategy;
 import com.antalex.db.model.enums.QueryType;
@@ -378,9 +377,9 @@ public class ShardEntityManagerImpl implements ShardEntityManager {
             QueryStrategy queryStrategy)
     {
         return switch (queryStrategy) {
-            case OWN_SHARD -> this.createQuery(entity.getStorageContext().getShard(), query, queryType);
+            case OWN_SHARD -> dataBaseManager.createQuery(entity.getStorageContext().getShard(), query, queryType);
             case MAIN_SHARD ->
-                    this.createQuery(entity.getStorageContext().getCluster().getMainShard(), query, queryType);
+                    dataBaseManager.createQuery(entity.getStorageContext().getCluster().getMainShard(), query, queryType);
             case ALL_SHARDS, NEW_SHARDS -> getMainQuery(
                     createQueries(entity, query, queryType, queryStrategy)
             );
@@ -398,10 +397,10 @@ public class ShardEntityManagerImpl implements ShardEntityManager {
             case OWN_SHARD, MAIN_SHARD ->
                     Collections.singletonList(createQuery(entity, query, queryType, queryStrategy));
             case ALL_SHARDS -> dataBaseManager.getEntityShards(entity)
-                    .map(shard -> this.createQuery(shard, query, queryType))
+                    .map(shard -> dataBaseManager.createQuery(shard, query, queryType))
                     .toList();
             case NEW_SHARDS -> dataBaseManager.getNewShards(entity)
-                    .map(shard -> this.createQuery(shard, query, queryType))
+                    .map(shard -> dataBaseManager.createQuery(shard, query, queryType))
                     .toList();
         };
     }
@@ -423,10 +422,9 @@ public class ShardEntityManagerImpl implements ShardEntityManager {
             QueryType queryType)
     {
         return dataBaseManager.getEnabledShards(cluster)
-                .map(shard -> this.createQuery(shard, query, queryType))
+                .map(shard -> dataBaseManager.createQuery(shard, query, queryType))
                 .toList();
     }
-
 
     @Override
     public <T extends ShardInstance> TransactionalQuery createQuery(Class<T> clazz, String query, QueryType queryType) {
@@ -599,6 +597,18 @@ public class ShardEntityManagerImpl implements ShardEntityManager {
     @Override
     public AttributeStorage findAttributeStorage(ShardInstance parent, DataStorage storage) {
         return attributeStorageRepository.find(parent, storage);
+    }
+
+    private TransactionalQuery getMainQuery(Iterable<TransactionalQuery> queries) {
+        TransactionalQuery mainQuery = null;
+        for (TransactionalQuery query : queries) {
+            if (Objects.isNull(mainQuery)) {
+                mainQuery = query;
+            } else {
+                mainQuery.addRelatedQuery(query);
+            }
+        }
+        return mainQuery;
     }
 
     private <T extends ShardInstance> T save(T entity, boolean onlyChanged) {

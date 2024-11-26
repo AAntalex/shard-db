@@ -20,4 +20,5 @@ public class DataBaseInstance {
     private String url;
     private Integer hashCode;
     private String segment;
+    private Integer activeConnectionParallelLimit;
 }
