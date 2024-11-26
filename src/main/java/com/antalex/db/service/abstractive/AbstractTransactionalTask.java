@@ -214,6 +214,7 @@ public abstract class AbstractTransactionalTask implements TransactionalTask {
         if (transactionalQuery == null) {
             log.trace("Create Query '{}' on {}", query, shard.getName());
             transactionalQuery = createQuery(query, queryType);
+            transactionalQuery.setShard(shard);
             this.queries.put(query, transactionalQuery);
             if (queryType == QueryType.DML) {
                 Optional

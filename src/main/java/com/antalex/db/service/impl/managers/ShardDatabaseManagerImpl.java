@@ -401,7 +401,6 @@ public class ShardDatabaseManagerImpl implements ShardDataBaseManager {
     @Override
     public TransactionalQuery createQuery(DataBaseInstance shard, String query, QueryType queryType) {
         TransactionalQuery transactionalQuery = getTransactionalTask(shard).addQuery(query, queryType);
-        transactionalQuery.setShard(shard);
         if (queryType == QueryType.SELECT) {
             transactionalQuery.setParallelRun(shardDataBaseConfig.getParallelRun());
         }
