@@ -208,8 +208,16 @@ public abstract class AbstractTransactionalTask implements TransactionalTask {
         this.mainTask = mainTask;
     }
 
+
+
+
+
     @Override
     public TransactionalQuery addQuery(String query, QueryType queryType, String name) {
+
+
+
+
         TransactionalQuery transactionalQuery = this.queries.get(query);
         if (transactionalQuery == null) {
             log.trace("Create Query '{}' on {}", query, shard.getName());
@@ -227,6 +235,11 @@ public abstract class AbstractTransactionalTask implements TransactionalTask {
                 transactionalQuery.setExecutorService(executorService);
             }
         } else {
+
+
+
+
+
             transactionalQuery.init();
         }
         return transactionalQuery;

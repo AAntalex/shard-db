@@ -24,7 +24,11 @@ public class ResultParallelQuery implements ResultQuery {
     }
 
     public void add(ResultQuery result) {
-        this.results.add(result);
+        if (result instanceof ResultParallelQuery) {
+            results.addAll(((ResultParallelQuery) result).results);
+        } else {
+            this.results.add(result);
+        }
     }
 
     @Override
