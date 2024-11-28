@@ -26,6 +26,7 @@ public abstract class AbstractTransactionalQuery implements TransactionalQuery, 
     protected Integer fetchLimit;
     protected DataBaseInstance shard;
     protected final List<TransactionalQuery> relatedQueries = new ArrayList<>();
+    protected final List<TransactionalQuery> queryParts = new ArrayList<>();
 
     private long duration;
     private int resultUpdate;
@@ -37,7 +38,6 @@ public abstract class AbstractTransactionalQuery implements TransactionalQuery, 
     private boolean isButch;
     private int count;
     private String error;
-    private ResultParallelQuery parallelResult;
 
     @Data
     private static class RunInfo {
@@ -49,6 +49,11 @@ public abstract class AbstractTransactionalQuery implements TransactionalQuery, 
     @Override
     public void addRelatedQuery(TransactionalQuery query) {
         relatedQueries.add(query);
+    }
+
+    @Override
+    public void addQueryPart(TransactionalQuery query) {
+        queryParts.add(query);
     }
 
     @Override
@@ -114,7 +119,7 @@ public abstract class AbstractTransactionalQuery implements TransactionalQuery, 
     public TransactionalQuery bind(int index, String o, Class<?> clazz) {
         try {
             bindOriginal(index, o, clazz);
-            relatedQueries.forEach(query -> query.bind(index, o));
+            relatedQueries.forEach(query -> query.bind(index, o, clazz));
             this.currentIndex = index;
         } catch (Exception err) {
             throw new ShardDataBaseException(err, this.shard);
@@ -151,20 +156,18 @@ public abstract class AbstractTransactionalQuery implements TransactionalQuery, 
 
     @Override
     public ResultQuery getResult() {
-        return getResult(0);
-    }
-
-    @Override
-    public ResultQuery getResult(int keyCount) {
         if (Objects.isNull(result)) {
             execute();
         }
-        if (!relatedQueries.isEmpty()) {
-            if (Objects.isNull(parallelResult)) {
-                parallelResult = new ResultParallelQuery(keyCount);
-                parallelResult.add(result);
-                relatedQueries.forEach(relatedQuery -> parallelResult.add(relatedQuery.getResult()));
-            }
+        if (!queryParts.isEmpty() || !relatedQueries.isEmpty()) {
+            ResultParallelQuery parallelResult = new ResultParallelQuery();
+            parallelResult.add(result);
+            queryParts.stream()
+                    .map(TransactionalQuery::getResult)
+                    .forEach(parallelResult::add);
+            relatedQueries.stream()
+                    .map(TransactionalQuery::getResult)
+                    .forEach(parallelResult::add);
             return parallelResult;
         }
         return result;
@@ -194,6 +197,13 @@ public abstract class AbstractTransactionalQuery implements TransactionalQuery, 
             } else {
                 this.increment();
                 this.result = executeQuery();
+                queryParts.forEach(queryPart -> {
+                    try {
+                        queryPart.executeQuery();
+                    } catch (Exception err) {
+                        throw new ShardDataBaseException(err, this.shard);
+                    }
+                });
             }
             this.duration = System.currentTimeMillis() - this.duration;
         } catch (Exception err) {
@@ -239,9 +249,9 @@ public abstract class AbstractTransactionalQuery implements TransactionalQuery, 
         this.resultUpdateBatch = null;
         this.resultUpdate = 0;
         this.error = null;
-        this.parallelResult = null;
         this.fetchLimit = null;
         this.relatedQueries.clear();
+        this.queryParts.clear();
     }
 
     @Override
@@ -258,6 +268,7 @@ public abstract class AbstractTransactionalQuery implements TransactionalQuery, 
     @Override
     public TransactionalQuery fetchLimit(Integer fetchLimit) {
         this.fetchLimit = fetchLimit;
+        queryParts.forEach(queryPart -> queryPart.fetchLimit(fetchLimit));
         relatedQueries.forEach(relatedQuery -> relatedQuery.fetchLimit(fetchLimit));
         return this;
     }

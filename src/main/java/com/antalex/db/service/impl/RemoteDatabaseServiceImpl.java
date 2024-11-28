@@ -39,7 +39,8 @@ public class RemoteDatabaseServiceImpl implements RemoteDatabaseService {
         TransactionalTask task = getTask(query);
         try {
             ResultQuery result = task
-                    .addQuery(query.query(), query.queryType())
+                    .getQuery(query.query(), query.queryType())
+                    .fetchLimit(query.fetchLimit())
                     .bindAll(query.binds(), getTypes(query))
                     .getResult();
             int columnCount = result.getColumnCount();
@@ -75,7 +76,7 @@ public class RemoteDatabaseServiceImpl implements RemoteDatabaseService {
         try {
             TransactionalQuery transactionalQuery =
                     task
-                            .addQuery(query.query(), query.queryType())
+                            .getQuery(query.query(), query.queryType())
                             .bindAll(query.binds(), getTypes(query));
             task.run(true);
             task.waitTask();
@@ -98,7 +99,7 @@ public class RemoteDatabaseServiceImpl implements RemoteDatabaseService {
         TransactionalTask task = getTask(query);
         try {
             List<Class<?>> types =  getTypes(query);
-            TransactionalQuery transactionalQuery = task.addQuery(query.query(), query.queryType());
+            TransactionalQuery transactionalQuery = task.getQuery(query.query(), query.queryType());
             query.batchBinds().forEach(binds -> transactionalQuery.bindAll(binds, types).addBatch());
             task.run(true);
             task.waitTask();

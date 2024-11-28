@@ -23,5 +23,6 @@ public class ShardDataBaseConfig {
     private Boolean parallelRun;
     private ChecksConfig checks;
     private Integer sequenceCacheSize;
+    private Integer sqlInClauseLimit;
 }
 

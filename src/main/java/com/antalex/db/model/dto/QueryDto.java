@@ -20,4 +20,5 @@ public class QueryDto {
     private List<List<String>> batchBinds;
     private List<String> binds;
     private List<String> types;
+    private Integer fetchLimit;
 }

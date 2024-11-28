@@ -177,6 +177,7 @@ public class TransactionalRemoteQuery extends AbstractTransactionalQuery {
                 .clientUuid(taskContainer.clientUuid())
                 .query(query)
                 .queryType(queryType)
+                .fetchLimit(fetchLimit)
                 .types(
                         types
                                 .stream()

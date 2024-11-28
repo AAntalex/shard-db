@@ -9,6 +9,7 @@ import com.antalex.db.service.api.*;
 import com.antalex.db.service.impl.sequences.ApplicationSequenceGenerator;
 import com.antalex.db.service.impl.sequences.SimpleSequenceGenerator;
 import com.antalex.db.utils.ShardUtils;
+import com.google.common.collect.Lists;
 import com.google.common.util.concurrent.ThreadFactoryBuilder;
 import org.springframework.web.reactive.function.client.WebClient;
 import com.antalex.db.exception.ShardDataBaseException;
@@ -39,6 +40,7 @@ import java.util.*;
 import java.util.concurrent.*;
 import java.util.function.Consumer;
 import java.util.function.Function;
+import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
 import static java.util.concurrent.TimeUnit.SECONDS;
@@ -56,7 +58,7 @@ public class ShardDatabaseManagerImpl implements ShardDataBaseManager {
     private static final int DEFAULT_TIME_OUT_DB_PROCESSOR = 10;
     private static final long DEFAULT_TIME_OUT_LOCK_PROCESSOR = 60;
     private static final long DEFAULT_DELAY_LOCK_PROCESSOR = 10;
-
+    private static final int SQL_IN_CLAUSE_LIMIT = 1000;
     private static final String SELECT_DB_INFO = "SELECT SHARD_ID,MAIN_SHARD,CLUSTER_ID,CLUSTER_NAME,DEFAULT_CLUSTER" +
             ",SEGMENT_NAME,ACCESSIBLE FROM $$$.APP_DATABASE";
     private static final String INS_DB_INFO = "INSERT INTO $$$.APP_DATABASE " +
@@ -82,12 +84,14 @@ public class ShardDatabaseManagerImpl implements ShardDataBaseManager {
     private final Map<Short, Cluster> clusterIds = new HashMap<>();
     private final Map<String, SequenceGenerator> shardSequences = new HashMap<>();
     private final Map<String, Map<Integer, SequenceGenerator>> sequences = new HashMap<>();
+    private final Map<Integer, DataBaseInstance> shards = new HashMap<>();
     private final List<ImmutablePair<Cluster, DataBaseInstance>> newShards = new ArrayList<>();
 
     private String changLogPath;
     private String changLogName;
     private Boolean liquibaseEnable;
     private String segment;
+    private int sqlInClauseLimit;
     private int timeOutDbProcessor;
 
     private ShardDatabaseManagerImpl(
@@ -121,9 +125,7 @@ public class ShardDatabaseManagerImpl implements ShardDataBaseManager {
                 transaction.getCurrentTask(
                         shard,
                         !shard.getRemote() &&
-                                ((HikariDataSource) shard.getDataSource())
-                                        .getHikariPoolMXBean()
-                                        .getActiveConnections() > shard.getActiveConnectionParallelLimit()
+                                getActiveConnections(shard) > shard.getActiveConnectionParallelLimit()
                 )
         )
                 .orElseGet(() -> {
@@ -376,7 +378,7 @@ public class ShardDatabaseManagerImpl implements ShardDataBaseManager {
             sharedTransactionManager.getTransaction().begin();
             copyTransactionInfoList.forEach(transactionInfo -> {
                 getTransactionalTask(transactionInfo.shard())
-                        .addQuery(SAVE_TRANSACTION_QUERY, QueryType.DML)
+                        .getQuery(SAVE_TRANSACTION_QUERY, QueryType.DML)
                         .bind(transactionInfo.uuid())
                         .bind(transactionInfo.executeTime())
                         .bind(transactionInfo.chunks())
@@ -386,7 +388,7 @@ public class ShardDatabaseManagerImpl implements ShardDataBaseManager {
                         .bind(transactionInfo.error())
                         .addBatch();
                 transactionInfo.queries().forEach(queryInfo -> getTransactionalTask(transactionInfo.shard())
-                        .addQuery(SAVE_DML_QUERY, QueryType.DML)
+                        .getQuery(SAVE_DML_QUERY, QueryType.DML)
                         .bind(transactionInfo.uuid())
                         .bind(queryInfo.order())
                         .bind(queryInfo.sql())
@@ -400,11 +402,71 @@ public class ShardDatabaseManagerImpl implements ShardDataBaseManager {
 
     @Override
     public TransactionalQuery createQuery(DataBaseInstance shard, String query, QueryType queryType) {
-        TransactionalQuery transactionalQuery = getTransactionalTask(shard).addQuery(query, queryType);
+        TransactionalQuery transactionalQuery = getTransactionalTask(shard).getQuery(query, queryType);
         if (queryType == QueryType.SELECT) {
             transactionalQuery.setParallelRun(shardDataBaseConfig.getParallelRun());
         }
         return transactionalQuery;
+    }
+
+    public TransactionalQuery createQueryByIds(String query, List<Long> ids) {
+        if (!query.contains("<IDS>")) {
+            throw new ShardDataBaseException("В запросе отсутствует обязательный параметр <IDS>!");
+        }
+        TransactionalQuery mainQuery = null;
+        for (Map.Entry<Integer, List<Long>> groupIds: groupIds(ids).entrySet()) {
+            TransactionalQuery mainPartQuery = null;
+            DataBaseInstance shard = shards.get(groupIds.getKey());
+            for (List<Long> idLists : Lists.partition(groupIds.getValue(), sqlInClauseLimit)) {
+                if (
+                        Objects.nonNull(mainPartQuery) &&
+                                getActiveConnections(shard) > shard.getActiveConnectionParallelLimit())
+                {
+                    mainPartQuery.addQueryPart();
+                } else {
+
+                }
+            }
+
+            Lists.partition(partsIds.get(shardHashCode), sqlInClauseLimit)
+                    .forEach(idList -> {
+                        idList
+                                .stream()
+                                .map(it -> "?")
+                                .collect(Collectors.joining(","))
+                    });
+
+
+            String newQuery;
+            TransactionalQuery transactionalQuery = createQuery(shards.get(shardHashCode), )
+        }
+    }
+
+    private int getActiveConnections(DataBaseInstance shard) {
+        return ((HikariDataSource) shard.getDataSource())
+                .getHikariPoolMXBean()
+                .getActiveConnections();
+    }
+
+    private Map<Integer, List<Long>> groupIds(List<Long> ids) {
+        Set<Long> uniqueIds = new HashSet<>();
+        Map<Integer, List<Long>> partsIds = new HashMap<>();
+        ids.forEach(id -> {
+            if (!uniqueIds.contains(id)) {
+                uniqueIds.add(id);
+                DataBaseInstance shard = getShard(
+                        getCluster(ShardUtils.getClusterIdFromEntityId(id)),
+                        ShardUtils.getShardIdFromEntityId(id)
+                );
+                List<Long> partIds = partsIds.get(shard.getHashCode());
+                if (Objects.isNull(partIds)) {
+                    partIds = new ArrayList<>();
+                    partsIds.put(shard.getHashCode(), partIds);
+                }
+                partIds.add(id);
+            }
+        });
+        return partsIds;
     }
 
     private Stream<DataBaseInstance> getShardsFromValue(ShardInstance entity, Long shardMap, boolean onlyNew) {
@@ -572,7 +634,7 @@ public class ShardDatabaseManagerImpl implements ShardDataBaseManager {
         DynamicDataBaseInfo dynamicDataBaseInfo = shard.getDynamicDataBaseInfo();
         dynamicDataBaseInfo.setLastTime(System.currentTimeMillis());
         try {
-            ResultQuery resultSet = task.addQuery(
+            ResultQuery resultSet = task.getQuery(
                     SELECT_DYNAMIC_DB_INFO,
                     QueryType.SELECT
             ).getResult();
@@ -601,7 +663,7 @@ public class ShardDatabaseManagerImpl implements ShardDataBaseManager {
                 .forEach(shard -> {
                     TransactionalTask task = getTransactionalTask(shard);
                     task.setName("GET DataBase Info on shard " + shard.getName());
-                    TransactionalQuery query = task.addQuery(
+                    TransactionalQuery query = task.getQuery(
                             SELECT_DB_INFO,
                             QueryType.SELECT
                     );
@@ -667,7 +729,7 @@ public class ShardDatabaseManagerImpl implements ShardDataBaseManager {
 
         TransactionalTask task = getTransactionalTask(shard);
         task.setName("SAVE DataBase Info on shard " + shard.getName());
-        task.addQuery(INS_DB_INFO, QueryType.DML)
+        task.getQuery(INS_DB_INFO, QueryType.DML)
                 .bind(shard.getDataBaseInfo().getShardId())
                 .bind(shard.getDataBaseInfo().isMainShard())
                 .bind(shard.getDataBaseInfo().getClusterId())
@@ -817,6 +879,9 @@ public class ShardDatabaseManagerImpl implements ShardDataBaseManager {
 
     private void getProperties() {
         this.segment = shardDataBaseConfig.getSegment();
+        this.sqlInClauseLimit = Optional
+                .ofNullable(shardDataBaseConfig.getSqlInClauseLimit())
+                .orElse(SQL_IN_CLAUSE_LIMIT);
         this.timeOutDbProcessor = Optional
                 .ofNullable(shardDataBaseConfig.getProcessorTimeOut())
                 .orElse(DEFAULT_TIME_OUT_DB_PROCESSOR);
@@ -980,6 +1045,12 @@ public class ShardDatabaseManagerImpl implements ShardDataBaseManager {
     private synchronized void addShardToCluster(Cluster cluster, DataBaseInstance shard) {
         if (Objects.isNull(shard.getHashCode())) {
             shard.setHashCode(shard.hashCode());
+            if (shards.containsKey(shard.getHashCode())) {
+                throw new ShardDataBaseException(
+                        String.format("HashCode %s for shard %s is not unique", shard.getHashCode(), shard.getName())
+                );
+            }
+            shards.put(shard.getHashCode(), shard);
         }
         if (Objects.isNull(shard.getId())) {
             return;

@@ -448,9 +448,6 @@ public class EntityClassBuilder {
             out.println(getFieldMapCode(entityClassDto));
             out.println();
 
-            out.println("    @Value(\"${" + ShardDataBaseConfig.CONFIG_NAME + "." + SQL_IN_CLAUSE_LIMIT_PARAM_NAME
-                    + ":" + SQL_IN_CLAUSE_LIMIT+ "}\")");
-            out.println("    private int sqlInClauseLimit;\n");
             out.println("    private Map<Long, String> updateQueries = new HashMap<>();");
             out.println("    private ShardEntityManager entityManager;");
             out.println("    private final Cluster cluster;");

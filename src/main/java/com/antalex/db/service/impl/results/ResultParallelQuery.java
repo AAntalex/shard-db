@@ -16,12 +16,6 @@ public class ResultParallelQuery implements ResultQuery {
     private final List<ResultQuery> results = new ArrayList<>();
     private ResultQuery currentResult;
     private int currentIndex;
-    private final int keyCount;
-    private final Set<String> keyValues = new HashSet<>();
-
-    public ResultParallelQuery(int keyCount) {
-        this.keyCount = keyCount;
-    }
 
     public void add(ResultQuery result) {
         if (result instanceof ResultParallelQuery) {
@@ -39,7 +33,7 @@ public class ResultParallelQuery implements ResultQuery {
         if (this.currentResult == null) {
             this.currentResult = results.get(currentIndex);
         }
-        if (!currentResult.next() || !uniqueKey()) {
+        if (!currentResult.next()) {
             this.currentIndex++;
             this.currentResult = null;
             return next();
@@ -155,20 +149,6 @@ public class ResultParallelQuery implements ResultQuery {
     @Override
     public LocalDate getLocalDate(int idx) throws Exception {
         return currentResult.getLocalDate(idx);
-    }
-
-    private boolean uniqueKey() throws Exception {
-        if (keyCount > 0) {
-            String key = StringUtils.EMPTY;
-            for (int i = 1; i <= keyCount; i++) {
-                key = key.concat(currentResult.getLong(i) + "#");
-            }
-            if (keyValues.contains(key)) {
-                return false;
-            }
-            keyValues.add(key);
-        }
-        return true;
     }
 
     @Override

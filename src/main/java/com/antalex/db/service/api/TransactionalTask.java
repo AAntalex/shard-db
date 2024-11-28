@@ -15,8 +15,8 @@ public interface TransactionalTask {
     void run(Boolean parallelRun);
     void waitTask();
     TransactionalQuery createQuery(String query, QueryType queryType);
-    TransactionalQuery addQuery(String query, QueryType queryType);
-    TransactionalQuery addQuery(String query, QueryType queryType, String name);
+    TransactionalQuery getQuery(String query, QueryType queryType);
+    TransactionalQuery getQuery(String query, QueryType queryType, String name);
     void addDMLQuery(String sql, TransactionalQuery query);
     void addStep(Runnable target);
     void addStep(Runnable target, String name);
