@@ -233,11 +233,6 @@ public abstract class AbstractTransactionalQuery implements TransactionalQuery, 
     }
 
     @Override
-    public void setShard(DataBaseInstance shard) {
-        this.shard = shard;
-    }
-
-    @Override
     public DataBaseInstance getShard() {
         return shard;
     }

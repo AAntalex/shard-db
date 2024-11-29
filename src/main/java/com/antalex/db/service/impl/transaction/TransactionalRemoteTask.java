@@ -84,7 +84,7 @@ public class TransactionalRemoteTask extends AbstractTransactionalTask {
             taskContainer.postponedCommit(true);
         }
         String sql = ShardUtils.transformSQL(query, shard);
-        return new TransactionalRemoteQuery(sql, queryType, taskContainer, objectMapper);
+        return new TransactionalRemoteQuery(sql, queryType, taskContainer, objectMapper, shard);
     }
 
     private void commitOrRollbackRequest(Boolean commit) {

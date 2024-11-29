@@ -166,6 +166,10 @@ public class SharedEntityTransaction implements EntityTransaction {
         currentTasks.clear();
     }
 
+    public void addParallel(DataBaseInstance shard) {
+        currentTasks.put(shard.getHashCode(), null);
+    }
+
     public void close() {
         this.state.setCompleted(true);
     }

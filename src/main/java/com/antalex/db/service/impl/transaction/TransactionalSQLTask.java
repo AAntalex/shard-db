@@ -88,7 +88,7 @@ public class TransactionalSQLTask extends AbstractTransactionalTask {
                 connection.setAutoCommit(false);
             }
             String sql = ShardUtils.transformSQL(query, shard);
-            return new TransactionalSQLQuery(sql, queryType, connection.prepareStatement(sql));
+            return new TransactionalSQLQuery(sql, queryType, connection.prepareStatement(sql), shard);
         } catch (SQLException err) {
             throw new ShardDataBaseException(err, this.shard);
         }

@@ -1,5 +1,6 @@
 package com.antalex.db.service.impl.transaction;
 
+import com.antalex.db.model.DataBaseInstance;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import org.springframework.http.HttpStatusCode;
 import org.springframework.http.MediaType;
@@ -35,11 +36,13 @@ public class TransactionalRemoteQuery extends AbstractTransactionalQuery {
             String query,
             QueryType queryType,
             RemoteTaskContainer taskContainer,
-            ObjectMapper objectMapper) {
+            ObjectMapper objectMapper,
+            DataBaseInstance shard) {
         this.query = query;
         this.queryType = queryType;
         this.taskContainer = taskContainer;
         this.objectMapper = objectMapper;
+        this.shard = shard;
     }
 
     @Override

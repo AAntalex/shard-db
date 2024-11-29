@@ -1,6 +1,7 @@
 package com.antalex.db.service.impl.transaction;
 
 import com.antalex.db.exception.ShardDataBaseException;
+import com.antalex.db.model.DataBaseInstance;
 import com.antalex.db.model.enums.QueryType;
 import com.antalex.db.service.abstractive.AbstractTransactionalQuery;
 import com.antalex.db.service.api.ResultQuery;
@@ -23,10 +24,16 @@ public class TransactionalSQLQuery extends AbstractTransactionalQuery {
     private final PreparedStatement preparedStatement;
     private static final int FETCH_SIZE = 100000;
 
-    TransactionalSQLQuery(String query, QueryType queryType, PreparedStatement preparedStatement) {
+    TransactionalSQLQuery(
+            String query,
+            QueryType queryType,
+            PreparedStatement preparedStatement,
+            DataBaseInstance shard)
+    {
         this.preparedStatement = preparedStatement;
         this.query = query;
         this.queryType = queryType;
+        this.shard = shard;
     }
 
     @Override

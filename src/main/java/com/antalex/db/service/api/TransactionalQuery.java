@@ -31,7 +31,6 @@ public interface TransactionalQuery {
     TransactionalQuery getMainQuery();
     void setExecutorService(ExecutorService executorService);
     void setParallelRun(Boolean parallelRun);
-    void setShard(DataBaseInstance shard);
     DataBaseInstance getShard();
     void init();
     int getResultUpdate();

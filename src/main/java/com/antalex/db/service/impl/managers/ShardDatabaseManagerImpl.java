@@ -128,17 +128,7 @@ public class ShardDatabaseManagerImpl implements ShardDataBaseManager {
                                 getActiveConnections(shard) > shard.getActiveConnectionParallelLimit()
                 )
         )
-                .orElseGet(() -> {
-                    try {
-                        TransactionalTask task = shard.getRemote() ?
-                                remoteTaskFactory.createTask(shard) :
-                                taskFactory.createTask(shard, getConnection(shard));
-                        transaction.addTask(shard, task);
-                        return task;
-                    } catch (Exception err) {
-                        throw new ShardDataBaseException(err, shard);
-                    }
-                });
+                .orElse(createTransactionalTask(shard, transaction));
     }
 
     @Override
@@ -262,26 +252,6 @@ public class ShardDatabaseManagerImpl implements ShardDataBaseManager {
         } else {
             return Stream.empty();
         }
-    }
-
-    private SequenceGenerator getSequenceGenerator(String sequenceName, DataBaseInstance shard) {
-        return Optional.ofNullable(sequences.get(sequenceName))
-                .map(shardSequences -> shardSequences.get(shard.getHashCode()))
-                .orElse(getOrCreateSequenceGenerator(sequenceName, shard));
-    }
-
-    private synchronized SequenceGenerator getOrCreateSequenceGenerator(String sequenceName, DataBaseInstance shard) {
-        Map<Integer, SequenceGenerator> shardSequences = sequences.get(sequenceName);
-        if (Objects.isNull(shardSequences)) {
-            shardSequences = new HashMap<>();
-            sequences.put(sequenceName, shardSequences);
-        }
-        SequenceGenerator sequenceGenerator = shardSequences.get(shard.getHashCode());
-        if (Objects.isNull(sequenceGenerator)) {
-            sequenceGenerator = new ApplicationSequenceGenerator(sequenceName, shard);
-            shardSequences.put(shard.getHashCode(), sequenceGenerator);
-        }
-        return sequenceGenerator;
     }
 
     @Override
@@ -418,11 +388,25 @@ public class ShardDatabaseManagerImpl implements ShardDataBaseManager {
             TransactionalQuery mainPartQuery = null;
             DataBaseInstance shard = shards.get(groupIds.getKey());
             for (List<Long> idLists : Lists.partition(groupIds.getValue(), sqlInClauseLimit)) {
+                getTransactionalTask(shard).
+                        createQuery(
+                                query.replace(
+                                        "<IDS>",
+                                        idLists
+                                                .stream()
+                                                .map(it -> "?")
+                                                .collect(Collectors.joining(","))
+                                        ),
+                                QueryType.SELECT
+                        )
+                        .bindAll(idLists.toArray());
+                ((SharedEntityTransaction) sharedTransactionManager.getTransaction()).addParallel(shard);
+
                 if (
                         Objects.nonNull(mainPartQuery) &&
                                 getActiveConnections(shard) > shard.getActiveConnectionParallelLimit())
                 {
-                    mainPartQuery.addQueryPart();
+                    mainPartQuery.addQueryPart(getTransactionalTask(shard).createQuery(query, QueryType.SELECT));
                 } else {
 
                 }
@@ -440,6 +424,43 @@ public class ShardDatabaseManagerImpl implements ShardDataBaseManager {
             String newQuery;
             TransactionalQuery transactionalQuery = createQuery(shards.get(shardHashCode), )
         }
+    }
+
+    private TransactionalTask createTask(DataBaseInstance shard) {
+        try {
+            TransactionalTask task = shard.getRemote() ?
+                    remoteTaskFactory.createTask(shard) :
+                    taskFactory.createTask(shard, getConnection(shard));
+            return task;
+        } catch (Exception err) {
+            throw new ShardDataBaseException(err, shard);
+        }
+    }
+
+    private TransactionalTask createTransactionalTask(DataBaseInstance shard, SharedEntityTransaction transaction) {
+        TransactionalTask task = createTask(shard);
+        transaction.addTask(shard, task);
+        return task;
+    }
+
+    private SequenceGenerator getSequenceGenerator(String sequenceName, DataBaseInstance shard) {
+        return Optional.ofNullable(sequences.get(sequenceName))
+                .map(shardSequences -> shardSequences.get(shard.getHashCode()))
+                .orElse(getOrCreateSequenceGenerator(sequenceName, shard));
+    }
+
+    private synchronized SequenceGenerator getOrCreateSequenceGenerator(String sequenceName, DataBaseInstance shard) {
+        Map<Integer, SequenceGenerator> shardSequences = sequences.get(sequenceName);
+        if (Objects.isNull(shardSequences)) {
+            shardSequences = new HashMap<>();
+            sequences.put(sequenceName, shardSequences);
+        }
+        SequenceGenerator sequenceGenerator = shardSequences.get(shard.getHashCode());
+        if (Objects.isNull(sequenceGenerator)) {
+            sequenceGenerator = new ApplicationSequenceGenerator(sequenceName, shard);
+            shardSequences.put(shard.getHashCode(), sequenceGenerator);
+        }
+        return sequenceGenerator;
     }
 
     private int getActiveConnections(DataBaseInstance shard) {
