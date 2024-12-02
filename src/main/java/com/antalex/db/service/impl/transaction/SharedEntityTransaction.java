@@ -143,8 +143,12 @@ public class SharedEntityTransaction implements EntityTransaction {
                 );
     }
 
-    public void addTask(DataBaseInstance shard, TransactionalTask task) {
+    public void setCurrentTask(DataBaseInstance shard, TransactionalTask task) {
         currentTasks.put(shard.getHashCode(), task);
+    }
+
+    public void addTask(DataBaseInstance shard, TransactionalTask task) {
+        setCurrentTask(shard, task);
         tasks.add(task);
 
         Optional.ofNullable(buckets.get(shard.getHashCode()))
@@ -167,7 +171,7 @@ public class SharedEntityTransaction implements EntityTransaction {
     }
 
     public void addParallel(DataBaseInstance shard) {
-        currentTasks.put(shard.getHashCode(), null);
+        setCurrentTask(shard, null);
     }
 
     public void close() {
