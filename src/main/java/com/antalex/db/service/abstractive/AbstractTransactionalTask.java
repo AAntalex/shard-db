@@ -23,6 +23,7 @@ public abstract class AbstractTransactionalTask implements TransactionalTask {
     protected DataBaseInstance shard;
     protected boolean parallelRun;
     protected String error;
+    protected UUID taskUuid;
     protected final Map<String, TransactionalQuery> queries = new HashMap<>();
 
     private long duration;
@@ -212,21 +213,27 @@ public abstract class AbstractTransactionalTask implements TransactionalTask {
     public TransactionalQuery getQuery(String query, QueryType queryType, String name) {
         TransactionalQuery transactionalQuery = this.queries.get(query);
         if (transactionalQuery == null) {
-            log.trace("Create Query '{}' on {}", query, shard.getName());
-            transactionalQuery = createQuery(query, queryType);
+            transactionalQuery = createQuery(query, queryType, name);
             this.queries.put(query, transactionalQuery);
-            if (queryType == QueryType.DML) {
-                Optional
-                        .ofNullable(this.mainTask)
-                        .orElse(this)
-                        .addDMLQuery(query, transactionalQuery);
-                this.addStep((Runnable) transactionalQuery, name);
-            }
-            if (queryType == QueryType.SELECT) {
-                transactionalQuery.setExecutorService(executorService);
-            }
         } else {
             transactionalQuery.init();
+        }
+        return transactionalQuery;
+    }
+
+    @Override
+    public TransactionalQuery createQuery(String query, QueryType queryType, String name) {
+        log.trace("Create Query '{}' on {}", query, shard.getName());
+        TransactionalQuery transactionalQuery = createQuery(query, queryType);
+        if (queryType == QueryType.DML) {
+            Optional
+                    .ofNullable(this.mainTask)
+                    .orElse(this)
+                    .addDMLQuery(query, transactionalQuery);
+            this.addStep((Runnable) transactionalQuery, name);
+        }
+        if (queryType == QueryType.SELECT) {
+            transactionalQuery.setExecutorService(executorService);
         }
         return transactionalQuery;
     }
@@ -258,5 +265,14 @@ public abstract class AbstractTransactionalTask implements TransactionalTask {
     @Override
     public DataBaseInstance getShard() {
         return shard;
+    }
+
+    @Override
+    public UUID getTaskUuid() {
+        return taskUuid;
+    }
+
+    protected TransactionalQuery createQuery(String query, QueryType queryType) {
+        throw new UnsupportedOperationException();
     }
 }

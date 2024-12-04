@@ -29,4 +29,5 @@ public interface ShardEntityRepository<T extends ShardInstance> {
     T extractValues(T entity, ResultQuery result, int index);
     void setEntityManager(ShardEntityManager entityManager);
     Map<String, String> getFieldMap();
+    List<T> findAll(Map<String, DataStorage> storageMap, List<Long> ids, String condition);
 }

@@ -15,6 +15,7 @@ import lombok.extern.slf4j.Slf4j;
 import java.sql.Connection;
 import java.sql.SQLException;
 import java.util.Optional;
+import java.util.UUID;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.TimeoutException;
@@ -34,6 +35,7 @@ public class TransactionalSQLTask extends AbstractTransactionalTask {
         this.executorService = executorService;
         this.shard = shard;
         this.lockManager = lockManager;
+        this.taskUuid = UUID.randomUUID();
     }
 
     @Override
@@ -72,7 +74,7 @@ public class TransactionalSQLTask extends AbstractTransactionalTask {
     }
 
     @Override
-    public TransactionalQuery createQuery(String query, QueryType queryType) {
+    protected TransactionalQuery createQuery(String query, QueryType queryType) {
         if (Optional.ofNullable(query).map(String::isEmpty).orElse(true)) {
             return null;
         }

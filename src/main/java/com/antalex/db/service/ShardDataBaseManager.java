@@ -11,6 +11,7 @@ import com.antalex.db.service.api.TransactionalTask;
 import javax.sql.DataSource;
 import java.sql.Connection;
 import java.sql.SQLException;
+import java.util.List;
 import java.util.stream.Stream;
 
 public interface ShardDataBaseManager {
@@ -38,4 +39,5 @@ public interface ShardDataBaseManager {
     Boolean isEnabled(DataBaseInstance shard);
     void saveTransactionInfo();
     TransactionalQuery createQuery(DataBaseInstance shard, String query, QueryType queryType);
+    TransactionalQuery createQueryByIds(String query, List<Long> ids);
 }

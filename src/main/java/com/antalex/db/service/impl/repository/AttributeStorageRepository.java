@@ -1,6 +1,8 @@
 package com.antalex.db.service.impl.repository;
 
+import com.antalex.db.entity.AttributeHistoryEntity;
 import com.antalex.db.model.StorageContext;
+import com.antalex.db.service.ShardDataBaseManager;
 import com.google.common.collect.ImmutableMap;
 import com.antalex.db.entity.AttributeStorage;
 import com.antalex.db.entity.AttributeStorageInterceptor;
@@ -15,6 +17,7 @@ import com.antalex.db.service.ShardEntityManager;
 import com.antalex.db.service.ShardEntityRepository;
 import com.antalex.db.service.api.ResultQuery;
 import org.apache.commons.lang3.StringUtils;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Component;
 import com.antalex.db.utils.Utils;
 
@@ -48,6 +51,12 @@ public class AttributeStorageRepository implements ShardEntityRepository<Attribu
     private final Map<Long, String> updateQueries = new HashMap<>();
 
     private ShardEntityManager entityManager;
+    private ShardDataBaseManager dataBaseManager;
+
+    @Autowired
+    AttributeStorageRepository(ShardDataBaseManager dataBaseManager) {
+        this.dataBaseManager = dataBaseManager;
+    }
 
     @Override
     public void setEntityManager(ShardEntityManager entityManager) {
@@ -205,6 +214,25 @@ public class AttributeStorageRepository implements ShardEntityRepository<Attribu
         } catch (Exception err) {
             throw new RuntimeException(err);
         }
+    }
+
+    @Override
+    public List<AttributeStorage> findAll(
+            Map<String, DataStorage> storageMap,
+            List<Long> ids,
+            String condition)
+    {
+        return findAll(
+                dataBaseManager
+                        .createQueryByIds(
+                                SELECT_QUERY +
+                                        " and " +
+                                        Optional.ofNullable(Utils.transformCondition(condition, FIELD_MAP))
+                                                .orElse("x0.ID in (<IDS>)"),
+                                ids
+                        )
+                        .getResult()
+        );
     }
 
     public AttributeStorage find(ShardInstance parent, DataStorage storage) {

@@ -379,51 +379,53 @@ public class ShardDatabaseManagerImpl implements ShardDataBaseManager {
         return transactionalQuery;
     }
 
+    @Override
     public TransactionalQuery createQueryByIds(String query, List<Long> ids) {
         if (!query.contains("<IDS>")) {
             throw new ShardDataBaseException("В запросе отсутствует обязательный параметр <IDS>!");
         }
         TransactionalQuery mainQuery = null;
+        Map<UUID, TransactionalQuery> currentTaskQueries = new HashMap<>();
+        SharedEntityTransaction transaction = (SharedEntityTransaction) sharedTransactionManager.getTransaction();
         for (Map.Entry<Integer, List<Long>> groupIds: groupIds(ids).entrySet()) {
-            TransactionalQuery mainPartQuery = null;
+            TransactionalTask currentTask = null;
             DataBaseInstance shard = shards.get(groupIds.getKey());
             for (List<Long> idLists : Lists.partition(groupIds.getValue(), sqlInClauseLimit)) {
-                getTransactionalTask(shard).
-                        createQuery(
-                                query.replace(
-                                        "<IDS>",
-                                        idLists
-                                                .stream()
-                                                .map(it -> "?")
-                                                .collect(Collectors.joining(","))
+                if (currentTask != null) {
+                    transaction.addParallel();
+                }
+                TransactionalTask task = getTransactionalTask(shard);
+                currentTask = (currentTask == null) ? task : currentTask;
+                TransactionalQuery currentQuery =
+                        task.
+                                createQuery(
+                                        query.replace(
+                                                "<IDS>",
+                                                idLists
+                                                        .stream()
+                                                        .map(it -> "?")
+                                                        .collect(Collectors.joining(","))
                                         ),
-                                QueryType.SELECT
-                        )
-                        .bindAll(idLists.toArray());
-                ((SharedEntityTransaction) sharedTransactionManager.getTransaction()).addParallel(shard);
-
-                if (
-                        Objects.nonNull(mainPartQuery) &&
-                                getActiveConnections(shard) > shard.getActiveConnectionParallelLimit())
-                {
-                    mainPartQuery.addQueryPart(getTransactionalTask(shard).createQuery(query, QueryType.SELECT));
+                                        QueryType.SELECT,
+                                        null
+                                )
+                                .bindAll(idLists.toArray());
+                if (currentTaskQueries.containsKey(task.getTaskUuid())) {
+                    currentTaskQueries.get(task.getTaskUuid()).addQueryPart(currentQuery);
                 } else {
-
+                    currentTaskQueries.put(task.getTaskUuid(), currentQuery);
+                    if (mainQuery == null) {
+                        mainQuery = currentQuery;
+                    } else {
+                        mainQuery.addRelatedQuery(currentQuery);
+                    }
                 }
             }
-
-            Lists.partition(partsIds.get(shardHashCode), sqlInClauseLimit)
-                    .forEach(idList -> {
-                        idList
-                                .stream()
-                                .map(it -> "?")
-                                .collect(Collectors.joining(","))
-                    });
-
-
-            String newQuery;
-            TransactionalQuery transactionalQuery = createQuery(shards.get(shardHashCode), )
+            if (currentTask != null) {
+                transaction.setCurrentTask(shard, currentTask);
+            }
         }
+        return mainQuery;
     }
 
     private TransactionalTask createTask(DataBaseInstance shard) {
@@ -431,6 +433,9 @@ public class ShardDatabaseManagerImpl implements ShardDataBaseManager {
             TransactionalTask task = shard.getRemote() ?
                     remoteTaskFactory.createTask(shard) :
                     taskFactory.createTask(shard, getConnection(shard));
+
+
+
             return task;
         } catch (Exception err) {
             throw new ShardDataBaseException(err, shard);

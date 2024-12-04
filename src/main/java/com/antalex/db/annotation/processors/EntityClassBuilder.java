@@ -5,7 +5,6 @@ import com.google.common.collect.Lists;
 import org.springframework.beans.factory.annotation.Value;
 import com.antalex.db.annotation.ParentShard;
 import com.antalex.db.annotation.ShardEntity;
-import com.antalex.db.config.ShardDataBaseConfig;
 import com.antalex.db.entity.AttributeStorage;
 import com.antalex.db.entity.abstraction.ShardInstance;
 import com.antalex.db.model.Cluster;
@@ -450,6 +449,7 @@ public class EntityClassBuilder {
 
             out.println("    private Map<Long, String> updateQueries = new HashMap<>();");
             out.println("    private ShardEntityManager entityManager;");
+            out.println("    private ShardDataBaseManager dataBaseManager;");
             out.println("    private final Cluster cluster;");
 
             out.println();
@@ -480,6 +480,8 @@ public class EntityClassBuilder {
             out.println(getFindOneCode(entityClassDto));
             out.println();
             out.println(getFindAllCode(entityClassDto));
+            out.println();
+            out.println(getFindAllByIdsCode(entityClassDto));
             out.println();
             out.println(getSkipLockedCode(entityClassDto));
             out.println();
@@ -699,7 +701,9 @@ public class EntityClassBuilder {
         return "    @Autowired\n" +
                 "    " + className + "(ShardDataBaseManager dataBaseManager) {\n" +
                 "        this.cluster = dataBaseManager.getCluster(String.valueOf(\"" + entityClassDto.getCluster() +
-                "\"));\n    }";
+                "\"));\n" +
+                "        this.dataBaseManager = dataBaseManager;\n" +
+                "    }";
     }
 
     private static String getMethodUpdateSQLCode() {
@@ -863,8 +867,7 @@ public class EntityClassBuilder {
 
     private static String getFindAllCode(EntityClassDto entityClassDto) {
         return  "    @Override\n" +
-                "    public List<" + entityClassDto.getTargetClassName() +
-                ">  findAll(\n" +
+                "    public List<" + entityClassDto.getTargetClassName() + ">  findAll(\n" +
                 "            Map<String, DataStorage> storageMap,\n" +
                 "            Integer limit,\n" +
                 "            String condition,\n" +
@@ -884,6 +887,28 @@ public class EntityClassBuilder {
                 "                        .bindAll(binds)\n" +
                 "                        .getResult(),\n" +
                 "                storageMap\n" +
+                "        );\n" +
+                "    }";
+    }
+
+    private static String getFindAllByIdsCode(EntityClassDto entityClassDto) {
+        return  "    @Override\n" +
+                "    public List<" + entityClassDto.getTargetClassName() + "> findAll(\n" +
+                "            Map<String, DataStorage> storageMap,\n" +
+                "            List<Long> ids,\n" +
+                "            String condition)\n" +
+                "    {\n" +
+                "        return findAll(\n" +
+                "                dataBaseManager\n" +
+                "                        .createQueryByIds(\n" +
+                "                                getSelectQuery(storageMap) +\n" +
+                "                                        \" and \" +\n" +
+                "                                        Optional.ofNullable(Utils.transformCondition(condition, FIELD_MAP))\n" +
+                "                                                .orElse(\"x0.ID in (<IDS>)\"),\n" +
+                "                                ids\n" +
+                "                        )\n" +
+                "                        .getResult(),\n" +
+                "                null\n" +
                 "        );\n" +
                 "    }";
     }
@@ -983,26 +1008,18 @@ public class EntityClassBuilder {
         return entityClassDto.getFields()
                 .stream()
                 .filter(it -> it.getIsLinkedEntity() && !isLazyList(it))
-                .map(field -> "                Lists.partition(entities, sqlInClauseLimit)\n" +
-                        "                        .forEach(partEntities ->\n" +
-                        "                entityManager.findAll(\n" +
-                        "                                                " +
-                        ProcessorUtils.getFinalType(field.getElement()) + ".class,\n" +
-                        "                                                \"x0.C_B_REF in (\" + \n" +
-                        "                                                        partEntities\n" +
-                        "                                                                .stream()\n" +
-                        "                                                                .map(it -> \"?\")\n" +
-                        "                                                                .collect(Collectors." +
-                        "joining(\", \")) + \n" +
-                        "                                                        \")\",\n" +
-                        "                                                partEntities\n" +
-                        "                                                        .stream()\n" +
-                        "                                                        .map(ShardInstance::getId)\n" +
-                        "                                                        .toList()\n" +
-                        "                                                        .toArray()\n" +
-                        "                                        )\n" +
-                        "                                        .forEach(l ->\n" +
-                        "                                                ((" + entityClassDto.getTargetClassName() +
+                .map(field -> "                entityManager.findAllByIds(\n" +
+                        "                                " + ProcessorUtils.getFinalType(field.getElement()) +
+                        ".class,\n" +
+                        "                                storageMap,\n" +
+                        "                                \"x0.C_B_REF in (<IDS>)\",\n" +
+                        "                                entities\n" +
+                        "                                        .stream()\n" +
+                        "                                        .map(ShardInstance::getId)\n" +
+                        "                                        .toList()\n" +
+                        "                        )\n" +
+                        "                        .forEach(l ->\n"+
+                        "                                ((" + entityClassDto.getTargetClassName() +
                         ProcessorUtils.CLASS_INTERCEPT_POSTFIX + ") " +
                         (
                                 ProcessorUtils.isAnnotationPresentByType(
@@ -1014,9 +1031,8 @@ public class EntityClassBuilder {
                                                 ".class, l." + field.getLinkedField().getGetter() + "())"
                         ) +
                         ")\n" +
-                        "                                                        ." + field.getGetter() + "(false)\n" +
-                        "                                                        .add(l)\n" +
-                        "                                        )\n" +
+                        "                                        ." + field.getGetter() + "(false)\n" +
+                        "                                        .add(l)\n" +
                         "                        );\n"
                 )
                 .reduce(StringUtils.EMPTY, String::concat);

@@ -518,6 +518,24 @@ public class ShardEntityManagerImpl implements ShardEntityManager {
     }
 
     @Override
+    public <T extends ShardInstance> List<T> findAllByIds(
+            Class<T> clazz,
+            Map<String, DataStorage> storageMap,
+            String condition,
+            List<Long> ids)
+    {
+        boolean isAurTransaction = startTransaction();
+        try {
+            ShardEntityRepository<T> repository = getEntityRepository(clazz);
+            return repository.findAll(storageMap, ids, condition);
+        } finally {
+            if (isAurTransaction) {
+                flush();
+            }
+        }
+    }
+
+    @Override
     public <T extends ShardInstance> List<T> skipLocked(
             Class<T> clazz,
             Integer limit,

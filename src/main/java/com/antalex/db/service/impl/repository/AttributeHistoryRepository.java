@@ -1,8 +1,10 @@
 package com.antalex.db.service.impl.repository;
 
 import com.antalex.db.model.StorageContext;
+import com.antalex.db.service.ShardDataBaseManager;
 import com.google.common.collect.ImmutableMap;
 import org.apache.commons.lang3.StringUtils;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Component;
 import com.antalex.db.entity.AttributeHistoryEntity;
 import com.antalex.db.entity.abstraction.ShardInstance;
@@ -35,6 +37,12 @@ public class AttributeHistoryRepository implements ShardEntityRepository<Attribu
             .build();
 
     private ShardEntityManager entityManager;
+    private ShardDataBaseManager dataBaseManager;
+
+    @Autowired
+    AttributeHistoryRepository(ShardDataBaseManager dataBaseManager) {
+        this.dataBaseManager = dataBaseManager;
+    }
 
     @Override
     public void setEntityManager(ShardEntityManager entityManager) {
@@ -208,9 +216,9 @@ public class AttributeHistoryRepository implements ShardEntityRepository<Attribu
                         .createQuery(
                                 AttributeHistoryEntity.class, 
                                 SELECT_QUERY +
+                                        " and " +
                                         Optional.ofNullable(Utils.transformCondition(condition, FIELD_MAP))
-                                                .map(it -> " and " + it)
-                                                .orElse(StringUtils.EMPTY),
+                                                .orElse("x0.ID in (<IDS>)"),
                                 QueryType.SELECT
                         )
                         .fetchLimit(limit)
@@ -259,6 +267,25 @@ public class AttributeHistoryRepository implements ShardEntityRepository<Attribu
                                 QueryType.SELECT
                         )
                         .bindAll(binds)
+                        .getResult()
+        );
+    }
+
+    @Override
+    public List<AttributeHistoryEntity> findAll(
+            Map<String, DataStorage> storageMap,
+            List<Long> ids,
+            String condition)
+    {
+        return findAll(
+                dataBaseManager
+                        .createQueryByIds(
+                                SELECT_QUERY +
+                                        Optional.ofNullable(Utils.transformCondition(condition, FIELD_MAP))
+                                                .map(it -> " and " + it)
+                                                .orElse(StringUtils.EMPTY),
+                                ids
+                        )
                         .getResult()
         );
     }

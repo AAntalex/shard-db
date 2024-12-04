@@ -28,10 +28,11 @@ public class TransactionalRemoteTask extends AbstractTransactionalTask {
         this.executorService = executorService;
         this.shard = shard;
         this.objectMapper = objectMapper;
+        this.taskUuid = UUID.randomUUID();
         this.taskContainer =
                 new RemoteTaskContainer()
                         .shard(shard)
-                        .taskUuid(UUID.randomUUID());
+                        .taskUuid(this.taskUuid);
     }
 
     @Override
@@ -69,7 +70,7 @@ public class TransactionalRemoteTask extends AbstractTransactionalTask {
     }
 
     @Override
-    public TransactionalQuery createQuery(String query, QueryType queryType) {
+    protected TransactionalQuery createQuery(String query, QueryType queryType) {
         if (Optional.ofNullable(query).map(String::isEmpty).orElse(true)) {
             return null;
         }

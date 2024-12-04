@@ -4,6 +4,7 @@ import com.antalex.db.model.DataBaseInstance;
 import com.antalex.db.model.enums.QueryType;
 
 import java.util.List;
+import java.util.UUID;
 import java.util.concurrent.ExecutorService;
 
 public interface TransactionalTask {
@@ -14,7 +15,7 @@ public interface TransactionalTask {
     void finish();
     void run(Boolean parallelRun);
     void waitTask();
-    TransactionalQuery createQuery(String query, QueryType queryType);
+    TransactionalQuery createQuery(String query, QueryType queryType, String name);
     TransactionalQuery getQuery(String query, QueryType queryType);
     TransactionalQuery getQuery(String query, QueryType queryType, String name);
     void addDMLQuery(String sql, TransactionalQuery query);
@@ -37,4 +38,5 @@ public interface TransactionalTask {
     ExecutorService getExecutorService();
     long getDuration();
     DataBaseInstance getShard();
+    UUID getTaskUuid();
 }
