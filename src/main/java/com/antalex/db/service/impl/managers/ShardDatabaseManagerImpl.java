@@ -128,7 +128,7 @@ public class ShardDatabaseManagerImpl implements ShardDataBaseManager {
                                 getActiveConnections(shard) > shard.getActiveConnectionParallelLimit()
                 )
         )
-                .orElse(createTransactionalTask(shard, transaction));
+                .orElseGet(() -> createTransactionalTask(shard, transaction));
     }
 
     @Override
@@ -430,13 +430,9 @@ public class ShardDatabaseManagerImpl implements ShardDataBaseManager {
 
     private TransactionalTask createTask(DataBaseInstance shard) {
         try {
-            TransactionalTask task = shard.getRemote() ?
+            return shard.getRemote() ?
                     remoteTaskFactory.createTask(shard) :
                     taskFactory.createTask(shard, getConnection(shard));
-
-
-
-            return task;
         } catch (Exception err) {
             throw new ShardDataBaseException(err, shard);
         }
