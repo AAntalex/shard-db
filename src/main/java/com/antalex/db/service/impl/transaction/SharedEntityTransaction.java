@@ -186,7 +186,9 @@ public class SharedEntityTransaction implements EntityTransaction {
     }
 
     public void addPersistentObject(Long id, Object o) {
-        persistentObjects.put(o.getClass(), Map.of(id, o));
+        persistentObjects
+                .computeIfAbsent(o.getClass(), k -> new HashMap<>())
+                .put(id, o);
     }
 
     private String processTask(
