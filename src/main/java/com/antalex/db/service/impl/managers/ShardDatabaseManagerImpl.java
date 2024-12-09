@@ -59,6 +59,7 @@ public class ShardDatabaseManagerImpl implements ShardDataBaseManager {
     private static final long DEFAULT_TIME_OUT_LOCK_PROCESSOR = 60;
     private static final long DEFAULT_DELAY_LOCK_PROCESSOR = 10;
     private static final int SQL_IN_CLAUSE_LIMIT = 1000;
+    private static final int PERCENT_OF_ACTIVE_CONNECTION_FOR_PARALLEL_LIMIT = 50;
     private static final String SELECT_DB_INFO = "SELECT SHARD_ID,MAIN_SHARD,CLUSTER_ID,CLUSTER_NAME,DEFAULT_CLUSTER" +
             ",SEGMENT_NAME,ACCESSIBLE FROM $$$.APP_DATABASE";
     private static final String INS_DB_INFO = "INSERT INTO $$$.APP_DATABASE " +
@@ -125,7 +126,7 @@ public class ShardDatabaseManagerImpl implements ShardDataBaseManager {
                 transaction.getCurrentTask(
                         shard,
                         !shard.getRemote() &&
-                                getActiveConnections(shard) > shard.getActiveConnectionParallelLimit()
+                                getActiveConnections(shard) >= shard.getActiveConnectionParallelLimit()
                 )
         )
                 .orElseGet(() -> createTransactionalTask(shard, transaction));
@@ -946,26 +947,43 @@ public class ShardDatabaseManagerImpl implements ShardDataBaseManager {
 
             clusterConfig.getShards().forEach(shardConfig-> {
                 DataBaseInstance shard = new DataBaseInstance();
-                shard.setActiveConnectionParallelLimit(
-                        Optional.ofNullable(shardConfig.getActiveConnectionParallelLimit())
-                                .orElse(
-                                        Optional.ofNullable(clusterConfig.getActiveConnectionParallelLimit())
-                                                .orElse(
-                                                        Optional.ofNullable(shardDataBaseConfig.getActiveConnectionParallelLimit())
-                                                                .orElse(0)
-                                                )
-                                )
-                );
                 if (Optional.ofNullable(shardConfig.getDataSource()).map(DataSourceConfig::getUrl).isPresent()) {
-                    HikariDataSource dataSource = new HikariDataSource(
-                            getHikariConfig(shardDataBaseConfig, clusterConfig, shardConfig)
-                    );
+                    HikariConfig hikariConfig = getHikariConfig(shardDataBaseConfig, clusterConfig, shardConfig);
+                    HikariDataSource dataSource = new HikariDataSource(hikariConfig);
                     shard.setDataSource(dataSource);
                     shard.setOwner(
                             Optional.ofNullable(shardConfig.getDataSource())
                                     .map(DataSourceConfig::getOwner)
                                     .orElse(dataSource.getUsername())
                     );
+                    shard.setActiveConnectionParallelLimit(
+                            Optional.ofNullable(shardConfig.getActiveConnectionParallelLimit())
+                                    .orElse(
+                                            Optional.ofNullable(clusterConfig.getActiveConnectionParallelLimit())
+                                                    .orElse(
+                                                            Optional.ofNullable(shardDataBaseConfig.getActiveConnectionParallelLimit())
+                                                                    .orElse(0)
+                                                    )
+                                    )
+                    );
+                    if (shard.getActiveConnectionParallelLimit() > hikariConfig.getMaximumPoolSize()) {
+                        throw new ShardDataBaseException(
+                                String.format(
+                                        "Value of activeConnectionParallelLimit (%s) " +
+                                                "cannot be more than maximumPoolSize (%s)",
+                                        shard.getActiveConnectionParallelLimit(),
+                                        hikariConfig.getMaximumPoolSize()
+                                )
+                        );
+                    }
+                    if (
+                            shard.getActiveConnectionParallelLimit() >
+                                    hikariConfig.getMaximumPoolSize() *
+                                            PERCENT_OF_ACTIVE_CONNECTION_FOR_PARALLEL_LIMIT / 100) {
+                        log.warn("The recommended value for the activeConnectionParallelLimit parameter " +
+                                "is no more than {}", hikariConfig.getMaximumPoolSize() *
+                                PERCENT_OF_ACTIVE_CONNECTION_FOR_PARALLEL_LIMIT / 100);
+                    }
                     shard.setRemote(false);
                 } else {
                     shard.setRemote(true);
