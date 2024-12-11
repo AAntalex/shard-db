@@ -7,6 +7,7 @@ import com.antalex.db.entity.abstraction.ShardInstance;
 import com.antalex.db.exception.ShardDataBaseException;
 import com.antalex.db.model.DataStorage;
 import com.antalex.db.model.dto.AttributeHistory;
+import com.antalex.db.service.SharedTransactionManager;
 import com.antalex.db.service.api.DataWrapper;
 import com.antalex.db.service.api.DataWrapperFactory;
 import lombok.AllArgsConstructor;
@@ -34,13 +35,16 @@ public class DomainEntityManagerImpl implements DomainEntityManager {
 
     private final ShardEntityManager entityManager;
     private final DataWrapperFactory dataWrapperFactory;
+    private final SharedTransactionManager sharedTransactionManager;
 
     DomainEntityManagerImpl(
             ShardEntityManager entityManager,
-            DataWrapperFactory dataWrapperFactory)
+            DataWrapperFactory dataWrapperFactory,
+            SharedTransactionManager sharedTransactionManager)
     {
         this.entityManager = entityManager;
         this.dataWrapperFactory = dataWrapperFactory;
+        this.sharedTransactionManager = sharedTransactionManager;
     }
 
     @Autowired
@@ -55,28 +59,6 @@ public class DomainEntityManagerImpl implements DomainEntityManager {
                 MAPPERS.put(classes[0], new Mapper(domainEntityMapper, classes[1]));
             }
         }
-    }
-
-    private Mapper getMapper(Class<?> clazz) {
-        Mapper mapper = currentMapper.get();
-        if (mapper != null && currentSourceClass.get() == clazz) {
-            return mapper;
-        }
-        mapper = Optional
-                .ofNullable(MAPPERS.get(clazz.getSuperclass()))
-                .orElse(MAPPERS.get(clazz));
-        if (mapper == null) {
-            throw new ShardDataBaseException(
-                    String.format(
-                            "Can't find DomainEntityMapper for class %s or superclass %s",
-                            clazz.getName(),
-                            clazz.getSuperclass().getName()
-                    )
-            );
-        }
-        currentMapper.set(mapper);
-        currentSourceClass.set(clazz);
-        return mapper;
     }
 
     @Override
@@ -95,7 +77,7 @@ public class DomainEntityManagerImpl implements DomainEntityManager {
     @Override
     public <T extends Domain> T find(Class<T> clazz, String condition, Object... binds) {
         Mapper mapper = getMapper(clazz);
-        return map(
+        return sharedTransactionManager.runInTransaction(() -> map(
                 clazz,
                 entityManager.find(
                         mapper.entityClass,
@@ -103,13 +85,13 @@ public class DomainEntityManagerImpl implements DomainEntityManager {
                         Utils.transformCondition(condition, mapper.domainEntityMapper.getFieldMap()),
                         binds
                 )
-        );
+        ));
     }
 
     @Override
     public <T extends Domain> List<T> findAllLimit(Class<T> clazz, Integer limit, String condition, Object... binds) {
         Mapper mapper = getMapper(clazz);
-        return mapAllToDomains(
+        return sharedTransactionManager.runInTransaction(() -> mapAllToDomains(
                 clazz,
                 entityManager.findAllLimit(
                         mapper.entityClass,
@@ -118,7 +100,7 @@ public class DomainEntityManagerImpl implements DomainEntityManager {
                         Utils.transformCondition(condition, mapper.domainEntityMapper.getFieldMap()),
                         binds
                 )
-        );
+        ));
     }
 
     @Override
@@ -180,7 +162,8 @@ public class DomainEntityManagerImpl implements DomainEntityManager {
         if (domain == null) {
             return null;
         }
-        entityManager.save(getMapper(domain.getClass()).domainEntityMapper.map(domain));
+        sharedTransactionManager.runInTransaction(() ->
+                entityManager.save(getMapper(domain.getClass()).domainEntityMapper.map(domain)));
         return domain;
     }
 
@@ -189,7 +172,8 @@ public class DomainEntityManagerImpl implements DomainEntityManager {
         if (domain == null) {
             return null;
         }
-        entityManager.update(getMapper(domain.getClass()).domainEntityMapper.map(domain));
+        sharedTransactionManager.runInTransaction(() ->
+                entityManager.update(getMapper(domain.getClass()).domainEntityMapper.map(domain)));
         return domain;
     }
 
@@ -204,18 +188,20 @@ public class DomainEntityManagerImpl implements DomainEntityManager {
             return;
         }
         ShardInstance entity = getMapper(domain.getClass()).domainEntityMapper.map(domain);
-        entity.setAttributeStorage(
-                entityManager.findAll(AttributeStorage.class, "C_ENTITY_ID=?", domain.getId())
-        );
-        entity.setAttributeHistory(
-                entityManager.findAll(AttributeHistoryEntity.class, "C_ENTITY_ID=?", domain.getId())
-        );
-        domain.getStorage().putAll(
-                entity.getAttributeStorage()
-                        .stream()
-                        .collect(Collectors.toMap(AttributeStorage::getStorageName, it -> it))
-        );
-        entityManager.delete(entity);
+        sharedTransactionManager.runInTransaction(() -> {
+            entity.setAttributeStorage(
+                    entityManager.findAll(AttributeStorage.class, "C_ENTITY_ID=?", domain.getId())
+            );
+            entity.setAttributeHistory(
+                    entityManager.findAll(AttributeHistoryEntity.class, "C_ENTITY_ID=?", domain.getId())
+            );
+            domain.getStorage().putAll(
+                    entity.getAttributeStorage()
+                            .stream()
+                            .collect(Collectors.toMap(AttributeStorage::getStorageName, it -> it))
+            );
+            entityManager.delete(entity);
+        });
         domain.setStorageChanged();
     }
 
@@ -224,9 +210,7 @@ public class DomainEntityManagerImpl implements DomainEntityManager {
         if (domains == null) {
             return;
         }
-        if (!getTransaction().isActive()) {
-            getTransaction().begin();
-        }
+        sharedTransactionManager.runInTransaction(() -> domains.forEach(this::delete));
         domains.forEach(this::delete);
     }
 
@@ -275,7 +259,7 @@ public class DomainEntityManagerImpl implements DomainEntityManager {
 
     @Override
     public EntityTransaction getTransaction() {
-        return entityManager.getTransaction();
+        return sharedTransactionManager.getTransaction();
     }
 
     @Override
@@ -308,6 +292,28 @@ public class DomainEntityManagerImpl implements DomainEntityManager {
         return attributeHistoryList;
     }
 
+    private Mapper getMapper(Class<?> clazz) {
+        Mapper mapper = currentMapper.get();
+        if (mapper != null && currentSourceClass.get() == clazz) {
+            return mapper;
+        }
+        mapper = Optional
+                .ofNullable(MAPPERS.get(clazz.getSuperclass()))
+                .orElse(MAPPERS.get(clazz));
+        if (mapper == null) {
+            throw new ShardDataBaseException(
+                    String.format(
+                            "Can't find DomainEntityMapper for class %s or superclass %s",
+                            clazz.getName(),
+                            clazz.getSuperclass().getName()
+                    )
+            );
+        }
+        currentMapper.set(mapper);
+        currentSourceClass.set(clazz);
+        return mapper;
+    }
+
     private <T extends Domain> List<T> saveAll(List<T> domains, boolean isUpdate) {
         if (domains == null) {
             return null;
@@ -316,11 +322,13 @@ public class DomainEntityManagerImpl implements DomainEntityManager {
         if (clazz == null) {
             return domains;
         }
-        if (isUpdate) {
-            entityManager.updateAll(mapAllToEntities(clazz, domains));
-        } else {
-            entityManager.saveAll(mapAllToEntities(clazz, domains));
-        }
+        sharedTransactionManager.runInTransaction(() -> {
+            if (isUpdate) {
+                entityManager.updateAll(mapAllToEntities(clazz, domains));
+            } else {
+                entityManager.saveAll(mapAllToEntities(clazz, domains));
+            }
+        });
         return domains;
     }
 

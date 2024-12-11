@@ -134,14 +134,8 @@ public class ShardEntityManagerImpl implements ShardEntityManager {
         if (entity == null) {
             return;
         }
-        boolean isAurTransaction = startTransaction();
-        try {
-            persist(entity, false, false, true);
-        } finally {
-            if (isAurTransaction) {
-                flush();
-            }
-        }
+        sharedTransactionManager.runInTransaction(() ->
+                persist(entity, false, false, true));
     }
 
     @Override
@@ -149,14 +143,8 @@ public class ShardEntityManagerImpl implements ShardEntityManager {
         if (entities == null) {
             return;
         }
-        boolean isAurTransaction = startTransaction();
-        try {
-            entities.forEach(this::delete);
-        } finally {
-            if (isAurTransaction) {
-                flush();
-            }
-        }
+        sharedTransactionManager.runInTransaction(() ->
+                entities.forEach(this::delete));
     }
 
     @Override
@@ -468,15 +456,10 @@ public class ShardEntityManagerImpl implements ShardEntityManager {
             String condition,
             Object... binds)
     {
-        boolean isAurTransaction = startTransaction();
-        try {
+        return sharedTransactionManager.runInTransaction(() -> {
             ShardEntityRepository<T> repository = getEntityRepository(clazz);
             return repository.find(storageMap, condition, binds);
-        } finally {
-            if (isAurTransaction) {
-                flush();
-            }
-        }
+        });
     }
 
     @Override
@@ -487,15 +470,10 @@ public class ShardEntityManagerImpl implements ShardEntityManager {
             String condition,
             Object... binds)
     {
-        boolean isAurTransaction = startTransaction();
-        try {
+        return sharedTransactionManager.runInTransaction(() -> {
             ShardEntityRepository<T> repository = getEntityRepository(clazz);
             return repository.findAll(storageMap, limit, condition, binds);
-        } finally {
-            if (isAurTransaction) {
-                flush();
-            }
-        }
+        });
     }
 
     @Override
@@ -506,15 +484,10 @@ public class ShardEntityManagerImpl implements ShardEntityManager {
             String condition,
             Object... binds)
     {
-        boolean isAurTransaction = startTransaction();
-        try {
+        return sharedTransactionManager.runInTransaction(() -> {
             ShardEntityRepository<T> repository = getEntityRepository(clazz);
             return repository.findAll(parent, storageMap, condition, binds);
-        } finally {
-            if (isAurTransaction) {
-                flush();
-            }
-        }
+        });
     }
 
     @Override
@@ -524,15 +497,10 @@ public class ShardEntityManagerImpl implements ShardEntityManager {
             String condition,
             List<Long> ids)
     {
-        boolean isAurTransaction = startTransaction();
-        try {
+        return sharedTransactionManager.runInTransaction(() -> {
             ShardEntityRepository<T> repository = getEntityRepository(clazz);
             return repository.findAll(storageMap, ids, condition);
-        } finally {
-            if (isAurTransaction) {
-                flush();
-            }
-        }
+        });
     }
 
     @Override
@@ -601,15 +569,10 @@ public class ShardEntityManagerImpl implements ShardEntityManager {
         if (entity == null) {
             return null;
         }
-        boolean isAurTransaction = startTransaction();
-        try {
+        return sharedTransactionManager.runInTransaction(() -> {
             ShardEntityRepository<T> repository = getEntityRepository(entity.getClass());
             return repository.find(entity, storageMap);
-        } finally {
-            if (isAurTransaction) {
-                flush();
-            }
-        }
+        });
     }
 
     @Override
@@ -632,14 +595,8 @@ public class ShardEntityManagerImpl implements ShardEntityManager {
     private <T extends ShardInstance> T save(T entity, boolean onlyChanged) {
         setStorage(entity, null, true);
         generateId(entity, true);
-        boolean isAurTransaction = startTransaction();
-        try {
-            persist(entity, onlyChanged, true, false);
-        } finally {
-            if (isAurTransaction) {
-                flush();
-            }
-        }
+        sharedTransactionManager.runInTransaction(() ->
+                persist(entity, onlyChanged, true, false));
         return entity;
     }
 
@@ -647,14 +604,8 @@ public class ShardEntityManagerImpl implements ShardEntityManager {
         if (entities == null) {
             return null;
         }
-        boolean isAurTransaction = startTransaction();
-        try {
-            entities.forEach(it -> save(it, onlyChanged));
-        } finally {
-            if (isAurTransaction) {
-                flush();
-            }
-        }
+        sharedTransactionManager.runInTransaction(() ->
+                entities.forEach(it -> save(it, onlyChanged)));
         return entities;
     }
 
@@ -708,15 +659,11 @@ public class ShardEntityManagerImpl implements ShardEntityManager {
         if (entity == null) {
             return;
         }
-        ((SharedEntityTransaction) getTransaction()).addPersistentObject(entity.getId(), entity);
-    }
-
-    private boolean startTransaction() {
-        if (!getTransaction().isActive()) {
-            getTransaction().begin();
-            return true;
-        }
-        return false;
+        ((SharedEntityTransaction) getTransaction()).addPersistentObject(
+                entity.getClass().getSuperclass(),
+                entity.getId(),
+                entity
+        );
     }
 
     private void checkShardMap(ShardInstance entity, ShardType shardType) {

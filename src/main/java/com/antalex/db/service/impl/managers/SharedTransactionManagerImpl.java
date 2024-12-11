@@ -1,5 +1,6 @@
 package com.antalex.db.service.impl.managers;
 
+import com.antalex.db.exception.ShardDataBaseException;
 import com.antalex.db.model.TransactionInfo;
 import com.antalex.db.service.SharedTransactionManager;
 import com.antalex.db.service.impl.transaction.SharedEntityTransaction;
@@ -10,6 +11,7 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
+import java.util.concurrent.Callable;
 
 @Component
 public class SharedTransactionManagerImpl implements SharedTransactionManager {
@@ -58,5 +60,59 @@ public class SharedTransactionManagerImpl implements SharedTransactionManager {
     @Override
     public List<TransactionInfo> getTransactionInfoList() {
         return transactionInfoList;
+    }
+
+    @Override
+    public void runInTransaction(Runnable runnable) {
+        EntityTransaction entityTransaction = getTransaction();
+        boolean isAurTransaction = !entityTransaction.isActive();
+        if (isAurTransaction) {
+            entityTransaction.begin();
+        }
+        try {
+            runnable.run();
+            if (isAurTransaction) {
+                checkTransaction((SharedEntityTransaction) entityTransaction);
+                entityTransaction.commit();
+            }
+        } catch (Exception err) {
+            if (isAurTransaction) {
+                checkTransaction((SharedEntityTransaction) entityTransaction);
+                entityTransaction.rollback();
+            }
+            throw new ShardDataBaseException(err);
+        }
+    }
+
+    @Override
+    public <T> T runInTransaction(Callable<T> callable) {
+        EntityTransaction entityTransaction = getTransaction();
+        boolean isAurTransaction = !entityTransaction.isActive();
+        if (isAurTransaction) {
+            entityTransaction.begin();
+        }
+        try {
+           return callable.call();
+        } catch (Exception err) {
+            if (isAurTransaction) {
+                checkTransaction((SharedEntityTransaction) entityTransaction);
+                entityTransaction.rollback();
+            }
+            throw new ShardDataBaseException(err);
+        } finally {
+            if (isAurTransaction) {
+                checkTransaction((SharedEntityTransaction) entityTransaction);
+                entityTransaction.commit();
+            }
+        }
+    }
+
+    private void checkTransaction(SharedEntityTransaction transaction) {
+        EntityTransaction currentTransaction = getCurrentTransaction();
+        if (currentTransaction != transaction && (transaction.isActive() || currentTransaction.isActive())) {
+            throw new ShardDataBaseException(
+                    "Нарушена целостность при обработке транзакции с UUID = " + transaction.getUuid()
+            );
+        }
     }
 }

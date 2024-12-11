@@ -556,7 +556,7 @@ public class DomainClassBuilder {
                         "        if (Objects.isNull(domain)) {\n" +
                         "            domain = newDomain(entity);\n" +
                         "            ((SharedEntityTransaction) domainManager.getTransaction())." +
-                        "addPersistentObject(entity.getId(), domain);\n" +
+                        "addPersistentObject(" + classDto.getTargetClassName() + ".class, entity.getId(), domain);\n" +
                         "        }\n" +
                         "        for (String storageName : storageMap.keySet()) {\n" +
                         "            domain.setLazy(storageName, true);\n" +

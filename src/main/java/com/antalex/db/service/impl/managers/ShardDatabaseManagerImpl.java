@@ -11,6 +11,7 @@ import com.antalex.db.service.impl.sequences.SimpleSequenceGenerator;
 import com.antalex.db.utils.ShardUtils;
 import com.google.common.collect.Lists;
 import com.google.common.util.concurrent.ThreadFactoryBuilder;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.web.reactive.function.client.WebClient;
 import com.antalex.db.exception.ShardDataBaseException;
 import com.antalex.db.model.enums.QueryType;
@@ -95,7 +96,8 @@ public class ShardDatabaseManagerImpl implements ShardDataBaseManager {
     private int sqlInClauseLimit;
     private int timeOutDbProcessor;
 
-    private ShardDatabaseManagerImpl(
+    @Autowired
+    ShardDatabaseManagerImpl(
             ResourceLoader resourceLoader,
             ShardDataBaseConfig shardDataBaseConfig,
             SharedTransactionManager sharedTransactionManager,
@@ -393,7 +395,7 @@ public class ShardDatabaseManagerImpl implements ShardDataBaseManager {
             DataBaseInstance shard = shards.get(groupIds.getKey());
             for (List<Long> idLists : Lists.partition(groupIds.getValue(), sqlInClauseLimit)) {
                 if (currentTask != null) {
-                    transaction.addParallel();
+                    transaction.addParallel(shard);
                 }
                 TransactionalTask task = getTransactionalTask(shard);
                 currentTask = (currentTask == null) ? task : currentTask;

@@ -1,31 +1,31 @@
 package com.antalex.db.config.aspect;
 
+import com.antalex.db.exception.ShardDataBaseException;
+import com.antalex.db.service.SharedTransactionManager;
 import lombok.RequiredArgsConstructor;
 import org.aspectj.lang.ProceedingJoinPoint;
 import org.aspectj.lang.annotation.*;
 import org.springframework.stereotype.Component;
-import com.antalex.db.service.ShardEntityManager;
 
 
 @Aspect
 @Component
 @RequiredArgsConstructor
 public class AOPTransactionalController {
-    private final ShardEntityManager entityManager;
+    private final SharedTransactionManager transactionManager;
 
     @Pointcut("@annotation(org.springframework.transaction.annotation.Transactional)")
     public void callTransactional() { }
 
+
     @Around("callTransactional()")
-    public Object aroundProfiler(ProceedingJoinPoint joinPoint) throws Throwable {
+    public Object aroundTransactional(ProceedingJoinPoint joinPoint) {
+        return transactionManager.runInTransaction(() -> {
             try {
-                entityManager.getTransaction().begin();
                 return joinPoint.proceed();
-            } catch (Exception err) {
-                entityManager.getTransaction().rollback();
-                throw new RuntimeException(err);
-            } finally {
-                entityManager.getTransaction().commit();
+            } catch (Throwable err) {
+                throw new ShardDataBaseException(err);
             }
+        });
     }
 }

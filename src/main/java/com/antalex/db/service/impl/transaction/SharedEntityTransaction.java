@@ -185,9 +185,9 @@ public class SharedEntityTransaction implements EntityTransaction {
                 .orElse(null);
     }
 
-    public void addPersistentObject(Long id, Object o) {
+    public void addPersistentObject(Class<?> clazz, Long id, Object o) {
         persistentObjects
-                .computeIfAbsent(o.getClass(), k -> new HashMap<>())
+                .computeIfAbsent(clazz, k -> new HashMap<>())
                 .put(id, o);
     }
 
