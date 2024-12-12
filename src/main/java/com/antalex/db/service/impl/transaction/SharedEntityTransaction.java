@@ -63,9 +63,6 @@ public class SharedEntityTransaction implements EntityTransaction {
         }
         this.tasks.forEach(task -> task.completion(true, true));
         this.tasks.forEach(TransactionalTask::finish);
-        tasks.clear();
-        currentTasks.clear();
-        buckets.clear();
         close();
     }
 
@@ -176,6 +173,11 @@ public class SharedEntityTransaction implements EntityTransaction {
 
     public void close() {
         this.state.setCompleted(true);
+        tasks.clear();
+        currentTasks.clear();
+        buckets.clear();
+        persistentObjects.values().forEach(Map::clear);
+        persistentObjects.clear();
     }
 
     @SuppressWarnings("unchecked")
