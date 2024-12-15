@@ -377,18 +377,27 @@ public class ShardDatabaseManagerImpl implements ShardDataBaseManager {
     public TransactionalQuery createQuery(DataBaseInstance shard, String query, QueryType queryType) {
         TransactionalQuery transactionalQuery = getTransactionalTask(shard).getQuery(query, queryType);
         if (queryType == QueryType.SELECT) {
-            transactionalQuery.setParallelRun(shardDataBaseConfig.getParallelRun());
+            transactionalQuery.setParallelRun(
+                    Optional.ofNullable(shardDataBaseConfig.getParallelRun()).orElse(true)
+            );
         }
         return transactionalQuery;
     }
 
+    private static class QueryQueue {
+        QueryQueue(String query, List<Long> ids) {
+
+        }
+    }
+
     @Override
     public TransactionalQuery createQueryByIds(String query, List<Long> ids) {
+
         if (!query.contains("<IDS>")) {
             throw new ShardDataBaseException("В запросе отсутствует обязательный параметр <IDS>!");
         }
         TransactionalQuery mainQuery = null;
-        Map<UUID, TransactionalQuery> currentTaskQueries = new HashMap<>();
+        Set<UUID> currentTaskQueries = new HashSet<>();
         SharedEntityTransaction transaction = (SharedEntityTransaction) sharedTransactionManager.getTransaction();
         for (Map.Entry<Integer, List<Long>> groupIds: groupIds(ids).entrySet()) {
             TransactionalTask currentTask = null;
@@ -399,26 +408,41 @@ public class ShardDatabaseManagerImpl implements ShardDataBaseManager {
                 }
                 TransactionalTask task = getTransactionalTask(shard);
                 currentTask = (currentTask == null) ? task : currentTask;
-                TransactionalQuery currentQuery =
-                        task.
-                                createQuery(
-                                        query.replace(
-                                                "<IDS>",
-                                                idLists
-                                                        .stream()
-                                                        .map(it -> "?")
-                                                        .collect(Collectors.joining(","))
-                                        ),
-                                        QueryType.SELECT,
-                                        null
-                                )
-                                .bindAll(idLists.toArray());
-                if (currentTaskQueries.containsKey(task.getTaskUuid())) {
+
+
+
+
+
+                if (currentTaskQueries.contains(task.getTaskUuid())) {
+
+                    break;
+
+
                     currentTaskQueries.get(task.getTaskUuid()).addQueryPart(currentQuery);
+
+
                 } else {
-                    currentTaskQueries.put(task.getTaskUuid(), currentQuery);
+                    TransactionalQuery currentQuery =
+                            task.
+                                    createQuery(
+                                            query.replace(
+                                                    "<IDS>",
+                                                    idLists
+                                                            .stream()
+                                                            .map(it -> "?")
+                                                            .collect(Collectors.joining(","))
+                                            ),
+                                            QueryType.SELECT,
+                                            null
+                                    )
+                                    .bindAll(idLists.toArray());
+
+                    currentTaskQueries.add(task.getTaskUuid());
                     if (mainQuery == null) {
                         mainQuery = currentQuery;
+                        mainQuery.setParallelRun(
+                                Optional.ofNullable(shardDataBaseConfig.getParallelRun()).orElse(true)
+                        );
                     } else {
                         mainQuery.addRelatedQuery(currentQuery);
                     }

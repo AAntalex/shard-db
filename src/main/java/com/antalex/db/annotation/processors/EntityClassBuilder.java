@@ -1004,7 +1004,7 @@ public class EntityClassBuilder {
                 .count() + 2;
     }
 
-    private static String getProcessLinkedEntityCode(EntityClassDto entityClassDto) {
+/*    private static String getProcessLinkedEntityCode(EntityClassDto entityClassDto) {
         return entityClassDto.getFields()
                 .stream()
                 .filter(it -> it.getIsLinkedEntity() && !isLazyList(it))
@@ -1045,9 +1045,9 @@ public class EntityClassBuilder {
                         "                        );\n"
                 )
                 .reduce(StringUtils.EMPTY, String::concat);
-    }
+    }*/
 
-/*
+
     private static String getProcessLinkedEntityCode(EntityClassDto entityClassDto) {
         return entityClassDto.getFields()
                 .stream()
@@ -1081,7 +1081,7 @@ public class EntityClassBuilder {
                 )
                 .reduce(StringUtils.EMPTY, String::concat);
     }
-*/
+
 
     private static String getProcessResultCode(EntityClassDto entityClassDto) {
         return entityClassDto.getColumnFields()
