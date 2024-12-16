@@ -384,75 +384,82 @@ public class ShardDatabaseManagerImpl implements ShardDataBaseManager {
         return transactionalQuery;
     }
 
-    private static class QueryQueue {
-        QueryQueue(String query, List<Long> ids) {
+    private class TransactionalQueryQueue implements QueryQueue {
+        private Map<Integer, List<List<Long>>> chunkIds;
+        private final String query;
+        private TransactionalQuery transactionalQuery;
 
+        TransactionalQueryQueue(String query, List<Long> ids) {
+            if (!query.contains("<IDS>")) {
+                throw new ShardDataBaseException("В запросе отсутствует обязательный параметр <IDS>!");
+            }
+            this.query = query;
+            this.chunkIds = groupIds(ids)
+                    .entrySet()
+                    .stream()
+                    .collect(
+                            Collectors.toMap(
+                                    Map.Entry::getKey,
+                                    it -> Lists.partition(it.getValue(), sqlInClauseLimit))
+                    );
+        }
+
+        @Override
+        public TransactionalQuery get() {
+            Set<UUID> currentTaskQueries = new HashSet<>();
+            SharedEntityTransaction transaction = (SharedEntityTransaction) sharedTransactionManager.getTransaction();
+            Map<Integer, List<List<Long>>> newChunkIds = new HashMap<>();
+            for (Map.Entry<Integer, List<List<Long>>> groupIds: chunkIds.entrySet()) {
+                TransactionalTask currentTask = null;
+                DataBaseInstance shard = shards.get(groupIds.getKey());
+                for (int i = 0; i < groupIds.getValue().size(); i++) {
+                    List<Long> idLists = groupIds.getValue().get(i);
+                    if (currentTask != null) {
+                        transaction.addParallel(shard);
+                    }
+                    TransactionalTask task = getTransactionalTask(shard);
+                    currentTask = (currentTask == null) ? task : currentTask;
+                    if (currentTaskQueries.contains(task.getTaskUuid())) {
+                        newChunkIds.put(groupIds.getKey(), groupIds.getValue().subList(i, groupIds.getValue().size()));
+                        break;
+                    } else {
+                        TransactionalQuery currentQuery =
+                                task.
+                                        createQuery(
+                                                query.replace(
+                                                        "<IDS>",
+                                                        idLists
+                                                                .stream()
+                                                                .map(it -> "?")
+                                                                .collect(Collectors.joining(","))
+                                                ),
+                                                QueryType.SELECT,
+                                                null
+                                        )
+                                        .bindAll(idLists.toArray());
+                        currentTaskQueries.add(task.getTaskUuid());
+                        if (transactionalQuery == null) {
+                            transactionalQuery = currentQuery;
+                            transactionalQuery.setParallelRun(
+                                    Optional.ofNullable(shardDataBaseConfig.getParallelRun()).orElse(true)
+                            );
+                        } else {
+                            transactionalQuery.addRelatedQuery(currentQuery);
+                        }
+                    }
+                }
+                if (currentTask != null) {
+                    transaction.setCurrentTask(shard, currentTask);
+                }
+            }
+            this.chunkIds = newChunkIds;
+            return transactionalQuery;
         }
     }
 
     @Override
-    public TransactionalQuery createQueryByIds(String query, List<Long> ids) {
-
-        if (!query.contains("<IDS>")) {
-            throw new ShardDataBaseException("В запросе отсутствует обязательный параметр <IDS>!");
-        }
-        TransactionalQuery mainQuery = null;
-        Set<UUID> currentTaskQueries = new HashSet<>();
-        SharedEntityTransaction transaction = (SharedEntityTransaction) sharedTransactionManager.getTransaction();
-        for (Map.Entry<Integer, List<Long>> groupIds: groupIds(ids).entrySet()) {
-            TransactionalTask currentTask = null;
-            DataBaseInstance shard = shards.get(groupIds.getKey());
-            for (List<Long> idLists : Lists.partition(groupIds.getValue(), sqlInClauseLimit)) {
-                if (currentTask != null) {
-                    transaction.addParallel(shard);
-                }
-                TransactionalTask task = getTransactionalTask(shard);
-                currentTask = (currentTask == null) ? task : currentTask;
-
-
-
-
-
-                if (currentTaskQueries.contains(task.getTaskUuid())) {
-
-                    break;
-
-
-                    currentTaskQueries.get(task.getTaskUuid()).addQueryPart(currentQuery);
-
-
-                } else {
-                    TransactionalQuery currentQuery =
-                            task.
-                                    createQuery(
-                                            query.replace(
-                                                    "<IDS>",
-                                                    idLists
-                                                            .stream()
-                                                            .map(it -> "?")
-                                                            .collect(Collectors.joining(","))
-                                            ),
-                                            QueryType.SELECT,
-                                            null
-                                    )
-                                    .bindAll(idLists.toArray());
-
-                    currentTaskQueries.add(task.getTaskUuid());
-                    if (mainQuery == null) {
-                        mainQuery = currentQuery;
-                        mainQuery.setParallelRun(
-                                Optional.ofNullable(shardDataBaseConfig.getParallelRun()).orElse(true)
-                        );
-                    } else {
-                        mainQuery.addRelatedQuery(currentQuery);
-                    }
-                }
-            }
-            if (currentTask != null) {
-                transaction.setCurrentTask(shard, currentTask);
-            }
-        }
-        return mainQuery;
+    public QueryQueue createQueryQueueByIds(String query, List<Long> ids) {
+        return new TransactionalQueryQueue(query, ids);
     }
 
     private TransactionalTask createTask(DataBaseInstance shard) {

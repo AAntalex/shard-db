@@ -5,6 +5,7 @@ import com.antalex.db.model.Cluster;
 import com.antalex.db.model.DataBaseInstance;
 import com.antalex.db.model.StorageContext;
 import com.antalex.db.model.enums.QueryType;
+import com.antalex.db.service.api.QueryQueue;
 import com.antalex.db.service.api.TransactionalQuery;
 import com.antalex.db.service.api.TransactionalTask;
 
@@ -39,5 +40,5 @@ public interface ShardDataBaseManager {
     Boolean isEnabled(DataBaseInstance shard);
     void saveTransactionInfo();
     TransactionalQuery createQuery(DataBaseInstance shard, String query, QueryType queryType);
-    TransactionalQuery createQueryByIds(String query, List<Long> ids);
+    QueryQueue createQueryQueueByIds(String query, List<Long> ids);
 }
