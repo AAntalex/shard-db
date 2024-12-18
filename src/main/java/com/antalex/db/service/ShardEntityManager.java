@@ -138,11 +138,11 @@ public interface ShardEntityManager {
     }
 
     default <T extends ShardInstance> List<T> findAll(Class<T> clazz, String condition, Object... binds) {
-        return findAllLimit(clazz, (Map<String, DataStorage>) null, null, condition, binds);
+        return findAllLimit(clazz, null, null, condition, binds);
     }
 
     default  <T extends ShardInstance> List<T> findAllLimit(Class<T> clazz, Integer limit) {
-        return findAllLimit(clazz, (Map<String, DataStorage>) null, limit, null);
+        return findAllLimit(clazz, null, limit, null);
     }
 
     default  <T extends ShardInstance> List<T> findAll(Class<T> clazz) {
@@ -150,7 +150,18 @@ public interface ShardEntityManager {
     }
 
     default  <T extends ShardInstance> List<T> findAllByIds(Class<T> clazz, String condition, List<Long> ids) {
-        return findAllByIds(clazz, (Map<String, DataStorage>) null, condition, ids);
+        return findAllByIds(clazz, null, condition, ids);
+    }
+
+    default  <T extends ShardInstance> List<T> findAllByIds(Class<T> clazz,
+                                                            Map<String, DataStorage> storageMap,
+                                                            List<Long> ids)
+    {
+        return findAllByIds(clazz, storageMap, null, ids);
+    }
+
+    default  <T extends ShardInstance> List<T> findAllByIds(Class<T> clazz, List<Long> ids) {
+        return findAllByIds(clazz, null, null, ids);
     }
 
     default <T extends ShardInstance> List<T> skipLocked(

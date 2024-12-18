@@ -348,7 +348,8 @@ public class ShardDatabaseManagerImpl implements ShardDataBaseManager {
                 copyTransactionInfoList = sharedTransactionManager.getTransactionInfoList().stream().toList();
                 sharedTransactionManager.getTransactionInfoList().clear();
             }
-            sharedTransactionManager.getTransaction().begin();
+            SharedEntityTransaction transaction = (SharedEntityTransaction) sharedTransactionManager.getTransaction();
+            transaction.begin();
             copyTransactionInfoList.forEach(transactionInfo -> {
                 getTransactionalTask(transactionInfo.shard())
                         .getQuery(SAVE_TRANSACTION_QUERY, QueryType.DML)
@@ -369,7 +370,7 @@ public class ShardDatabaseManagerImpl implements ShardDataBaseManager {
                         .bind(queryInfo.elapsedTime())
                         .addBatch());
             });
-            ((SharedEntityTransaction) sharedTransactionManager.getTransaction()).commit(false);
+            transaction.commit(false);
         }
     }
 
@@ -384,15 +385,19 @@ public class ShardDatabaseManagerImpl implements ShardDataBaseManager {
         return transactionalQuery;
     }
 
+    @Override
+    public QueryQueue createQueryQueueByIds(String query, List<Long> ids) {
+        if (!query.contains("<IDS>")) {
+            throw new ShardDataBaseException("В запросе отсутствует обязательный параметр <IDS>!");
+        }
+        return new TransactionalQueryQueue(query, ids);
+    }
+
     private class TransactionalQueryQueue implements QueryQueue {
         private Map<Integer, List<List<Long>>> chunkIds;
         private final String query;
-        private TransactionalQuery transactionalQuery;
 
         TransactionalQueryQueue(String query, List<Long> ids) {
-            if (!query.contains("<IDS>")) {
-                throw new ShardDataBaseException("В запросе отсутствует обязательный параметр <IDS>!");
-            }
             this.query = query;
             this.chunkIds = groupIds(ids)
                     .entrySet()
@@ -409,6 +414,7 @@ public class ShardDatabaseManagerImpl implements ShardDataBaseManager {
             Set<UUID> currentTaskQueries = new HashSet<>();
             SharedEntityTransaction transaction = (SharedEntityTransaction) sharedTransactionManager.getTransaction();
             Map<Integer, List<List<Long>>> newChunkIds = new HashMap<>();
+            TransactionalQuery mainQuery = null;
             for (Map.Entry<Integer, List<List<Long>>> groupIds: chunkIds.entrySet()) {
                 TransactionalTask currentTask = null;
                 DataBaseInstance shard = shards.get(groupIds.getKey());
@@ -425,7 +431,7 @@ public class ShardDatabaseManagerImpl implements ShardDataBaseManager {
                     } else {
                         TransactionalQuery currentQuery =
                                 task.
-                                        createQuery(
+                                        getQuery(
                                                 query.replace(
                                                         "<IDS>",
                                                         idLists
@@ -438,13 +444,13 @@ public class ShardDatabaseManagerImpl implements ShardDataBaseManager {
                                         )
                                         .bindAll(idLists.toArray());
                         currentTaskQueries.add(task.getTaskUuid());
-                        if (transactionalQuery == null) {
-                            transactionalQuery = currentQuery;
-                            transactionalQuery.setParallelRun(
+                        if (mainQuery == null) {
+                            mainQuery = currentQuery;
+                            mainQuery.setParallelRun(
                                     Optional.ofNullable(shardDataBaseConfig.getParallelRun()).orElse(true)
                             );
                         } else {
-                            transactionalQuery.addRelatedQuery(currentQuery);
+                            mainQuery.addRelatedQuery(currentQuery);
                         }
                     }
                 }
@@ -453,13 +459,8 @@ public class ShardDatabaseManagerImpl implements ShardDataBaseManager {
                 }
             }
             this.chunkIds = newChunkIds;
-            return transactionalQuery;
+            return mainQuery;
         }
-    }
-
-    @Override
-    public QueryQueue createQueryQueueByIds(String query, List<Long> ids) {
-        return new TransactionalQueryQueue(query, ids);
     }
 
     private TransactionalTask createTask(DataBaseInstance shard) {
@@ -751,10 +752,10 @@ public class ShardDatabaseManagerImpl implements ShardDataBaseManager {
     }
 
     private void getDataBaseInfo() {
-        sharedTransactionManager.getTransaction().begin();
-        clusters.values()
-                .forEach(this::getDataBaseInfo);
-        sharedTransactionManager.getTransaction().commit();
+        sharedTransactionManager.runInTransaction(() ->
+                clusters.values()
+                        .forEach(this::getDataBaseInfo)
+        );
     }
 
 
@@ -796,12 +797,13 @@ public class ShardDatabaseManagerImpl implements ShardDataBaseManager {
     }
 
     private void saveDataBaseInfo() {
-        sharedTransactionManager.getTransaction().begin();
+        SharedEntityTransaction transaction = (SharedEntityTransaction) sharedTransactionManager.getTransaction();
+        transaction.begin();
         newShards
                 .stream()
                 .filter(it -> !it.getRight().getRemote() && Objects.isNull(it.getRight().getDataBaseInfo()))
                 .forEach(it -> saveDataBaseInfo(it.getLeft(), it.getRight()));
-        ((SharedEntityTransaction) sharedTransactionManager.getTransaction()).commit(false);
+        transaction.commit(false);
     }
 
     private <T> Optional<T> getHikariConfigValue(ShardDataBaseConfig shardDataBaseConfig,
@@ -1202,9 +1204,7 @@ public class ShardDatabaseManagerImpl implements ShardDataBaseManager {
         if (!this.liquibaseEnable) {
             return;
         }
-        sharedTransactionManager.getTransaction().begin();
-        runLiquibase(INIT_CHANGE_LOG);
-        sharedTransactionManager.getTransaction().commit();
+        sharedTransactionManager.runInTransaction(() -> runLiquibase(INIT_CHANGE_LOG));
     }
 
     private void runLiquibaseFromPath(String path, DataBaseInstance shard) {
@@ -1245,39 +1245,44 @@ public class ShardDatabaseManagerImpl implements ShardDataBaseManager {
         if (!this.liquibaseEnable) {
             return;
         }
-        sharedTransactionManager.getTransaction().begin();
-        Optional.ofNullable(this.changLogPath)
-                .filter(src -> resourceLoader.getResource(src).exists())
-                .ifPresent(path -> {
-                    Optional.of(path + File.separatorChar + CLUSTERS_PATH)
-                            .filter(src -> resourceLoader.getResource(src).exists())
-                            .ifPresent(clustersPath -> {
-                                runLiquibaseFromPath(clustersPath);
-                                clusters.forEach((clusterName, cluster) ->
-                                    Optional.of(clustersPath + File.separatorChar + clusterName)
-                                            .filter(src -> resourceLoader.getResource(src).exists())
-                                            .ifPresent(clusterPath -> {
-                                                runLiquibaseFromPath(clusterPath, cluster);
-                                                Optional.of(clusterPath + File.separatorChar + SHARDS_PATH)
+        sharedTransactionManager.runInTransaction(() ->
+                Optional.ofNullable(this.changLogPath)
+                        .filter(src -> resourceLoader.getResource(src).exists())
+                        .ifPresent(path -> {
+                            Optional.of(path + File.separatorChar + CLUSTERS_PATH)
+                                    .filter(src -> resourceLoader.getResource(src).exists())
+                                    .ifPresent(clustersPath -> {
+                                        runLiquibaseFromPath(clustersPath);
+                                        clusters.forEach((clusterName, cluster) ->
+                                                Optional.of(clustersPath + File.separatorChar + clusterName)
                                                         .filter(src -> resourceLoader.getResource(src).exists())
-                                                        .ifPresent(shardsPath -> {
-                                                            runLiquibaseFromPath(shardsPath, cluster);
-                                                            cluster
-                                                                    .getShards()
-                                                                    .forEach(shard ->
-                                                                            runLiquibaseFromPath(
-                                                                                    shardsPath +
-                                                                                            File.separatorChar +
-                                                                                            shard.getId()
-                                                                                    , shard
-                                                                            )
-                                                                    );
-                                                        });
-                                            })
-                                );
-                            });
-                    runLiquibaseFromPath(path, getDefaultCluster().getMainShard());
-                });
-        sharedTransactionManager.getTransaction().commit();
+                                                        .ifPresent(clusterPath -> {
+                                                            runLiquibaseFromPath(clusterPath, cluster);
+                                                            Optional.of(
+                                                                    clusterPath +
+                                                                            File.separatorChar +
+                                                                            SHARDS_PATH
+                                                                    )
+                                                                    .filter(src ->
+                                                                            resourceLoader.getResource(src).exists())
+                                                                    .ifPresent(shardsPath -> {
+                                                                        runLiquibaseFromPath(shardsPath, cluster);
+                                                                        cluster
+                                                                                .getShards()
+                                                                                .forEach(shard ->
+                                                                                        runLiquibaseFromPath(
+                                                                                                shardsPath +
+                                                                                                        File.separatorChar +
+                                                                                                        shard.getId()
+                                                                                                , shard
+                                                                                        )
+                                                                                );
+                                                                    });
+                                                        })
+                                        );
+                                    });
+                            runLiquibaseFromPath(path, getDefaultCluster().getMainShard());
+                        })
+        );
     }
 }

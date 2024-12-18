@@ -176,7 +176,6 @@ public class SharedEntityTransaction implements EntityTransaction {
         tasks.clear();
         currentTasks.clear();
         buckets.clear();
-        persistentObjects.values().forEach(Map::clear);
         persistentObjects.clear();
     }
 

@@ -1,5 +1,7 @@
 package com.antalex.db.annotation.processors;
 
+import com.antalex.db.service.api.QueryQueue;
+import com.antalex.db.service.api.TransactionalQuery;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.Lists;
 import org.springframework.beans.factory.annotation.Value;
@@ -48,9 +50,6 @@ import java.util.stream.Collectors;
 import java.util.stream.IntStream;
 
 public class EntityClassBuilder {
-    public static final int SQL_IN_CLAUSE_LIMIT = 1000;
-    public static final String SQL_IN_CLAUSE_LIMIT_PARAM_NAME = "sql-in-clause-limit";
-
     private static final Map<Element, EntityClassDto> ENTITY_CLASSES = new HashMap<>();
 
     private static List<IndexDto> getIndexes(Index[] indexes) {
@@ -391,7 +390,10 @@ public class EntityClassBuilder {
                                             ImmutableMap.class.getCanonicalName(),
                                             Utils.class.getCanonicalName(),
                                             Collectors.class.getCanonicalName(),
-                                            Lists.class.getCanonicalName()
+                                            Lists.class.getCanonicalName(),
+                                            QueryQueue.class.getCanonicalName(),
+                                            TransactionalQuery.class.getCanonicalName(),
+                                            Collections.class.getCanonicalName()
                                     )
                             )
                     )
@@ -449,7 +451,7 @@ public class EntityClassBuilder {
 
             out.println("    private Map<Long, String> updateQueries = new HashMap<>();");
             out.println("    private ShardEntityManager entityManager;");
-            out.println("    private ShardDataBaseManager dataBaseManager;");
+            out.println("    private final ShardDataBaseManager dataBaseManager;");
             out.println("    private final Cluster cluster;");
 
             out.println();
@@ -898,18 +900,27 @@ public class EntityClassBuilder {
                 "            List<Long> ids,\n" +
                 "            String condition)\n" +
                 "    {\n" +
-                "        return findAll(\n" +
-                "                dataBaseManager\n" +
-                "                        .createQueryByIds(\n" +
-                "                                getSelectQuery(storageMap) +\n" +
-                "                                        \" and \" +\n" +
-                "                                        Optional.ofNullable(Utils.transformCondition(condition, FIELD_MAP))\n" +
-                "                                                .orElse(\"x0.ID in (<IDS>)\"),\n" +
-                "                                ids\n" +
-                "                        )\n" +
-                "                        .getResult(),\n" +
-                "                null\n" +
-                "        );\n" +
+                "        List<" + entityClassDto.getTargetClassName() + "> result = new ArrayList<>();\n" +
+                "        QueryQueue queue = dataBaseManager\n" +
+                "                .createQueryQueueByIds(\n" +
+                "                        getSelectQuery(storageMap) +\n" +
+                "                                \" and \" +\n" +
+                "                                Optional.ofNullable(Utils.transformCondition(condition, FIELD_MAP))\n" +
+                "                                        .orElse(\"x0.ID in (<IDS>)\"),\n" +
+                "                        ids\n" +
+                "                );\n" +
+                "        while (true) {\n" +
+                "            if (\n" +
+                "                    !result.addAll(\n" +
+                "                            Optional\n" +
+                "                                    .ofNullable(queue.get())\n" +
+                "                                    .map(TransactionalQuery::getResult)\n" +
+                "                                    .map(it -> findAll(it, storageMap))\n" +
+                "                                    .orElse(Collections.emptyList())\n" +
+                "                    )\n" +
+                "            ) break;\n" +
+                "        }\n" +
+                "        return result;\n" +
                 "    }";
     }
 
@@ -1003,12 +1014,12 @@ public class EntityClassBuilder {
                 .filter(it -> Objects.nonNull(it.getSetter()))
                 .count() + 2;
     }
-
-/*    private static String getProcessLinkedEntityCode(EntityClassDto entityClassDto) {
+/*
+    private static String getProcessLinkedEntityCode(EntityClassDto entityClassDto) {
         return entityClassDto.getFields()
                 .stream()
                 .filter(it -> it.getIsLinkedEntity() && !isLazyList(it))
-                .map(field -> "                Lists.partition(entities, 1000)\n" +
+                .map(field -> "                Lists.partition(entities, 30)\n" +
                         "                        .forEach(partEntities ->\n" +
                         "                entityManager.findAll(\n" +
                         "                                                " +
@@ -1045,7 +1056,8 @@ public class EntityClassBuilder {
                         "                        );\n"
                 )
                 .reduce(StringUtils.EMPTY, String::concat);
-    }*/
+    }
+*/
 
 
     private static String getProcessLinkedEntityCode(EntityClassDto entityClassDto) {
@@ -1081,6 +1093,7 @@ public class EntityClassBuilder {
                 )
                 .reduce(StringUtils.EMPTY, String::concat);
     }
+
 
 
     private static String getProcessResultCode(EntityClassDto entityClassDto) {
@@ -1202,13 +1215,15 @@ public class EntityClassBuilder {
                                 "        try {\n" +
                                 "            if (!Optional.ofNullable(result.getLong(++index)).map(it -> it == 0L)" +
                                 ".orElse(true)) {\n" +
+
+                                "                if (entity == null) {\n" +
+                                "                    entity = entityManager.getEntity(" +
+                                entityClassDto.getTargetClassName() + ".class, result.getLong(index));\n" +
+                                "                }\n" +
                                 "                " + entityClassDto.getTargetClassName() +
-                                ProcessorUtils.CLASS_INTERCEPT_POSTFIX +
-                                " entityInterceptor =\n" +
-                                "                        (" + entityClassDto.getTargetClassName() +
-                                ProcessorUtils.CLASS_INTERCEPT_POSTFIX + ") Optional.ofNullable(entity)\n" +
-                                "                                .orElse(entityManager.getEntity(" +
-                                entityClassDto.getTargetClassName() + ".class, result.getLong(index)));\n" +
+                                ProcessorUtils.CLASS_INTERCEPT_POSTFIX + " entityInterceptor = (" +
+                                entityClassDto.getTargetClassName() + ProcessorUtils.CLASS_INTERCEPT_POSTFIX +
+                                ") entity;\n" +
                                 "                entityInterceptor.setShardMap(result.getLong(++index));\n",
                         String::concat
                 ) +

@@ -1,8 +1,9 @@
 package com.antalex.db.service.impl.repository;
 
-import com.antalex.db.entity.AttributeHistoryEntity;
 import com.antalex.db.model.StorageContext;
 import com.antalex.db.service.ShardDataBaseManager;
+import com.antalex.db.service.api.QueryQueue;
+import com.antalex.db.service.api.TransactionalQuery;
 import com.google.common.collect.ImmutableMap;
 import com.antalex.db.entity.AttributeStorage;
 import com.antalex.db.entity.AttributeStorageInterceptor;
@@ -51,7 +52,7 @@ public class AttributeStorageRepository implements ShardEntityRepository<Attribu
     private final Map<Long, String> updateQueries = new HashMap<>();
 
     private ShardEntityManager entityManager;
-    private ShardDataBaseManager dataBaseManager;
+    private final ShardDataBaseManager dataBaseManager;
 
     @Autowired
     AttributeStorageRepository(ShardDataBaseManager dataBaseManager) {
@@ -222,17 +223,27 @@ public class AttributeStorageRepository implements ShardEntityRepository<Attribu
             List<Long> ids,
             String condition)
     {
-        return findAll(
-                dataBaseManager
-                        .createQueryByIds(
-                                SELECT_QUERY +
-                                        " and " +
-                                        Optional.ofNullable(Utils.transformCondition(condition, FIELD_MAP))
-                                                .orElse("x0.ID in (<IDS>)"),
-                                ids
-                        )
-                        .getResult()
-        );
+        List<AttributeStorage> result = new ArrayList<>();
+        QueryQueue queue = dataBaseManager
+                .createQueryQueueByIds(
+                        SELECT_QUERY +
+                                " and " +
+                                Optional.ofNullable(Utils.transformCondition(condition, FIELD_MAP))
+                                        .orElse("x0.ID in (<IDS>)"),
+                        ids
+                );
+        while (true) {
+            if (
+                    !result.addAll(
+                            Optional
+                                    .ofNullable(queue.get())
+                                    .map(TransactionalQuery::getResult)
+                                    .map(this::findAll)
+                                    .orElse(Collections.emptyList())
+                    )
+            ) break;
+        }
+        return result;
     }
 
     public AttributeStorage find(ShardInstance parent, DataStorage storage) {

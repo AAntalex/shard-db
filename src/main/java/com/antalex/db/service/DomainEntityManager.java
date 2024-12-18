@@ -19,6 +19,7 @@ public interface DomainEntityManager {
     <T extends Domain> T find(Class<T> clazz, Long id);
     <T extends Domain> T find(Class<T> clazz, String condition, Object... binds);
     <T extends Domain> List<T> findAllLimit(Class<T> clazz, Integer limit, String condition, Object... binds);
+    <T extends Domain> List<T> findAllByIds(Class<T> clazz, String condition, List<Long> ids);
     <T extends Domain> List<T> skipLocked(Class<T> clazz, Integer limit, String condition, Object... binds);
     <T extends Domain> Map<String, String> getFieldMap(Class<T> clazz);
     <T extends Domain> T save(T domain);
@@ -46,6 +47,10 @@ public interface DomainEntityManager {
 
     default  <T extends Domain> List<T> findAll(Class<T> clazz) {
         return findAllLimit(clazz, null);
+    }
+
+    default  <T extends Domain> List<T> findAllByIds(Class<T> clazz, List<Long> ids) {
+        return findAllByIds(clazz, null, ids);
     }
 
     default  <T extends Domain> List<T> skipLocked(Class<T> clazz, String condition, Object... binds) {

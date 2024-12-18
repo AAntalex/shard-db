@@ -104,6 +104,20 @@ public class DomainEntityManagerImpl implements DomainEntityManager {
     }
 
     @Override
+    public <T extends Domain> List<T> findAllByIds(Class<T> clazz, String condition, List<Long> ids) {
+        Mapper mapper = getMapper(clazz);
+        return sharedTransactionManager.runInTransaction(() -> mapAllToDomains(
+                clazz,
+                entityManager.findAllByIds(
+                        mapper.entityClass,
+                        mapper.domainEntityMapper.getDataStorage(),
+                        Utils.transformCondition(condition, mapper.domainEntityMapper.getFieldMap()),
+                        ids
+                )
+        ));
+    }
+
+    @Override
     public <T extends Domain> List<T> skipLocked(Class<T> clazz, Integer limit, String condition, Object... binds) {
         Mapper mapper = getMapper(clazz);
         return mapAllToDomains(

@@ -348,8 +348,7 @@ public class ShardEntityManagerImpl implements ShardEntityManager {
 
     @Override
     public void flush() {
-        SharedEntityTransaction transaction = (SharedEntityTransaction) getTransaction();
-        transaction.commit();
+        getTransaction().commit();
     }
 
     @Override
@@ -435,11 +434,12 @@ public class ShardEntityManagerImpl implements ShardEntityManager {
         if (Optional.ofNullable(id).map(it -> it.equals(0L)).orElse(true)) {
             return null;
         }
-        T entity = ((SharedEntityTransaction) getTransaction()).getPersistentObject(clazz, id);
+        SharedEntityTransaction transaction = (SharedEntityTransaction) getTransaction();
+        T entity = transaction.getPersistentObject(clazz, id);
         if (Objects.isNull(entity)) {
             ShardEntityRepository<T> repository = getEntityRepository(clazz);
             entity = repository.getEntity(id, dataBaseManager.getStorageContext(id));
-            addEntity(entity);
+            addEntity(transaction, clazz, entity, id);
         }
         return entity;
     }
@@ -610,12 +610,13 @@ public class ShardEntityManagerImpl implements ShardEntityManager {
     }
 
     private <T extends ShardInstance> void persist(T entity, boolean onlyChanged, boolean force, boolean delete) {
+        EntityTransaction transaction = getTransaction();
         if (
                 Optional.ofNullable(entity)
                         .map(ShardInstance::getStorageContext)
                         .map(it -> delete || !it.isLazy())
                         .orElse(false) &&
-                        entity.setTransactionalContext(getTransaction()))
+                        entity.setTransactionalContext(transaction))
         {
             ShardEntityRepository<T> repository = getEntityRepository(entity.getClass());
             if (!delete) {
@@ -647,7 +648,12 @@ public class ShardEntityManagerImpl implements ShardEntityManager {
                 entity.getStorageContext().persist(delete);
                 entity.getAttributeStorage().forEach(it -> persist(it, onlyChanged, force, delete));
                 if (!delete) {
-                    addEntity(entity);
+                    addEntity(
+                            (SharedEntityTransaction) transaction,
+                            entity.getClass().getSuperclass(),
+                            entity,
+                            entity.getId()
+                    );
                 }
             }
             entity.getAttributeStorage().clear();
@@ -655,15 +661,16 @@ public class ShardEntityManagerImpl implements ShardEntityManager {
         }
     }
 
-    private <T extends ShardInstance> void addEntity(T entity) {
+    private <T extends ShardInstance> void addEntity(
+            SharedEntityTransaction transaction,
+            Class<?> clazz,
+            T entity,
+            Long id)
+    {
         if (entity == null) {
             return;
         }
-        ((SharedEntityTransaction) getTransaction()).addPersistentObject(
-                entity.getClass().getSuperclass(),
-                entity.getId(),
-                entity
-        );
+        transaction.addPersistentObject(clazz, id, entity);
     }
 
     private void checkShardMap(ShardInstance entity, ShardType shardType) {

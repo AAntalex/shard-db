@@ -2,6 +2,8 @@ package com.antalex.db.service.impl.repository;
 
 import com.antalex.db.model.StorageContext;
 import com.antalex.db.service.ShardDataBaseManager;
+import com.antalex.db.service.api.QueryQueue;
+import com.antalex.db.service.api.TransactionalQuery;
 import com.google.common.collect.ImmutableMap;
 import org.apache.commons.lang3.StringUtils;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -37,7 +39,7 @@ public class AttributeHistoryRepository implements ShardEntityRepository<Attribu
             .build();
 
     private ShardEntityManager entityManager;
-    private ShardDataBaseManager dataBaseManager;
+    private final ShardDataBaseManager dataBaseManager;
 
     @Autowired
     AttributeHistoryRepository(ShardDataBaseManager dataBaseManager) {
@@ -277,17 +279,27 @@ public class AttributeHistoryRepository implements ShardEntityRepository<Attribu
             List<Long> ids,
             String condition)
     {
-        return findAll(
-                dataBaseManager
-                        .createQueryByIds(
-                                SELECT_QUERY +
-                                        Optional.ofNullable(Utils.transformCondition(condition, FIELD_MAP))
-                                                .map(it -> " and " + it)
-                                                .orElse(StringUtils.EMPTY),
-                                ids
-                        )
-                        .getResult()
-        );
+        List<AttributeHistoryEntity> result = new ArrayList<>();
+        QueryQueue queue = dataBaseManager
+            .createQueryQueueByIds(
+                    SELECT_QUERY +
+                            " and " +
+                            Optional.ofNullable(Utils.transformCondition(condition, FIELD_MAP))
+                                    .orElse("x0.ID in (<IDS>)"),
+                    ids
+            );
+        while (true) {
+            if (
+                    !result.addAll(
+                    Optional
+                            .ofNullable(queue.get())
+                            .map(TransactionalQuery::getResult)
+                            .map(this::findAll)
+                            .orElse(Collections.emptyList())
+                    )
+            ) break;
+        }
+        return result;
     }
 
     private List<AttributeHistoryEntity> findAll(ResultQuery result) {
