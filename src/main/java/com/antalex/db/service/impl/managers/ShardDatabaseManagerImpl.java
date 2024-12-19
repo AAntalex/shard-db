@@ -59,7 +59,7 @@ public class ShardDatabaseManagerImpl implements ShardDataBaseManager {
     private static final int DEFAULT_TIME_OUT_DB_PROCESSOR = 10;
     private static final long DEFAULT_TIME_OUT_LOCK_PROCESSOR = 60;
     private static final long DEFAULT_DELAY_LOCK_PROCESSOR = 10;
-    private static final int SQL_IN_CLAUSE_LIMIT = 1000;
+    private static final int SQL_IN_CLAUSE_LIMIT = 100;
     private static final int PERCENT_OF_ACTIVE_CONNECTION_FOR_PARALLEL_LIMIT = 50;
     private static final String SELECT_DB_INFO = "SELECT SHARD_ID,MAIN_SHARD,CLUSTER_ID,CLUSTER_NAME,DEFAULT_CLUSTER" +
             ",SEGMENT_NAME,ACCESSIBLE FROM $$$.APP_DATABASE";
