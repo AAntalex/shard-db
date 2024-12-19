@@ -12,5 +12,6 @@ public class ClusterConfig {
     private List<ShardConfig> shards;
     private HikariSettings hikari;
     private Integer activeConnectionParallelLimit;
+    private Integer percentActiveConnectionParallelLimit;
     private Integer sequenceCacheSize;
 }

@@ -1014,51 +1014,6 @@ public class EntityClassBuilder {
                 .filter(it -> Objects.nonNull(it.getSetter()))
                 .count() + 2;
     }
-/*
-    private static String getProcessLinkedEntityCode(EntityClassDto entityClassDto) {
-        return entityClassDto.getFields()
-                .stream()
-                .filter(it -> it.getIsLinkedEntity() && !isLazyList(it))
-                .map(field -> "                Lists.partition(entities, 30)\n" +
-                        "                        .forEach(partEntities ->\n" +
-                        "                entityManager.findAll(\n" +
-                        "                                                " +
-                        ProcessorUtils.getFinalType(field.getElement()) + ".class,\n" +
-                        "                                                \"x0.C_B_REF in (\" + \n" +
-                        "                                                        partEntities\n" +
-                        "                                                                .stream()\n" +
-                        "                                                                .map(it -> \"?\")\n" +
-                        "                                                                .collect(Collectors." +
-                        "joining(\", \")) + \n" +
-                        "                                                        \")\",\n" +
-                        "                                                partEntities\n" +
-                        "                                                        .stream()\n" +
-                        "                                                        .map(ShardInstance::getId)\n" +
-                        "                                                        .toList()\n" +
-                        "                                                        .toArray()\n" +
-                        "                                        )\n" +
-                        "                                        .forEach(l ->\n" +
-                        "                                                ((" + entityClassDto.getTargetClassName() +
-                        ProcessorUtils.CLASS_INTERCEPT_POSTFIX + ") " +
-                        (
-                                ProcessorUtils.isAnnotationPresentByType(
-                                        field.getLinkedField().getElement(),
-                                        ShardEntity.class
-                                ) ?
-                                        "l." + field.getLinkedField().getGetter() + "()" :
-                                        "entityManager.getEntity(" + entityClassDto.getTargetClassName() +
-                                                ".class, l." + field.getLinkedField().getGetter() + "())"
-                        ) +
-                        ")\n" +
-                        "                                                        ." + field.getGetter() + "(false)\n" +
-                        "                                                        .add(l)\n" +
-                        "                                        )\n" +
-                        "                        );\n"
-                )
-                .reduce(StringUtils.EMPTY, String::concat);
-    }
-*/
-
 
     private static String getProcessLinkedEntityCode(EntityClassDto entityClassDto) {
         return entityClassDto.getFields()
@@ -1093,8 +1048,6 @@ public class EntityClassBuilder {
                 )
                 .reduce(StringUtils.EMPTY, String::concat);
     }
-
-
 
     private static String getProcessResultCode(EntityClassDto entityClassDto) {
         return entityClassDto.getColumnFields()

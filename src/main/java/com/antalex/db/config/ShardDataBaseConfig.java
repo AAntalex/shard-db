@@ -20,6 +20,7 @@ public class ShardDataBaseConfig {
     private ThreadPoolConfig threadPool;
     private LockProcessorConfig lockProcessor;
     private Integer activeConnectionParallelLimit;
+    private Integer percentActiveConnectionParallelLimit;
     private Boolean parallelRun;
     private ChecksConfig checks;
     private Integer sequenceCacheSize;

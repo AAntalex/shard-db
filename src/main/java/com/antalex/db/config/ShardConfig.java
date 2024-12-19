@@ -10,6 +10,7 @@ public class ShardConfig {
     private RemoteConfig remote;
     private HikariSettings hikari;
     private Integer activeConnectionParallelLimit;
+    private Integer percentActiveConnectionParallelLimit;
     private Integer sequenceCacheSize;
     private String segment;
     private Boolean accessible;

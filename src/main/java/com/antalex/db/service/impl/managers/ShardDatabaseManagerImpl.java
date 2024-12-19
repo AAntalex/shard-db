@@ -991,13 +991,30 @@ public class ShardDatabaseManagerImpl implements ShardDataBaseManager {
                                     .map(DataSourceConfig::getOwner)
                                     .orElse(dataSource.getUsername())
                     );
+                    Integer percent = Optional.ofNullable(shardConfig.getPercentActiveConnectionParallelLimit())
+                            .orElse(
+                                    Optional.ofNullable(clusterConfig.getPercentActiveConnectionParallelLimit())
+                                            .orElse(
+                                                    Optional.ofNullable(
+                                                            shardDataBaseConfig
+                                                                    .getPercentActiveConnectionParallelLimit()
+                                                            )
+                                                            .orElse(PERCENT_OF_ACTIVE_CONNECTION_FOR_PARALLEL_LIMIT)
+                                            )
+                            );
                     shard.setActiveConnectionParallelLimit(
                             Optional.ofNullable(shardConfig.getActiveConnectionParallelLimit())
                                     .orElse(
                                             Optional.ofNullable(clusterConfig.getActiveConnectionParallelLimit())
                                                     .orElse(
-                                                            Optional.ofNullable(shardDataBaseConfig.getActiveConnectionParallelLimit())
-                                                                    .orElse(0)
+                                                            Optional.ofNullable(
+                                                                    shardDataBaseConfig
+                                                                            .getActiveConnectionParallelLimit()
+                                                                    )
+                                                                    .orElse(
+                                                                            hikariConfig.getMaximumPoolSize() *
+                                                                                    percent / 100
+                                                                    )
                                                     )
                                     )
                     );
