@@ -80,6 +80,13 @@ databaseChangeLog:
               - column:
                   name: ERROR
                   type: VARCHAR(2000)
+        - createIndex:
+            columns:
+              - column:
+                  name: UUID
+            indexName: IDX_APP_TRANSACTION_UUID
+            tableName: APP_TRANSACTION
+            unuque: true
         - createTable:
             tableName: APP_DML_QUERY
             columns:
@@ -103,6 +110,12 @@ databaseChangeLog:
               - column:
                   name: ELAPSED_TIME
                   type: bigint
+        - createIndex:
+            columns:
+              - column:
+                  name: TRN_UUID
+            indexName: IDX_APP_DML_QUERY_TRN_UUID
+            tableName: APP_DML_QUERY
         - createTable:
             tableName: APP_ATTRIBUTE_STORAGE
             columns:
@@ -118,6 +131,9 @@ databaseChangeLog:
                   type: int
               - column:
                   name: ST
+                  type: VARCHAR(40)
+              - column:
+                  name: PREV_ST
                   type: VARCHAR(40)
               - column:
                   name: SHARD_MAP
@@ -158,6 +174,9 @@ databaseChangeLog:
                   type: int
               - column:
                   name: ST
+                  type: VARCHAR(40)
+              - column:
+                  name: PREV_ST
                   type: VARCHAR(40)
               - column:
                   name: SHARD_MAP

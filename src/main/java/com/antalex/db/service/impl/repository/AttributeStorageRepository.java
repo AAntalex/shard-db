@@ -28,9 +28,9 @@ import java.util.stream.IntStream;
 
 @Component
 public class AttributeStorageRepository implements ShardEntityRepository<AttributeStorage> {
-    private static final String UPD_QUERY_PREFIX = "UPDATE $$$.APP_ATTRIBUTE_STORAGE SET SN=SN+1,ST=?,SHARD_MAP=?";
+    private static final String UPD_QUERY_PREFIX = "UPDATE $$$.APP_ATTRIBUTE_STORAGE SET SN=SN+1,PREV_ST=ST,ST=?,SHARD_MAP=?";
     private static final String INS_QUERY = "INSERT INTO $$$.APP_ATTRIBUTE_STORAGE (SN,ST,SHARD_MAP,C_ENTITY_ID,C_STORAGE_NAME,C_DATA,C_DATA_FORMAT,ID) VALUES (0,?,?,?,?,?,?,?)";
-    private static final String UPD_QUERY = "UPDATE $$$.APP_ATTRIBUTE_STORAGE SET SN=SN+1,ST=?,SHARD_MAP=?,C_ENTITY_ID=?,C_STORAGE_NAME=?,C_DATA=?,C_DATA_FORMAT=? WHERE ID=?";
+    private static final String UPD_QUERY = "UPDATE $$$.APP_ATTRIBUTE_STORAGE SET SN=SN+1,PREV_ST=ST,ST=?,SHARD_MAP=?,C_ENTITY_ID=?,C_STORAGE_NAME=?,C_DATA=?,C_DATA_FORMAT=? WHERE ID=?";
     private static final String LOCK_QUERY = "SELECT ID FROM $$$.APP_ATTRIBUTE_STORAGE WHERE ID=? FOR UPDATE NOWAIT";
     private static final String SELECT_QUERY = "SELECT x0.ID,x0.SHARD_MAP,x0.C_ENTITY_ID,x0.C_STORAGE_NAME,x0.C_DATA,x0.C_DATA_FORMAT FROM $$$.APP_ATTRIBUTE_STORAGE x0 WHERE x0.SHARD_MAP>=0";
     private static final String DELETE_QUERY = "DELETE FROM $$$.APP_ATTRIBUTE_STORAGE WHERE ID=?";

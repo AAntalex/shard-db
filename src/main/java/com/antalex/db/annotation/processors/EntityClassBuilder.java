@@ -274,7 +274,7 @@ public class EntityClassBuilder {
                 .filter(it -> Objects.nonNull(it.getGetter()))
                 .map(field -> "," + field.getColumnName() + "=?")
                 .reduce(
-                        "UPDATE $$$." + entityClassDto.getTableName() + " SET SN=SN+1,ST=?,SHARD_MAP=?",
+                        "UPDATE $$$." + entityClassDto.getTableName() + " SET SN=SN+1,PREV_ST=ST,ST=?,SHARD_MAP=?",
                         String::concat
                 ) + " WHERE ID=?";
     }
@@ -411,7 +411,7 @@ public class EntityClassBuilder {
 
             out.println(
                     "    private static final String UPD_QUERY_PREFIX = \"UPDATE $$$." +
-                            entityClassDto.getTableName() + " SET SN=SN+1,ST=?,SHARD_MAP=?\";"
+                            entityClassDto.getTableName() + " SET SN=SN+1,PREV_ST=ST,ST=?,SHARD_MAP=?\";"
             );
             out.println(
                     "    private static final String INS_QUERY = \"" + getInsertSQLCode(entityClassDto, false) +
