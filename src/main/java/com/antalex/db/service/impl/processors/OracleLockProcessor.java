@@ -23,7 +23,6 @@ public class OracleLockProcessor implements LockProcessor<OracleConnection> {
     @Override
     public String getLockInfo(OracleConnection conn, DataBaseInstance instance) {
         try (Connection connection = instance.getDataSource().getConnection()) {
-            Field field = conn.getClass().getDeclaredField("sessionId");
             PreparedStatement preparedStatement = connection.prepareStatement(QUERY);
             Field sessionIdField = conn.getClass().getDeclaredField("sessionId");
             Field serialNumberField  = conn.getClass().getDeclaredField("serialNumber");
