@@ -87,6 +87,7 @@ public class EntityClassBuilder {
                     .tableName(
                             Optional.ofNullable(classElement.getAnnotation(Table.class))
                                     .map(Table::name)
+                                    .filter(StringUtils::isNoneBlank)
                                     .orElse(getTableName(shardEntity.tablePrefix(), classElement))
                     )
                     .chainAccessors(
@@ -209,7 +210,7 @@ public class EntityClassBuilder {
                                         .map(JoinColumn::name)
                                         .orElse(StringUtils.EMPTY)
                         );
-        return StringUtils.isEmpty(columnName) ?
+        return StringUtils.isBlank(columnName) ?
                 columnPrefix +
                         CaseFormat.LOWER_CAMEL.to(CaseFormat.UPPER_UNDERSCORE, element.getSimpleName().toString()) :
                 columnName;
