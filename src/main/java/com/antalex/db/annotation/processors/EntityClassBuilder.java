@@ -1265,7 +1265,7 @@ public class EntityClassBuilder {
                             .append(field.getGetter())
                             .append(
                                     ProcessorUtils.isAnnotationPresentByType(field.getElement(), ShardEntity.class) ?
-                                            "().getId()" :
+                                            "() == null ? null : entity." + field.getGetter() + "().getId()" :
                                             "()"
                             )
                             .append(", checkChanges && !entity.isChanged(")
@@ -1303,7 +1303,7 @@ public class EntityClassBuilder {
                                                 field.getElement(),
                                                 ShardEntity.class
                                         ) ?
-                                                "().getId())\n" :
+                                                "() == null ? null : entity." + field.getGetter() + "().getId())\n" :
                                                 "())\n"
                                 )
                 )
@@ -1340,7 +1340,8 @@ public class EntityClassBuilder {
                                                                 field.getElement(),
                                                                 ShardEntity.class
                                                         ) ?
-                                                                "().getId()" :
+                                                                "() == null ? null : entity." + field.getGetter() +
+                                                                        "().getId()" :
                                                                 "()"
                                                 ) + ", isUpdate && !entity.isChanged(" + field.getColumnIndex() + "))\n"
                                 )
