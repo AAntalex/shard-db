@@ -80,13 +80,6 @@ databaseChangeLog:
               - column:
                   name: ERROR
                   type: VARCHAR(2000)
-        - createIndex:
-            columns:
-              - column:
-                  name: UUID
-            indexName: IDX_APP_TRANSACTION_UUID
-            tableName: APP_TRANSACTION
-            unuque: true
         - createTable:
             tableName: APP_DML_QUERY
             columns:
