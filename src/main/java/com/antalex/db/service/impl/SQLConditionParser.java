@@ -1,24 +1,14 @@
 package com.antalex.db.service.impl;
 
 import com.antalex.db.model.BooleanExpression;
-import com.antalex.db.service.api.BooleanExpressionParser;
+import com.antalex.db.service.abstractive.AbstractBooleanExpressionParser;
 import org.apache.logging.log4j.util.Chars;
 import org.apache.logging.log4j.util.Strings;
 
 import java.util.*;
 import java.util.stream.Collectors;
 
-public class SQLConditionParser implements BooleanExpressionParser {
-    private final Map<String, Integer> predicates = new HashMap<>();
-
-    @Override
-    public BooleanExpression parse(String expression) {
-        BooleanExpression booleanExpression = new BooleanExpression();
-        predicates.clear();
-        parseCondition(expression, booleanExpression);
-        return booleanExpression;
-    }
-
+public class SQLConditionParser extends AbstractBooleanExpressionParser {
     @Override
     public String toString(BooleanExpression booleanExpression) {
         if (booleanExpression.expressions().isEmpty()) {
@@ -34,7 +24,8 @@ public class SQLConditionParser implements BooleanExpressionParser {
                         (!booleanExpression.isAnd() ? ")" : "");
     }
 
-    private void parseCondition(String condition, BooleanExpression expression) {
+    @Override
+    protected void parseCondition(String condition, BooleanExpression expression) {
         Set<Character> escapeCharacters = Set.of(Chars.LF, Chars.CR, Chars.TAB, Chars.SPACE);
         BooleanExpression currentExpression = expression;
         boolean isNot = expression.isNot();
@@ -122,14 +113,6 @@ public class SQLConditionParser implements BooleanExpressionParser {
         setBitMask(currentExpression);
     }
 
-    private void setBitMask(BooleanExpression expression) {
-        String predicate = expression.expression().toString();
-        if (!predicate.isBlank()) {
-            expression.orMask(1L << predicates.computeIfAbsent(predicate, k -> predicates.size() + 1));
-            expression.andMask(~expression.orMask());
-        }
-    }
-
     private int getEndWord(char[] chars, int offset) {
         for (int i = offset; i < chars.length; i++) {
             if (
@@ -192,42 +175,5 @@ public class SQLConditionParser implements BooleanExpressionParser {
                         String.copyValueOf(chars, offset, chars.length - offset)
                 )
         );
-    }
-
-    private void cloneUpExpression(BooleanExpression source, boolean isAnd) {
-        BooleanExpression child = new BooleanExpression();
-        child
-                .expression(source.expression())
-                .expressions(source.expressions())
-                .aliases(source.aliases())
-                .isAnd(source.isAnd())
-                .isNot(source.isNot());
-        source.aliases(new HashSet<>());
-        source.expression(new StringBuilder());
-        source.expressions(new ArrayList<>());
-        source.expressions().add(child);
-        source.isAnd(isAnd);
-        source.isNot(false);
-        source.expression().append("p1");
-    }
-
-    private void concatExpression(BooleanExpression left, BooleanExpression right, boolean isAnd, boolean isNot) {
-        right.isNot(isNot && !right.isNot() || !isNot && right.isNot());
-        if (left.expressions().isEmpty() ||
-                !isNot && left.isAnd() && !isAnd ||
-                isNot && !left.isAnd() && isAnd)
-        {
-            cloneUpExpression(left, isAnd);
-        }
-        if (!isNot && !left.isAnd() && isAnd || isNot && left.isAnd() && !isAnd) {
-            concatExpression(left.expressions().get(left.expressions().size() - 1), right, isAnd, false);
-        }
-        if (left.isAnd() == isAnd) {
-            left.expressions().add(right);
-            left.expression()
-                    .append(isAnd ? " AND " : " OR ")
-                    .append("p")
-                    .append(left.expressions().size());
-        }
     }
 }

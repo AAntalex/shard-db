@@ -16,6 +16,6 @@ public class BooleanExpression {
     private Set<String> aliases = new HashSet<>();
     private boolean isAnd;
     private boolean isNot;
-    private long orMask;
-    private long andMask;
+    private Long orMask;
+    private Long andMask;
 }
