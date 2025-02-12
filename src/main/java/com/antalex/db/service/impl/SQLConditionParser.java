@@ -9,6 +9,9 @@ import java.util.*;
 import java.util.stream.Collectors;
 
 public class SQLConditionParser extends AbstractBooleanExpressionParser {
+    private List<Set<String>> aliases = new ArrayList<>();
+    private Set<String> currentAliases = new HashSet<>();
+
     @Override
     public String toString(BooleanExpression booleanExpression) {
         if (booleanExpression.expressions().isEmpty()) {
@@ -78,7 +81,7 @@ public class SQLConditionParser extends AbstractBooleanExpressionParser {
             }
             if (!curToken.isEmpty()) {
                 if ("OR".equals(curToken) || "AND".equals(curToken)) {
-                    setBitMask(currentExpression);
+                    addPredicate(currentExpression);
                     currentExpression = new BooleanExpression();
                     concatExpression(
                             expression,
@@ -89,7 +92,7 @@ public class SQLConditionParser extends AbstractBooleanExpressionParser {
                     token = Strings.EMPTY;
                 } else if ("NOT".equals(curToken)) {
                     currentExpression.isNot(!currentExpression.isNot());
-                    token = Strings.EMPTY;
+//                    token = Strings.EMPTY;
                 } else {
                     currentExpression
                             .expression()
@@ -102,7 +105,7 @@ public class SQLConditionParser extends AbstractBooleanExpressionParser {
             }
             if (curChar == '.' && !token.isEmpty()) {
                 System.out.println("ALIAS: " + token);
-                currentExpression.aliases().add(token);
+                currentAliases.add(token);
                 lastChar = chars[i];
                 continue;
             }
@@ -110,7 +113,17 @@ public class SQLConditionParser extends AbstractBooleanExpressionParser {
             currentExpression.expression().append(Character.toUpperCase(curChar));
             lastChar = chars[i];
         }
-        setBitMask(currentExpression);
+        addPredicate(currentExpression);
+    }
+
+    @Override
+    protected int addPredicate(BooleanExpression expression) {
+        int index = super.addPredicate(expression);
+        if (index > 0 && aliases.size() < index) {
+            aliases.add(currentAliases);
+            this.currentAliases = new HashSet<>();
+        }
+        return index;
     }
 
     private int getEndWord(char[] chars, int offset) {

@@ -52,12 +52,14 @@ public class AbstractBooleanExpressionParser implements BooleanExpressionParser 
         throw new NotImplementedException();
     }
 
-    protected void setBitMask(BooleanExpression expression) {
+    protected int addPredicate(BooleanExpression expression) {
         String predicate = expression.expression().toString();
         if (!predicate.isBlank()) {
             expression.orMask(1L << predicates.computeIfAbsent(predicate, k -> predicates.size() + 1));
             expression.andMask(~expression.orMask());
+            return predicates.get(predicate);
         }
+        return 0;
     }
 
     protected void cloneUpExpression(BooleanExpression source, boolean isAnd) {
@@ -65,13 +67,11 @@ public class AbstractBooleanExpressionParser implements BooleanExpressionParser 
         child
                 .expression(source.expression())
                 .expressions(source.expressions())
-                .aliases(source.aliases())
                 .isAnd(source.isAnd())
                 .isNot(source.isNot())
                 .orMask(source.orMask())
                 .andMask(source.andMask());
         source
-                .aliases(new HashSet<>())
                 .expression(new StringBuilder())
                 .expressions(new ArrayList<>())
                 .isAnd(isAnd)

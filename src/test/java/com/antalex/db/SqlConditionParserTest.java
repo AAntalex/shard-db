@@ -4,12 +4,8 @@ import com.antalex.db.model.BooleanExpression;
 import com.antalex.db.service.impl.SQLConditionParser;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
-import org.junit.jupiter.api.extension.ExtendWith;
-import org.springframework.test.context.junit.jupiter.SpringExtension;
 
-
-@ExtendWith(SpringExtension.class)
-class SqlConditionParserTest extends BaseIntegrationTest {
+class SqlConditionParserTest {
     @Test
     @DisplayName("Тест получения по id")
     void parseTest() {
@@ -19,7 +15,7 @@ class SqlConditionParserTest extends BaseIntegrationTest {
                   (
                     upper (a1.C_DEST) = ('ASD')
                     and (
-                        "a2".C_DEST like 'A1.ID = ?  AND (A2.C_DEST like \t''AAA%'' or a3.C_DATE >= :date)%'
+                        "a2".C_DEST Not like 'A1.ID = ?  AND (A2.C_DEST like \t''AAA%'' or a3.C_DATE >= :date)%'
                       or a2.C_DEST like 'Aaa%'
                       or a3.C_DATE >= ?
                     )
