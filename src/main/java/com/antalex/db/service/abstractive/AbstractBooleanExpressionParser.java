@@ -13,7 +13,7 @@ public class AbstractBooleanExpressionParser implements BooleanExpressionParser 
     public BooleanExpression parse(String expression) {
         BooleanExpression booleanExpression = new BooleanExpression();
         predicates.clear();
-        parseCondition(expression, booleanExpression);
+        parseCondition(expression, booleanExpression, false);
         calcBitMask(booleanExpression);
         return booleanExpression;
     }
@@ -48,14 +48,14 @@ public class AbstractBooleanExpressionParser implements BooleanExpressionParser 
         throw new NotImplementedException();
     }
 
-    protected void parseCondition(String condition, BooleanExpression expression) {
+    protected void parseCondition(String condition, BooleanExpression expression, boolean recurse) {
         throw new NotImplementedException();
     }
 
     protected int addPredicate(BooleanExpression expression) {
-        String predicate = expression.expression().toString();
-        if (!predicate.isBlank()) {
-            expression.orMask(1L << predicates.computeIfAbsent(predicate, k -> predicates.size() + 1));
+        if (expression.expressions().isEmpty()) {
+            String predicate = expression.expression().toString();
+            expression.orMask(1L << predicates.computeIfAbsent(predicate, k -> predicates.size() + 1) - 1);
             expression.andMask(~expression.orMask());
             return predicates.get(predicate);
         }

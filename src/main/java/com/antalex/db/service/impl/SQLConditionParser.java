@@ -9,8 +9,17 @@ import java.util.*;
 import java.util.stream.Collectors;
 
 public class SQLConditionParser extends AbstractBooleanExpressionParser {
-    private List<Set<String>> aliases = new ArrayList<>();
+    private static final Set<Character> ESCAPE_CHARACTERS = Set.of(Chars.LF, Chars.CR, Chars.TAB, Chars.SPACE);
+
+    private final List<Set<String>> aliases = new ArrayList<>();
     private Set<String> currentAliases = new HashSet<>();
+
+    @Override
+    public BooleanExpression parse(String expression) {
+        aliases.clear();
+        currentAliases.clear();
+        return super.parse(expression);
+    }
 
     @Override
     public String toString(BooleanExpression booleanExpression) {
@@ -28,8 +37,7 @@ public class SQLConditionParser extends AbstractBooleanExpressionParser {
     }
 
     @Override
-    protected void parseCondition(String condition, BooleanExpression expression) {
-        Set<Character> escapeCharacters = Set.of(Chars.LF, Chars.CR, Chars.TAB, Chars.SPACE);
+    protected void parseCondition(String condition, BooleanExpression expression, boolean recurse) {
         BooleanExpression currentExpression = expression;
         boolean isNot = expression.isNot();
         String token = Strings.EMPTY;
@@ -38,7 +46,7 @@ public class SQLConditionParser extends AbstractBooleanExpressionParser {
 
         for (int i = 0; i < chars.length; i++) {
             char curChar = chars[i];
-            if (escapeCharacters.contains(curChar)) continue;
+            if (ESCAPE_CHARACTERS.contains(curChar)) continue;
             if (curChar == Chars.QUOTE) {
                 int endPos = getEndString(chars, i);
                 String currentString = String.copyValueOf(chars, i, endPos - i + 1);
@@ -57,7 +65,11 @@ public class SQLConditionParser extends AbstractBooleanExpressionParser {
                     currentExpression.expression().append("(");
                     needParenthesis = true;
                 }
-                parseCondition(String.copyValueOf(chars, i + 1, endPos - i - 1), currentExpression);
+                parseCondition(
+                        String.copyValueOf(chars, i + 1, endPos - i - 1),
+                        currentExpression,
+                        true
+                );
                 if (expression == currentExpression && !currentExpression.expressions().isEmpty()) {
                     cloneUpExpression(expression, true);
                 }
@@ -92,7 +104,6 @@ public class SQLConditionParser extends AbstractBooleanExpressionParser {
                     token = Strings.EMPTY;
                 } else if ("NOT".equals(curToken)) {
                     currentExpression.isNot(!currentExpression.isNot());
-//                    token = Strings.EMPTY;
                 } else {
                     currentExpression
                             .expression()
@@ -104,7 +115,6 @@ public class SQLConditionParser extends AbstractBooleanExpressionParser {
                 continue;
             }
             if (curChar == '.' && !token.isEmpty()) {
-                System.out.println("ALIAS: " + token);
                 currentAliases.add(token);
                 lastChar = chars[i];
                 continue;
@@ -113,7 +123,9 @@ public class SQLConditionParser extends AbstractBooleanExpressionParser {
             currentExpression.expression().append(Character.toUpperCase(curChar));
             lastChar = chars[i];
         }
-        addPredicate(currentExpression);
+        if (!recurse || currentExpression != expression) {
+            addPredicate(currentExpression);
+        }
     }
 
     @Override

@@ -9,8 +9,11 @@ class SqlConditionParserTest {
     @Test
     @DisplayName("Тест получения по id")
     void parseTest() {
-        String condition = """
+        SQLConditionParser parser = new SQLConditionParser();
+        BooleanExpression expression = parser.parse(
+                """
                 (a1.Id = ? or a1.C_COL = ?)
+                and A1.ID = ?
                 and
                   (
                     upper (a1.C_DEST) = ('ASD')
@@ -37,11 +40,12 @@ class SqlConditionParserTest {
                       AND (D3.C_3 = 3 and D4.C_4 = 4)
                     )
                     OR Not (1=1)
-                  )""";
-
-        SQLConditionParser parser = new SQLConditionParser();
-        BooleanExpression expression = parser.parse(condition);
+                  )"""
+        );
 
         System.out.println("RES: " + parser.toString(expression));
+
+        expression = parser.parse("not c or (a and c) or not (a or c or not b)");
+        System.out.println("RES2: " + parser.toString(expression));
     }
 }
