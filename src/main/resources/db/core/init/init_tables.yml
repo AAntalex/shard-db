@@ -151,7 +151,7 @@ databaseChangeLog:
                   name: C_STORAGE_NAME
             indexName: IDX_ATTRIBUTE_STORAGE_MAIN
             tableName: APP_ATTRIBUTE_STORAGE
-            unuque: true
+            unique: true
         - createTable:
             tableName: APP_ATTRIBUTE_HISTORY
             columns:
