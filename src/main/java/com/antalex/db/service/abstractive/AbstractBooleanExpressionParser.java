@@ -42,6 +42,12 @@ public class AbstractBooleanExpressionParser implements BooleanExpressionParser 
         }
     }
 
+    private String interpret(BooleanExpression booleanExpression) {
+        String operand = "AND";
+        if (booleanExpression.orMask() < 0 || booleanExpression.orMask() > 0 & booleanExpression.andMask() < 0) {
+            operand = "OR";
+        }
+    }
 
     @Override
     public String toString(BooleanExpression booleanExpression) {
