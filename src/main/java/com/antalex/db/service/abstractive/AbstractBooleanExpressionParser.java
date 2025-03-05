@@ -7,12 +7,14 @@ import org.apache.commons.lang3.NotImplementedException;
 import java.util.*;
 
 public class AbstractBooleanExpressionParser implements BooleanExpressionParser {
-    protected final Map<String, Integer> predicates = new LinkedHashMap<>();
+    private final Map<String, Integer> predicates = new LinkedHashMap<>();
+    private final List<String> predicateList = new ArrayList<>();
 
     @Override
     public BooleanExpression parse(String expression) {
         BooleanExpression booleanExpression = new BooleanExpression();
         predicates.clear();
+        predicateList.clear();
         parseCondition(expression, booleanExpression, false);
         calcBitMask(booleanExpression);
         return booleanExpression;
@@ -42,11 +44,56 @@ public class AbstractBooleanExpressionParser implements BooleanExpressionParser 
         }
     }
 
-    private String interpret(BooleanExpression booleanExpression) {
-        String operand = "AND";
-        if (booleanExpression.orMask() < 0 || booleanExpression.orMask() > 0 & booleanExpression.andMask() < 0) {
-            operand = "OR";
+    private BooleanExpression simplifying(BooleanExpression booleanExpression, BooleanExpression parentExpression) {
+        long orMask = booleanExpression.orMask();
+        long andMask = booleanExpression.andMask();
+        if (Optional.ofNullable(parentExpression)
+                .map(BooleanExpression::orMask)
+                .isPresent()
+        ) {
+            long positiveOrMask = getPositive(orMask);
+            long positiveAndMask = getPositive(andMask);
+            long positiveParentOrMask = getPositive(parentExpression.orMask());
+            orMask = (positiveOrMask & getPositive(parentExpression.andMask())) != 0
+                    || (positiveOrMask & positiveParentOrMask) != 0
+                    ? 0L
+                    : orMask;
+            andMask = (positiveAndMask & positiveParentOrMask) != 0
+                    ? 0L
+                    : andMask & getNegative(parentExpression.andMask());
         }
+        if (getPositive(orMask) == 0L && getPositive(andMask) == 0L)
+        {
+            return null;
+        }
+        BooleanExpression result = new BooleanExpression();
+        result.isAnd(booleanExpression.isAnd());
+
+        if (orMask > 0 && andMask > 0) {
+
+        }
+
+
+        result.expressions()
+                .addAll(
+                        booleanExpression.expressions()
+                                .stream()
+                                .map(it -> this.simplifying(it, result))
+                                .filter(Objects::nonNull)
+                                .toList()
+                );
+
+
+
+        return result;
+    }
+
+    private long getPositive(long bitMask) {
+        return bitMask < 0 ? ~bitMask : bitMask;
+    }
+
+    private long getNegative(long bitMask) {
+        return bitMask > 0 ? ~bitMask : bitMask;
     }
 
     @Override
@@ -61,7 +108,10 @@ public class AbstractBooleanExpressionParser implements BooleanExpressionParser 
     protected int addPredicate(BooleanExpression expression) {
         if (expression.expressions().isEmpty()) {
             String predicate = expression.expression().toString();
-            expression.orMask(1L << predicates.computeIfAbsent(predicate, k -> predicates.size() + 1) - 1);
+            if (!predicates.containsKey(predicate)) {
+                predicateList.add(predicate);
+                predicates.put(predicate, predicateList.size());
+            }
             expression.andMask(~expression.orMask());
             return predicates.get(predicate);
         }
@@ -85,6 +135,7 @@ public class AbstractBooleanExpressionParser implements BooleanExpressionParser 
                 .orMask(null)
                 .andMask(null);
         source.expressions().add(child);
+
         source.expression().append("p1");
     }
 
