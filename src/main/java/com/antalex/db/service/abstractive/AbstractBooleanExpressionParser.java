@@ -7,6 +7,7 @@ import org.apache.commons.lang3.NotImplementedException;
 import java.util.*;
 
 public class AbstractBooleanExpressionParser implements BooleanExpressionParser {
+    private static final long NEGATIVE_ZERO = ~0L;
     private final Map<String, Integer> predicates = new LinkedHashMap<>();
     private final List<String> predicateList = new ArrayList<>();
 
@@ -39,17 +40,27 @@ public class AbstractBooleanExpressionParser implements BooleanExpressionParser 
                                 booleanExpression.orMask(booleanExpression.orMask() | orMask);
                                 booleanExpression.andMask(booleanExpression.andMask() | andMask);
                             }
+                            if (
+                                    (booleanExpression.orMask() > 0 && booleanExpression.andMask() < 0 ||
+                                            booleanExpression.orMask() < 0 && booleanExpression.andMask() > 0
+                                    ) && booleanExpression.orMask() != ~booleanExpression.andMask()
+                            ) {
+                                booleanExpression.orMask(0L);
+                                booleanExpression.andMask(NEGATIVE_ZERO);
+                            }
                         }
                     });
         }
     }
 
     private BooleanExpression simplifying(BooleanExpression booleanExpression, BooleanExpression parentExpression) {
-        long orMask = booleanExpression.orMask();
-        long andMask = booleanExpression.andMask();
-        if (Optional.ofNullable(parentExpression)
-                .map(BooleanExpression::orMask)
-                .isPresent()
+        Long orMask = booleanExpression.orMask();
+        Long andMask = booleanExpression.andMask();
+        boolean uncertainty = orMask == 0L && andMask == NEGATIVE_ZERO;
+        if (!uncertainty &&
+                Optional.ofNullable(parentExpression)
+                        .map(BooleanExpression::orMask)
+                        .isPresent()
         ) {
             long positiveOrMask = getPositive(orMask);
             long positiveAndMask = getPositive(andMask);
@@ -60,25 +71,25 @@ public class AbstractBooleanExpressionParser implements BooleanExpressionParser 
                     : orMask;
             andMask = (positiveAndMask & positiveParentOrMask) != 0
                     ? 0L
-                    : andMask & getNegative(parentExpression.andMask());
+                    : positiveAndMask & getNegative(parentExpression.andMask());
+            if (orMask == 0L && andMask == 0L) {
+                return null;
+            }
         }
-        if (getPositive(orMask) == 0L && getPositive(andMask) == 0L)
-        {
-            return null;
-        }
-        BooleanExpression result = new BooleanExpression();
+
+        BooleanExpression result =
+                new BooleanExpression()
+                        .andMask(andMask)
+                        .orMask(orMask);
+
         result.isAnd(booleanExpression.isAnd());
-
-        if (orMask > 0 && andMask > 0) {
-
-        }
 
 
         result.expressions()
                 .addAll(
                         booleanExpression.expressions()
                                 .stream()
-                                .map(it -> this.simplifying(it, result))
+                                .map(it -> this.simplifying(it, uncertainty ? parentExpression : result))
                                 .filter(Objects::nonNull)
                                 .toList()
                 );
