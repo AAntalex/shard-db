@@ -65,6 +65,7 @@ public class AbstractBooleanExpressionParser implements BooleanExpressionParser 
             long positiveOrMask = getPositive(orMask);
             long positiveAndMask = getPositive(andMask);
             long positiveParentOrMask = getPositive(parentExpression.orMask());
+            boolean negativeAndMask = andMask < 0;
             orMask = (positiveOrMask & getPositive(parentExpression.andMask())) != 0
                     || (positiveOrMask & positiveParentOrMask) != 0
                     ? 0L
@@ -75,27 +76,57 @@ public class AbstractBooleanExpressionParser implements BooleanExpressionParser 
             if (orMask == 0L && andMask == 0L) {
                 return null;
             }
+            if (negativeAndMask) {
+                andMask = ~andMask;
+            }
         }
-
         BooleanExpression result =
                 new BooleanExpression()
                         .andMask(andMask)
-                        .orMask(orMask);
-
-        result.isAnd(booleanExpression.isAnd());
-
+                        .orMask(orMask)
+                        .isAnd(booleanExpression.isAnd());
 
         result.expressions()
                 .addAll(
                         booleanExpression.expressions()
                                 .stream()
-                                .map(it -> this.simplifying(it, uncertainty ? parentExpression : result))
+                                .map(it -> this.simplifying(it, uncertainty ? parentExpression : booleanExpression))
                                 .filter(Objects::nonNull)
                                 .toList()
                 );
 
 
 
+        return result;
+    }
+
+    private boolean resolve(BooleanExpression booleanExpression) {
+        boolean result = true;
+        if (booleanExpression.andMask() == 0 && booleanExpression.orMask() == 0) {
+            booleanExpression.expression().append("FALSE");
+        } else if (
+                booleanExpression.andMask() == NEGATIVE_ZERO &&
+                        booleanExpression.orMask() == NEGATIVE_ZERO)
+        {
+            booleanExpression.expression().append("TRUE");
+        } else {
+
+        }
+
+
+        return result;
+    }
+
+    private List<String> getPredicates(long bitMask) {
+        List<String> result = new ArrayList<>();
+        if (bitMask < 0) {
+            bitMask = ~bitMask;
+        }
+        for (int i = 0; i < predicateList.size(); i++) {
+            if ((bitMask & (1L << i)) > 0) {
+                result.add(predicateList.get(i));
+            }
+        }
         return result;
     }
 
@@ -123,6 +154,7 @@ public class AbstractBooleanExpressionParser implements BooleanExpressionParser 
                 predicateList.add(predicate);
                 predicates.put(predicate, predicateList.size());
             }
+            expression.orMask(1L << predicates.get(predicate) - 1);
             expression.andMask(~expression.orMask());
             return predicates.get(predicate);
         }
