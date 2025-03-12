@@ -111,6 +111,7 @@ public class AbstractBooleanExpressionParser implements BooleanExpressionParser 
             booleanExpression.expression().append("TRUE");
         } else {
 
+
         }
 
 
@@ -119,9 +120,7 @@ public class AbstractBooleanExpressionParser implements BooleanExpressionParser 
 
     private List<String> getPredicates(long bitMask) {
         List<String> result = new ArrayList<>();
-        if (bitMask < 0) {
-            bitMask = ~bitMask;
-        }
+        bitMask = getPositive(bitMask)
         for (int i = 0; i < predicateList.size(); i++) {
             if ((bitMask & (1L << i)) > 0) {
                 result.add(predicateList.get(i));
