@@ -129,13 +129,13 @@ public class SQLConditionParser extends AbstractBooleanExpressionParser {
     }
 
     @Override
-    protected int addPredicate(BooleanExpression expression) {
-        int index = super.addPredicate(expression);
-        if (index > 0 && aliases.size() < index) {
+    protected boolean addPredicate(BooleanExpression expression) {
+        if (super.addPredicate(expression) && aliases.size() < predicateList.size()) {
             aliases.add(currentAliases);
             this.currentAliases = new HashSet<>();
+            return true;
         }
-        return index;
+        return false;
     }
 
     private int getEndWord(char[] chars, int offset) {

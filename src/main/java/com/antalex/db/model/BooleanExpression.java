@@ -11,8 +11,7 @@ import java.util.List;
 public class BooleanExpression {
     private StringBuilder expression = new StringBuilder();
     private List<BooleanExpression> expressions = new ArrayList<>();
+    private List<PredicateGroup> predicateGroups = new ArrayList<>();;
     private boolean isAnd;
     private boolean isNot;
-    private Long orMask;
-    private Long andMask;
 }

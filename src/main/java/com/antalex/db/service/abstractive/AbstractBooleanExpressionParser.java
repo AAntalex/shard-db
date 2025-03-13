@@ -1,15 +1,19 @@
 package com.antalex.db.service.abstractive;
 
 import com.antalex.db.model.BooleanExpression;
+import com.antalex.db.model.PredicateGroup;
 import com.antalex.db.service.api.BooleanExpressionParser;
 import org.apache.commons.lang3.NotImplementedException;
+import org.apache.commons.lang3.StringUtils;
 
 import java.util.*;
 
 public class AbstractBooleanExpressionParser implements BooleanExpressionParser {
     private static final long NEGATIVE_ZERO = ~0L;
+    private static final String TRUE = "TRUE";
+    private static final String FALSE = "FALSE";
     private final Map<String, Integer> predicates = new LinkedHashMap<>();
-    private final List<String> predicateList = new ArrayList<>();
+    protected final List<String> predicateList = new ArrayList<>();
 
     @Override
     public BooleanExpression parse(String expression) {
@@ -17,40 +21,73 @@ public class AbstractBooleanExpressionParser implements BooleanExpressionParser 
         predicates.clear();
         predicateList.clear();
         parseCondition(expression, booleanExpression, false);
-        calcBitMask(booleanExpression);
+        resolve(booleanExpression);
         return booleanExpression;
     }
 
-    private void calcBitMask(BooleanExpression booleanExpression) {
-        if (booleanExpression.orMask() == null) {
-            booleanExpression
-                    .expressions()
-                    .forEach(child -> {
-                        calcBitMask(child);
-                        long orMask = child.isNot() ? ~child.orMask() : child.orMask();
-                        long andMask = child.isNot() ? ~child.andMask() : child.andMask();
-                        if (booleanExpression.orMask() == null) {
-                            booleanExpression.orMask(orMask);
-                            booleanExpression.andMask(andMask);
+    private void resolve(BooleanExpression booleanExpression) {
+        if (booleanExpression.predicateGroups().isEmpty()) {
+            if (booleanExpression.expressions().isEmpty()) {
+                String predicate = booleanExpression.expression().toString();
+                PredicateGroup predicateGroup = new PredicateGroup();
+                if (TRUE.equals(predicate) || FALSE.equals(predicate)) {
+                    predicateGroup.setValue(predicate);
+                } else {
+                    Integer index = predicates.get(predicate);
+                    if (index == null) {
+                        throw new IllegalArgumentException("Отсутствует предикат " + predicate);
+                    }
+                    predicateGroup.setPredicateMask(1L << (index - 1));
+                    predicateGroup.setSignMask(booleanExpression.isNot() ? predicateGroup.getPredicateMask() : 0L);
+                }
+                booleanExpression.predicateGroups().add(predicateGroup);
+            } else {
+                for (BooleanExpression child : booleanExpression.expressions()) {
+                    resolve(child);
+                    String childValue = child.predicateGroups().size() == 1 ?
+                            child.predicateGroups().get(0).getValue() :
+                            null;
+                    if (childValue == null) {
+                        if (booleanExpression.predicateGroups().isEmpty() || !booleanExpression.isAnd()) {
+                            booleanExpression.predicateGroups().addAll(child.predicateGroups());
                         } else {
-                            if (booleanExpression.isAnd()) {
-                                booleanExpression.orMask(booleanExpression.orMask() & orMask);
-                                booleanExpression.andMask(booleanExpression.andMask() & andMask);
-                            } else {
-                                booleanExpression.orMask(booleanExpression.orMask() | orMask);
-                                booleanExpression.andMask(booleanExpression.andMask() | andMask);
+                            List<PredicateGroup> predicateGroups = new ArrayList<>();
+                            for (PredicateGroup group : booleanExpression.predicateGroups()) {
+                                for (PredicateGroup childGroup : child.predicateGroups()) {
+                                    Long intersection = group.getPredicateMask() & childGroup.getPredicateMask();
+                                    if (
+                                            intersection == 0 ||
+                                                    (group.getPredicateMask() & intersection) ==
+                                                            (childGroup.getPredicateMask() & intersection))
+                                    {
+                                        predicateGroups.add(
+                                                new PredicateGroup(
+                                                        group.getPredicateMask() |
+                                                                childGroup.getPredicateMask(),
+                                                        group.getSignMask() | childGroup.getSignMask()
+                                                )
+                                        );
+                                    }
+                                }
                             }
-                            if (
-                                    (booleanExpression.orMask() > 0 && booleanExpression.andMask() < 0 ||
-                                            booleanExpression.orMask() < 0 && booleanExpression.andMask() > 0
-                                    ) && booleanExpression.orMask() != ~booleanExpression.andMask()
-                            ) {
-                                booleanExpression.orMask(0L);
-                                booleanExpression.andMask(NEGATIVE_ZERO);
+                            if (predicateGroups.isEmpty()) {
+                                setGroupValue(booleanExpression, FALSE);
+                            } else {
+                                booleanExpression.predicateGroups(predicateGroups);
                             }
                         }
-                    });
+                    } else if (TRUE.equals(childValue) && !booleanExpression.isAnd() ||
+                                FALSE.equals(childValue) && booleanExpression.isAnd()) {
+                            setGroupValue(booleanExpression, childValue);
+                            return;
+                    }
+                }
+            }
         }
+    }
+
+    private void setGroupValue(BooleanExpression booleanExpression, String value) {
+        booleanExpression.predicateGroups(Collections.singletonList(new PredicateGroup(value)));
     }
 
     private BooleanExpression simplifying(BooleanExpression booleanExpression, BooleanExpression parentExpression) {
@@ -100,24 +137,6 @@ public class AbstractBooleanExpressionParser implements BooleanExpressionParser 
         return result;
     }
 
-    private boolean resolve(BooleanExpression booleanExpression) {
-        boolean result = true;
-        if (booleanExpression.andMask() == 0 && booleanExpression.orMask() == 0) {
-            booleanExpression.expression().append("FALSE");
-        } else if (
-                booleanExpression.andMask() == NEGATIVE_ZERO &&
-                        booleanExpression.orMask() == NEGATIVE_ZERO)
-        {
-            booleanExpression.expression().append("TRUE");
-        } else {
-
-
-        }
-
-
-        return result;
-    }
-
     private List<String> getPredicates(long bitMask) {
         List<String> result = new ArrayList<>();
         bitMask = getPositive(bitMask)
@@ -146,18 +165,39 @@ public class AbstractBooleanExpressionParser implements BooleanExpressionParser 
         throw new NotImplementedException();
     }
 
-    protected int addPredicate(BooleanExpression expression) {
+    private String normalize(BooleanExpression expression, String predicate, String operand, String oppositeOperand)
+    {
+        if (predicate.contains(oppositeOperand)) {
+            expression.isNot(!expression.isNot());
+            predicate = predicate.replace(oppositeOperand, operand);
+            expression.expression(new StringBuilder(predicate));
+        }
+        return predicate;
+    }
+
+    private String normalizePredicate(BooleanExpression expression, String predicate) {
+        predicate = normalize(expression, predicate, "=", "<>");
+        predicate = normalize(expression, predicate, "=", "!=");
+        predicate = normalize(expression, predicate, ">", "<=");
+        predicate = normalize(expression, predicate, "<", ">=");
+        return predicate;
+    }
+
+    protected boolean addPredicate(BooleanExpression expression) {
         if (expression.expressions().isEmpty()) {
             String predicate = expression.expression().toString();
-            if (!predicates.containsKey(predicate)) {
-                predicateList.add(predicate);
-                predicates.put(predicate, predicateList.size());
+            if (!predicate.isBlank() && !"TRUE".equals(predicate) && !"FALSE".equals(predicate)) {
+                predicate = normalizePredicate(expression, predicate);
+                Integer index = predicates.get(predicate);
+                if (index == null) {
+                    predicateList.add(predicate);
+                    index = predicateList.size();
+                    predicates.put(predicate, index);
+                }
+                return true;
             }
-            expression.orMask(1L << predicates.get(predicate) - 1);
-            expression.andMask(~expression.orMask());
-            return predicates.get(predicate);
         }
-        return 0;
+        return false;
     }
 
     protected void cloneUpExpression(BooleanExpression source, boolean isAnd) {
@@ -166,19 +206,14 @@ public class AbstractBooleanExpressionParser implements BooleanExpressionParser 
                 .expression(source.expression())
                 .expressions(source.expressions())
                 .isAnd(source.isAnd())
-                .isNot(source.isNot())
-                .orMask(source.orMask())
-                .andMask(source.andMask());
+                .isNot(source.isNot());
         source
-                .expression(new StringBuilder())
+                .expression(new StringBuilder("p1"))
                 .expressions(new ArrayList<>())
                 .isAnd(isAnd)
                 .isNot(false)
-                .orMask(null)
-                .andMask(null);
-        source.expressions().add(child);
-
-        source.expression().append("p1");
+                .expressions()
+                .add(child);
     }
 
     protected void concatExpression(BooleanExpression left, BooleanExpression right, boolean isAnd, boolean isNot) {
