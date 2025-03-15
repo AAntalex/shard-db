@@ -6,6 +6,7 @@ import com.antalex.db.service.api.BooleanExpressionParser;
 import org.apache.commons.lang3.NotImplementedException;
 
 import java.util.*;
+import java.util.stream.IntStream;
 
 public class AbstractBooleanExpressionParser implements BooleanExpressionParser {
     private static final long NEGATIVE_ZERO = ~0L;
@@ -24,7 +25,13 @@ public class AbstractBooleanExpressionParser implements BooleanExpressionParser 
     }
 
     private BooleanExpression simplifying(BooleanExpression booleanExpression) {
-        absorption(getPredicateGroup(booleanExpression));
+        absorption(
+                reduction(
+                        absorption(
+                                getPredicateGroup(booleanExpression)
+                        )
+                )
+        );
     }
 
     private List<PredicateGroup> getPredicateGroup(BooleanExpression booleanExpression) {
@@ -101,24 +108,39 @@ public class AbstractBooleanExpressionParser implements BooleanExpressionParser 
         }
     }
 
-    private void reduction(PredicateGroup left, PredicateGroup right) {
+    private boolean reduction(PredicateGroup left, PredicateGroup right) {
         long intersection = left.getPredicateMask() & right.getPredicateMask();
         if (intersection != 0) {
             long signDifference = (intersection & left.getSignMask()) ^ (intersection & right.getSignMask());
             if (Long.bitCount(signDifference) == 1) {
                 if (intersection == left.getPredicateMask()) {
                     excludeFromGroup(right, signDifference);
+                    return false;
                 }
                 if (intersection == right.getPredicateMask()) {
                     excludeFromGroup(left, signDifference);
+                    return true;
                 }
             }
         }
+        return false;
     }
 
     private void excludeFromGroup(PredicateGroup predicateGroup, Long value) {
         predicateGroup.setPredicateMask(predicateGroup.getPredicateMask() & ~value);
         predicateGroup.setSignMask(predicateGroup.getSignMask() & ~value);
+    }
+
+    private List<PredicateGroup> reduction(List<PredicateGroup> predicateGroups) {
+        IntStream.range(0, predicateGroups.size())
+                .forEach(i -> {
+                    PredicateGroup left = predicateGroups.get(i);
+                    while (IntStream.range(i, predicateGroups.size())
+                            .mapToObj(predicateGroups::get)
+                            .map(right -> reduction(left, right))
+                            .reduce(false, (a, b) -> a || b));
+                });
+        return predicateGroups;
     }
 
     private List<PredicateGroup> absorption(List<PredicateGroup> predicateGroups) {
