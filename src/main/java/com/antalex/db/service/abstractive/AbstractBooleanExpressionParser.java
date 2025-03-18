@@ -9,7 +9,6 @@ import java.util.*;
 import java.util.stream.IntStream;
 
 public class AbstractBooleanExpressionParser implements BooleanExpressionParser {
-    private static final long NEGATIVE_ZERO = ~0L;
     private static final String TRUE = "TRUE";
     private static final String FALSE = "FALSE";
     private final Map<String, Integer> predicates = new LinkedHashMap<>();
@@ -25,10 +24,12 @@ public class AbstractBooleanExpressionParser implements BooleanExpressionParser 
     }
 
     private BooleanExpression simplifying(BooleanExpression booleanExpression) {
-        absorption(
-                reduction(
-                        absorption(
-                                getPredicateGroup(booleanExpression)
+        return expressionAssembly(
+                absorption(
+                        reduction(
+                                absorption(
+                                        getPredicateGroup(booleanExpression)
+                                )
                         )
                 )
         );
@@ -171,23 +172,42 @@ public class AbstractBooleanExpressionParser implements BooleanExpressionParser 
                 .toList();
     }
 
-    private List<String> getPredicates(long bitMask) {
-        List<String> result = new ArrayList<>();
-        bitMask = getPositive(bitMask)
-        for (int i = 0; i < predicateList.size(); i++) {
-            if ((bitMask & (1L << i)) > 0) {
-                result.add(predicateList.get(i));
-            }
+    private List<BooleanExpression> getPredicateExpressions(PredicateGroup predicateGroup) {
+        if (Objects.nonNull(predicateGroup.getValue())) {
+            return Collections.singletonList(
+                    new BooleanExpression()
+                            .expression(new StringBuilder(predicateGroup.getValue()))
+            );
+        } else {
+            return predicates.entrySet()
+                    .stream()
+                    .filter(it -> (predicateGroup.getPredicateMask() & (1L << it.getValue())) > 0)
+                    .map(it ->
+                            new BooleanExpression()
+                                    .expression(new StringBuilder(it.getKey()))
+                                    .isNot((predicateGroup.getSignMask() & (1L << it.getValue())) > 0)
+                    )
+                    .toList();
         }
-        return result;
     }
 
-    private long getPositive(long bitMask) {
-        return bitMask < 0 ? ~bitMask : bitMask;
+    private BooleanExpression expressionAssembly(List<PredicateGroup> predicateGroups) {
+        return expressionAssembly(
+                predicateGroups
+                        .stream()
+                        .map(this::getPredicateExpressions)
+                        .map(booleanExpressions -> expressionAssembly(booleanExpressions, true))
+                        .toList(),
+                false
+        );
     }
 
-    private long getNegative(long bitMask) {
-        return bitMask > 0 ? ~bitMask : bitMask;
+    private BooleanExpression expressionAssembly(List<BooleanExpression> booleanExpressions, boolean isAnd) {
+        return booleanExpressions.size() == 1 ?
+                booleanExpressions.get(0) :
+                new BooleanExpression()
+                        .isAnd(isAnd)
+                        .expressions(booleanExpressions);
     }
 
     @Override
