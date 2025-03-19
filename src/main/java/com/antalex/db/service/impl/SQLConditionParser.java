@@ -2,6 +2,7 @@ package com.antalex.db.service.impl;
 
 import com.antalex.db.model.BooleanExpression;
 import com.antalex.db.service.abstractive.AbstractBooleanExpressionParser;
+import com.google.common.collect.ImmutableMap;
 import org.apache.logging.log4j.util.Chars;
 import org.apache.logging.log4j.util.Strings;
 
@@ -10,7 +11,13 @@ import java.util.stream.Collectors;
 
 public class SQLConditionParser extends AbstractBooleanExpressionParser {
     private static final Set<Character> ESCAPE_CHARACTERS = Set.of(Chars.LF, Chars.CR, Chars.TAB, Chars.SPACE);
-
+    private static final Set<Character> BOOLEAN_OPERATOR_CHARACTERS = Set.of('>', '<', '=', '!');
+    private static final Map<String, String> OPPOSITE_OPERATIONS = ImmutableMap.<String, String>builder()
+            .put("!=", "=")
+            .put("<>", "=")
+            .put(">=", "<")
+            .put("<=", ">")
+            .build();
     private final List<Set<String>> aliases = new ArrayList<>();
     private Set<String> currentAliases = new HashSet<>();
 
@@ -119,6 +126,22 @@ public class SQLConditionParser extends AbstractBooleanExpressionParser {
                 lastChar = chars[i];
                 continue;
             }
+
+            if (
+                    BOOLEAN_OPERATOR_CHARACTERS.contains(curChar)
+                            && i < chars.length-1
+                            && BOOLEAN_OPERATOR_CHARACTERS.contains(chars[i+1]))
+            {
+                ++i;
+                lastChar = chars[i];
+                String operator = String.valueOf(curChar) + lastChar;
+                if (OPPOSITE_OPERATIONS.containsKey(operator)) {
+                    operator = OPPOSITE_OPERATIONS.get(operator);
+                    currentExpression.isNot(!currentExpression.isNot());
+                }
+                currentExpression.expression().append(operator);
+                continue;
+            }
             token = Strings.EMPTY;
             currentExpression.expression().append(Character.toUpperCase(curChar));
             lastChar = chars[i];
@@ -130,7 +153,7 @@ public class SQLConditionParser extends AbstractBooleanExpressionParser {
 
     @Override
     protected boolean addPredicate(BooleanExpression expression) {
-        if (super.addPredicate(expression) && aliases.size() < predicateList.size()) {
+        if (super.addPredicate(expression) && aliases.size() < predicates.size()) {
             aliases.add(currentAliases);
             this.currentAliases = new HashSet<>();
             return true;

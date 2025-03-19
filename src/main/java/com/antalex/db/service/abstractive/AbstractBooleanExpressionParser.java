@@ -11,14 +11,12 @@ import java.util.stream.IntStream;
 public class AbstractBooleanExpressionParser implements BooleanExpressionParser {
     private static final String TRUE = "TRUE";
     private static final String FALSE = "FALSE";
-    private final Map<String, Integer> predicates = new LinkedHashMap<>();
-    protected final List<String> predicateList = new ArrayList<>();
+    protected final Map<String, Integer> predicates = new HashMap<>();
 
     @Override
     public BooleanExpression parse(String expression) {
         BooleanExpression booleanExpression = new BooleanExpression();
         predicates.clear();
-        predicateList.clear();
         parseCondition(expression, booleanExpression, false);
         return simplifying(booleanExpression);
     }
@@ -46,7 +44,7 @@ public class AbstractBooleanExpressionParser implements BooleanExpressionParser 
                 if (index == null) {
                     throw new IllegalArgumentException("Отсутствует предикат " + predicate);
                 }
-                predicateGroup.setPredicateMask(1L << (index - 1));
+                predicateGroup.setPredicateMask(1L << index);
                 predicateGroup.setSignMask(booleanExpression.isNot() ? predicateGroup.getPredicateMask() : 0L);
             }
             return Collections.singletonList(predicateGroup);
@@ -219,35 +217,11 @@ public class AbstractBooleanExpressionParser implements BooleanExpressionParser 
         throw new NotImplementedException();
     }
 
-    private String normalize(BooleanExpression expression, String predicate, String operand, String oppositeOperand)
-    {
-        if (predicate.contains(oppositeOperand)) {
-            expression.isNot(!expression.isNot());
-            predicate = predicate.replace(oppositeOperand, operand);
-            expression.expression(new StringBuilder(predicate));
-        }
-        return predicate;
-    }
-
-    private String normalizePredicate(BooleanExpression expression, String predicate) {
-        predicate = normalize(expression, predicate, "=", "<>");
-        predicate = normalize(expression, predicate, "=", "!=");
-        predicate = normalize(expression, predicate, ">", "<=");
-        predicate = normalize(expression, predicate, "<", ">=");
-        return predicate;
-    }
-
     protected boolean addPredicate(BooleanExpression expression) {
         if (expression.expressions().isEmpty()) {
             String predicate = expression.expression().toString();
             if (!predicate.isBlank() && !"TRUE".equals(predicate) && !"FALSE".equals(predicate)) {
-                predicate = normalizePredicate(expression, predicate);
-                Integer index = predicates.get(predicate);
-                if (index == null) {
-                    predicateList.add(predicate);
-                    index = predicateList.size();
-                    predicates.put(predicate, index);
-                }
+                predicates.computeIfAbsent(predicate, k -> predicates.size());
                 return true;
             }
         }
