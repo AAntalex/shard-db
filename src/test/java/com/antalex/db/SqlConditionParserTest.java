@@ -16,6 +16,8 @@ class SqlConditionParserTest {
 
         expression = parser.parse("(a or not b) and not (a or b) and (not a or c)");
         System.out.println("RES: " + parser.toString(expression));
+
+        Assertions.assertEquals(parser.toString(expression), "NOT A AND NOT B");
     }
 
     @Test
