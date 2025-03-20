@@ -20,12 +20,12 @@ public class MathConditionParser extends AbstractBooleanExpressionParser {
 
     @Override
     protected boolean isOr(String token, Character ch) {
-        return ch == '∨';
+        return ch == '∨' || ch == 'v';
     }
 
     @Override
     protected boolean isAnd(String token, Character ch) {
-        return ch == '∧';
+        return ch == '∧' || ch == '&';
     }
 
     @Override

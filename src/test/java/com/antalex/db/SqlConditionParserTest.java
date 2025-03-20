@@ -27,7 +27,25 @@ class SqlConditionParserTest {
         MathConditionParser mathParser = new MathConditionParser();
 
         expression = mathParser.parse("¬(A ∨ ¬B ∨ C)");
-        System.out.println("RES: " + mathParser.toString(mathParser.simplifying(expression)));
+        System.out.println("RES1: " + mathParser.toString(mathParser.simplifying(expression)));
+
+        expression = mathParser.parse("(¬A v B)&¬(A&B)");
+        System.out.println("RES2: " + mathParser.toString(mathParser.simplifying(expression)));
+
+        expression = mathParser.parse("¬(A&B)v¬(В v С)");
+        System.out.println("RES3: " + mathParser.toString(mathParser.simplifying(expression)));
+
+        expression = mathParser.parse("A&С v ¬A&С");
+        System.out.println("RES4: " + mathParser.toString(mathParser.simplifying(expression)));
+
+        expression = mathParser.parse("¬A v ¬B v ¬С v A v B v С");
+        System.out.println("RES5: " + mathParser.toString(mathParser.simplifying(expression)));
+
+        expression = mathParser.parse("¬((А&В) v ¬(А&В))");
+        System.out.println("RES6: " + mathParser.toString(mathParser.simplifying(expression)));
+
+        expression = mathParser.parse("¬А&¬(¬В v А)");
+        System.out.println("RES7: " + mathParser.toString(mathParser.simplifying(expression)));
     }
 
     @Test
