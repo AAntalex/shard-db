@@ -3,12 +3,23 @@ package com.antalex.db.service.abstractive;
 import com.antalex.db.model.BooleanExpression;
 import com.antalex.db.model.PredicateGroup;
 import com.antalex.db.service.api.BooleanExpressionParser;
-import org.apache.commons.lang3.NotImplementedException;
+import com.google.common.collect.ImmutableMap;
+import org.apache.logging.log4j.util.Chars;
+import org.apache.logging.log4j.util.Strings;
 
 import java.util.*;
+import java.util.stream.Collectors;
 import java.util.stream.IntStream;
 
 public class AbstractBooleanExpressionParser implements BooleanExpressionParser {
+    private static final Set<Character> ESCAPE_CHARACTERS = Set.of(Chars.LF, Chars.CR, Chars.TAB, Chars.SPACE);
+    private static final Set<Character> BOOLEAN_OPERATOR_CHARACTERS = Set.of('>', '<', '=', '!');
+    private static final Map<String, String> OPPOSITE_OPERATIONS = ImmutableMap.<String, String>builder()
+            .put("!=", "=")
+            .put("<>", "=")
+            .put(">=", "<")
+            .put("<=", ">")
+            .build();
     private static final String TRUE = "TRUE";
     private static final String FALSE = "FALSE";
     protected final Map<String, Integer> predicates = new HashMap<>();
@@ -18,10 +29,11 @@ public class AbstractBooleanExpressionParser implements BooleanExpressionParser 
         BooleanExpression booleanExpression = new BooleanExpression();
         predicates.clear();
         parseCondition(expression, booleanExpression, false);
-        return simplifying(booleanExpression);
+        return booleanExpression;
     }
 
-    private BooleanExpression simplifying(BooleanExpression booleanExpression) {
+    @Override
+    public BooleanExpression simplifying(BooleanExpression booleanExpression) {
         return expressionAssembly(
                 absorption(
                         reduction(
@@ -88,7 +100,7 @@ public class AbstractBooleanExpressionParser implements BooleanExpressionParser 
     private boolean excludedAnd(PredicateGroup left, PredicateGroup right) {
         Long intersection = left.getPredicateMask() & right.getPredicateMask();
         return intersection != 0 &&
-                (left.getPredicateMask() & intersection) != (right.getPredicateMask() & intersection);
+                (left.getSignMask() & intersection) != (right.getSignMask() & intersection);
     }
 
     private boolean excludedOr(PredicateGroup left, PredicateGroup right) {
@@ -210,11 +222,217 @@ public class AbstractBooleanExpressionParser implements BooleanExpressionParser 
 
     @Override
     public String toString(BooleanExpression booleanExpression) {
-        throw new NotImplementedException();
+        if (booleanExpression.expressions().isEmpty()) {
+            return (booleanExpression.isNot() ? notToken() : "") + booleanExpression.expression();
+        }
+        return
+                (!booleanExpression.isAnd() ? "(" : "") +
+                        booleanExpression
+                                .expressions()
+                                .stream()
+                                .map(this::toString)
+                                .collect(Collectors.joining(booleanExpression.isAnd() ? andToken() : orToken())) +
+                        (!booleanExpression.isAnd() ? ")" : "");
     }
 
-    protected void parseCondition(String condition, BooleanExpression expression, boolean recurse) {
-        throw new NotImplementedException();
+    private void parseCondition(String condition, BooleanExpression expression, boolean recurse) {
+        BooleanExpression currentExpression = expression;
+        boolean isNot = expression.isNot();
+        String token = Strings.EMPTY;
+        char[] chars = condition.toCharArray();
+        char lastChar = 0;
+
+        for (int i = 0; i < chars.length; i++) {
+            char curChar = chars[i];
+            if (ESCAPE_CHARACTERS.contains(curChar)) continue;
+            if (curChar == Chars.QUOTE) {
+                int endPos = getEndString(chars, i);
+                String currentString = String.copyValueOf(chars, i, endPos - i + 1);
+                currentExpression
+                        .expression()
+                        .append(token.isEmpty() ? "" :  " ")
+                        .append(currentString);
+                i = endPos;
+                lastChar = chars[i];
+                continue;
+            }
+            if (curChar == '(') {
+                int endPos = getEndParenthesis(chars, i);
+                boolean needParenthesis = false;
+                if (!currentExpression.expression().isEmpty()) {
+                    currentExpression.expression().append("(");
+                    needParenthesis = true;
+                }
+                parseCondition(
+                        String.copyValueOf(chars, i + 1, endPos - i - 1),
+                        currentExpression,
+                        true
+                );
+                if (expression == currentExpression && !currentExpression.expressions().isEmpty()) {
+                    cloneUpExpression(expression, true);
+                }
+                if (needParenthesis) {
+                    currentExpression.expression().append(")");
+                }
+                i = endPos;
+                lastChar = chars[i];
+                continue;
+            }
+            String curToken = Strings.EMPTY;
+            if (curChar == Chars.DQUOTE) {
+                int endPos = getEndString(chars, i);
+                curToken = String.copyValueOf(chars, i, endPos - i + 1);
+                i = endPos;
+            } else if (tokenIsStarted(curChar)) {
+                int endPos = getEndWord(chars, i);
+                curToken = String.copyValueOf(chars, i, endPos - i + 1).toUpperCase();
+                i = endPos;
+            }
+            if (isAnd(curToken, curChar) || isOr(curToken, curChar)) {
+                addPredicate(currentExpression);
+                currentExpression = new BooleanExpression();
+                concatExpression(
+                        expression,
+                        currentExpression,
+                        isNot && isOr(curToken, curChar) || !isNot && isAnd(curToken, curChar),
+                        isNot
+                );
+                token = Strings.EMPTY;
+                lastChar = chars[i];
+                continue;
+            } else if (isNot(curToken, curChar)) {
+                currentExpression.isNot(!currentExpression.isNot());
+                lastChar = chars[i];
+                continue;
+            } else if (!curToken.isEmpty()) {
+                currentExpression
+                        .expression()
+                        .append(lastChar == '.' ? "." : (token.isEmpty() ? "" :  " "))
+                        .append(curToken);
+                token = curToken;
+                lastChar = chars[i];
+                continue;
+            } else if (curChar == '.' && !token.isEmpty()) {
+                processAlias(token);
+                lastChar = chars[i];
+                continue;
+            } else if (
+                    BOOLEAN_OPERATOR_CHARACTERS.contains(curChar)
+                            && i < chars.length-1
+                            && BOOLEAN_OPERATOR_CHARACTERS.contains(chars[i+1]))
+            {
+                ++i;
+                lastChar = chars[i];
+                String operator = String.valueOf(curChar) + lastChar;
+                if (OPPOSITE_OPERATIONS.containsKey(operator)) {
+                    operator = OPPOSITE_OPERATIONS.get(operator);
+                    currentExpression.isNot(!currentExpression.isNot());
+                }
+                currentExpression.expression().append(operator);
+                continue;
+            }
+            token = Strings.EMPTY;
+            currentExpression.expression().append(Character.toUpperCase(curChar));
+            lastChar = chars[i];
+        }
+        if (!recurse || currentExpression != expression) {
+            addPredicate(currentExpression);
+        }
+    }
+
+    private int getEndWord(char[] chars, int offset) {
+        for (int i = offset; i < chars.length; i++) {
+            if (i == chars.length - 1 || !isTokenCharacter(chars[i+1])) {
+                return i;
+            }
+        }
+        return chars.length;
+    }
+
+    private int getEndString(char[] chars, int offset) {
+        char quote = chars[offset];
+        if (quote != Chars.QUOTE && quote != Chars.DQUOTE) {
+            return -1;
+        }
+        int quotesCount = 0;
+        for (int i = offset+1; i < chars.length; i++) {
+            if (chars[i] == quote) {
+                if (++quotesCount % 2 == 1 && (i == chars.length - 1 || chars[i + 1] != quote)) return i;
+            } else {
+                quotesCount = 0;
+            }
+        }
+        throw new RuntimeException(
+                String.format(
+                        "Отсутствует закрывающая кавычка %c в тексте; %s",
+                        quote,
+                        String.copyValueOf(chars, offset, chars.length - offset)
+                )
+        );
+    }
+
+    private int getEndParenthesis(char[] chars, int offset) {
+        char parenthesis = chars[offset];
+        char endParenthesis;
+        if (parenthesis == '(') {
+            endParenthesis = ')';
+        } else {
+            return -1;
+        }
+        for (int i = offset+1; i < chars.length; i++) {
+            if (chars[i] == endParenthesis) return i;
+            if (chars[i] == parenthesis) {
+                i = getEndParenthesis(chars, i);
+                continue;
+            }
+            if (chars[i] == Chars.QUOTE) {
+                i = getEndString(chars, i);
+            }
+        }
+        throw new RuntimeException(
+                String.format(
+                        "Отсутствует закрывающая скобка %c в тексте; %s",
+                        endParenthesis,
+                        String.copyValueOf(chars, offset, chars.length - offset)
+                )
+        );
+    }
+
+    protected String andToken() {
+        return " & ";
+    }
+
+    protected String orToken() {
+        return " | ";
+    }
+
+    protected String notToken() {
+        return "~";
+    }
+
+    protected boolean isOr(String token, Character ch) {
+        return ch == '|';
+    }
+
+    protected boolean isAnd(String token, Character ch) {
+        return ch == '&';
+    }
+
+    protected boolean isNot(String token, Character ch) {
+        return ch == '~';
+    }
+
+    protected void processAlias(String token) {
+    }
+
+    protected boolean tokenIsStarted(Character ch) {
+        return ch >= 'a' && ch <= 'z' || ch >= 'A' && ch <= 'Z';
+    }
+
+    protected boolean isTokenCharacter(Character ch) {
+        return ch >= 'a' && ch <= 'z' ||
+                ch >= 'A' && ch <= 'Z' ||
+                ch >= '0' && ch <= '9';
     }
 
     protected boolean addPredicate(BooleanExpression expression) {

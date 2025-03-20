@@ -1,6 +1,7 @@
 package com.antalex.db;
 
 import com.antalex.db.model.BooleanExpression;
+import com.antalex.db.service.impl.MathConditionParser;
 import com.antalex.db.service.impl.SQLConditionParser;
 import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.DisplayName;
@@ -11,13 +12,22 @@ class SqlConditionParserTest {
     @DisplayName("Тест упрощения логического выражения")
     void simplifyingExpressionTest() {
         SQLConditionParser parser = new SQLConditionParser();
+
         BooleanExpression expression = parser.parse("not c or (a and c) or not (a or c or not b)");
-        Assertions.assertEquals(parser.toString(expression), "(NOT C OR A)");
+        Assertions.assertEquals(parser.toString(parser.simplifying(expression)), "(NOT C OR A)");
 
         expression = parser.parse("(a or not b) and not (a or b) and (not a or c)");
-        System.out.println("RES: " + parser.toString(expression));
+        Assertions.assertEquals(parser.toString(parser.simplifying(expression)), "NOT A AND NOT B");
 
-        Assertions.assertEquals(parser.toString(expression), "NOT A AND NOT B");
+        System.out.println("RES: " + parser.toString(parser.simplifying(expression)));
+
+        expression = parser.parse("(L or M) and ( K or M) and not N and not M");
+        Assertions.assertEquals(parser.toString(parser.simplifying(expression)), "K AND L AND NOT M AND NOT N");
+
+        MathConditionParser mathParser = new MathConditionParser();
+
+        expression = mathParser.parse("¬(A ∨ ¬B ∨ C)");
+        System.out.println("RES: " + mathParser.toString(mathParser.simplifying(expression)));
     }
 
     @Test
@@ -34,7 +44,7 @@ class SqlConditionParserTest {
                 """
         );
         Assertions.assertEquals(
-                parser.toString(expression),
+                parser.toString(parser.simplifying(expression)),
                 "(NOT \"a2\".C_DEST LIKE 'A1.ID = ?%' AND A1.ID=? AND A2.C_DEST LIKE 'AAA%' OR NOT A3.C_DATE<?)");
     }
 }
