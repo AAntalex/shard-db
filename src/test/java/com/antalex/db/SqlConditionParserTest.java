@@ -1,7 +1,6 @@
 package com.antalex.db;
 
 import com.antalex.db.model.BooleanExpression;
-import com.antalex.db.service.impl.MathConditionParser;
 import com.antalex.db.service.impl.SQLConditionParser;
 import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.DisplayName;
@@ -19,33 +18,32 @@ class SqlConditionParserTest {
         expression = parser.parse("(a or not b) and not (a or b) and (not a or c)");
         Assertions.assertEquals(parser.toString(parser.simplifying(expression)), "NOT A AND NOT B");
 
-        System.out.println("RES: " + parser.toString(parser.simplifying(expression)));
-
         expression = parser.parse("(L or M) and ( K or M) and not N and not M");
         Assertions.assertEquals(parser.toString(parser.simplifying(expression)), "K AND L AND NOT M AND NOT N");
 
-        MathConditionParser mathParser = new MathConditionParser();
+        expression = parser.parse("not (A or not B or C)");
+        Assertions.assertEquals(parser.toString(parser.simplifying(expression)), "NOT A AND B AND NOT C");
 
-        expression = mathParser.parse("¬(A ∨ ¬B ∨ C)");
-        System.out.println("RES1: " + mathParser.toString(mathParser.simplifying(expression)));
+        expression = parser.parse("(not A or B) and not (A and B)");
+        Assertions.assertEquals(parser.toString(parser.simplifying(expression)), "NOT A");
 
-        expression = mathParser.parse("(¬A v B)&¬(A&B)");
-        System.out.println("RES2: " + mathParser.toString(mathParser.simplifying(expression)));
+        expression = parser.parse("not (A and B) or not (В or С)");
+        Assertions.assertEquals(
+                parser.toString(parser.simplifying(expression)),
+                "(NOT A OR NOT B OR NOT С AND NOT В)"
+        );
 
-        expression = mathParser.parse("¬(A&B)v¬(В v С)");
-        System.out.println("RES3: " + mathParser.toString(mathParser.simplifying(expression)));
+        expression = parser.parse("A and C or not A and C");
+        Assertions.assertEquals(parser.toString(parser.simplifying(expression)), "C");
 
-        expression = mathParser.parse("A&С v ¬A&С");
-        System.out.println("RES4: " + mathParser.toString(mathParser.simplifying(expression)));
+        expression = parser.parse("not A or not B or not С or A or B or С");
+        Assertions.assertEquals(parser.toString(parser.simplifying(expression)), "TRUE");
 
-        expression = mathParser.parse("¬A v ¬B v ¬С v A v B v С");
-        System.out.println("RES5: " + mathParser.toString(mathParser.simplifying(expression)));
+        expression = parser.parse("not ((А and В) or not (А and В))");
+        Assertions.assertEquals(parser.toString(parser.simplifying(expression)), "FALSE");
 
-        expression = mathParser.parse("¬((А&В) v ¬(А&В))");
-        System.out.println("RES6: " + mathParser.toString(mathParser.simplifying(expression)));
-
-        expression = mathParser.parse("¬А&¬(¬В v А)");
-        System.out.println("RES7: " + mathParser.toString(mathParser.simplifying(expression)));
+        expression = parser.parse("not А and not (not В or А)");
+        Assertions.assertEquals(parser.toString(parser.simplifying(expression)), "NOT А AND В");
     }
 
     @Test
@@ -57,12 +55,14 @@ class SqlConditionParserTest {
                     (a1.Id = ? or a1.C_COL = ?)
                 and A1.ID = ?
                 and A2.C_DEST like 'AAA%'
-                and "a2".C_DEST Not like 'A1.ID = ?%'
-                or a3.C_DATE >= ?
+                and "a2".C_DEST Not like 'A1.ID  =  ?%'
+                or a3.C_DATE >= ? and a1.ID = a2.ID
                 """
         );
         Assertions.assertEquals(
                 parser.toString(parser.simplifying(expression)),
-                "(NOT \"a2\".C_DEST LIKE 'A1.ID = ?%' AND A1.ID=? AND A2.C_DEST LIKE 'AAA%' OR NOT A3.C_DATE<?)");
+                "(A1.ID=? AND NOT \"a2\".C_DEST LIKE 'A1.ID  =  ?%' AND A2.C_DEST LIKE 'AAA%' OR A1.ID=A2.ID" +
+                        " AND NOT A3.C_DATE<?)"
+        );
     }
 }

@@ -69,6 +69,7 @@ public class SQLConditionParser extends AbstractBooleanExpressionParser {
             this.currentAliases = new HashSet<>();
             return true;
         }
+        currentAliases.clear();
         return false;
     }
 }

@@ -146,7 +146,7 @@ public class AbstractBooleanExpressionParser implements BooleanExpressionParser 
         IntStream.range(0, predicateGroups.size())
                 .forEach(i -> {
                     PredicateGroup left = predicateGroups.get(i);
-                    while (IntStream.range(i, predicateGroups.size())
+                    while (IntStream.range(i+1, predicateGroups.size())
                             .mapToObj(predicateGroups::get)
                             .map(right -> reduction(left, right))
                             .reduce(false, (a, b) -> a || b));
@@ -176,10 +176,14 @@ public class AbstractBooleanExpressionParser implements BooleanExpressionParser 
                 return Collections.singletonList(new PredicateGroup(TRUE));
             }
         }
-        return predicateGroups
+        List<PredicateGroup> result = predicateGroups
                 .stream()
                 .filter(it -> Objects.isNull(it.getValue()))
                 .toList();
+        if (result.isEmpty()) {
+            return Collections.singletonList(new PredicateGroup(FALSE));
+        }
+        return result;
     }
 
     private List<BooleanExpression> getPredicateExpressions(PredicateGroup predicateGroup) {
@@ -476,7 +480,7 @@ public class AbstractBooleanExpressionParser implements BooleanExpressionParser 
         if (left.isAnd() == isAnd) {
             left.expressions().add(right);
             left.expression()
-                    .append(isAnd ? " AND " : " OR ")
+                    .append(isAnd ? andToken() : orToken())
                     .append("p")
                     .append(left.expressions().size());
         }
