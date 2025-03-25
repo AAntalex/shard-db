@@ -31,5 +31,23 @@ class MathConditionParserTest {
 
         expression = parser.parse("¬А&¬(¬В v А)");
         System.out.println("RES7: " + parser.toString(parser.simplifying(expression)));
+
+        expression = parser.parse("¬A&B ∨ ¬A&¬B ");
+        System.out.println("RES8: " + parser.toString(parser.simplifying(expression)));
+
+        expression = parser.parse("¬A&(A&¬B)&¬B");
+        System.out.println("RES9: " + parser.toString(parser.simplifying(expression)));
+
+        expression = parser.parse("A&B&C ∨ A&¬B&C ∨ A&B&¬C");
+        System.out.println("RES10: " + parser.toString(parser.simplifying(expression)));
+
+        expression = parser.parse("(¬A ∨ (B ∨ C))&((¬A ∨ B) ∨ ¬C)");
+        System.out.println("RES11: " + parser.toString(parser.simplifying(expression)));
+
+        expression = parser.parse("¬A ∨ ¬(A&B&¬B)");
+        System.out.println("RES12: " + parser.toString(parser.simplifying(expression)));
+
+        expression = parser.parse("¬(A ∨ ¬B) ∨ ¬(A ∨ B) ∨ A&B");
+        System.out.println("RES13: " + parser.toString(parser.simplifying(expression)));
     }
 }
