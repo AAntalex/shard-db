@@ -6,6 +6,9 @@ import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
+
 class SqlConditionParserTest {
     @Test
     @DisplayName("Тест упрощения логического выражения")
@@ -61,8 +64,33 @@ class SqlConditionParserTest {
         );
         Assertions.assertEquals(
                 parser.toString(parser.simplifying(expression)),
-                "(A1.ID=? AND NOT \"a2\".C_DEST LIKE 'A1.ID  =  ?%' AND A2.C_DEST LIKE 'AAA%' OR A1.ID=A2.ID" +
-                        " AND NOT A3.C_DATE<?)"
+                "(A1.ID=:1 AND NOT \"a2\".C_DEST LIKE 'A1.ID  =  ?%' AND A1.ID=:3 AND A2.C_DEST LIKE 'AAA%' " +
+                        "OR A1.C_COL=:2 AND NOT \"a2\".C_DEST LIKE 'A1.ID  =  ?%' AND A1.ID=:3 AND " +
+                        "A2.C_DEST LIKE 'AAA%' OR A1.ID=A2.ID AND NOT A3.C_DATE<:4)"
         );
+
+        expression = parser.parse(
+                """
+                    (a1.Id = :1 or a1.C_COL = :2)
+                and A1.ID = :1
+                and A2.C_DEST like 'AAA%'
+                and "a2".C_DEST Not like 'A1.ID  =  ?%'
+                or a3.C_DATE >= :3 and a1.ID = a2.ID
+                """
+        );
+        Assertions.assertEquals(
+                parser.toString(parser.simplifying(expression)),
+                "(A1.ID=:1 AND NOT \"a2\".C_DEST LIKE 'A1.ID  =  ?%' AND A2.C_DEST LIKE 'AAA%' OR " +
+                        "NOT A3.C_DATE<:3 AND A1.ID=A2.ID)"
+        );
+
+        Pattern pattern = Pattern.compile("\\{:\\d+\\}");
+        Matcher matcher = pattern.matcher("(A1.ID= {:12} AND NOT \"a2\".C_DEST LIKE 'A1.ID  =  ?%' AND A2.C_DEST LIKE 'AAA%' OR " +
+                "NOT A3.C_DATE<{:3} AND A1.ID=A2.ID)");
+        while (matcher.find()) {
+            System.out.println("group: " + matcher.group());
+            System.out.println("idx: " + matcher.group().substring(2, matcher.group().length() - 1));
+        }
+        System.out.println("RES: " + matcher.replaceAll("?"));
     }
 }

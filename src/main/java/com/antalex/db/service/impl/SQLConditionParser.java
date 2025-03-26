@@ -8,11 +8,13 @@ import java.util.*;
 public class SQLConditionParser extends AbstractBooleanExpressionParser {
     private final List<Set<String>> aliases = new ArrayList<>();
     private Set<String> currentAliases = new HashSet<>();
+    private int bindIndex = 0;
 
     @Override
     public BooleanExpression parse(String expression) {
         aliases.clear();
         currentAliases.clear();
+        bindIndex = 0;
         return super.parse(expression);
     }
 
@@ -49,6 +51,14 @@ public class SQLConditionParser extends AbstractBooleanExpressionParser {
     @Override
     protected void processAlias(String token) {
         currentAliases.add(token);
+    }
+
+    @Override
+    protected String processChar(Character currentCharacter) {
+        if (currentCharacter == '?') {
+            return ":" + ++bindIndex;
+        }
+        return super.processChar(currentCharacter);
     }
 
     @Override

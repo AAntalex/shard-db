@@ -336,7 +336,7 @@ public class AbstractBooleanExpressionParser implements BooleanExpressionParser 
                 continue;
             }
             token = Strings.EMPTY;
-            currentExpression.expression().append(Character.toUpperCase(curChar));
+            currentExpression.expression().append(processChar(curChar));
             lastChar = chars[i];
         }
         if (!recurse || currentExpression != expression) {
@@ -427,6 +427,10 @@ public class AbstractBooleanExpressionParser implements BooleanExpressionParser 
     }
 
     protected void processAlias(String token) {
+    }
+
+    protected String processChar(Character currentCharacter) {
+        return String.valueOf(Character.toUpperCase(currentCharacter));
     }
 
     protected boolean tokenIsStarted(Character ch) {
