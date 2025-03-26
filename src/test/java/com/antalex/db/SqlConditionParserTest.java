@@ -6,6 +6,8 @@ import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 
+import java.util.List;
+import java.util.regex.MatchResult;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
@@ -84,9 +86,20 @@ class SqlConditionParserTest {
                         "NOT A3.C_DATE<:3 AND A1.ID=A2.ID)"
         );
 
+
+        String testSql = "(A1.ID= {:12} AND NOT \"a2\".C_DEST LIKE 'A1.ID  =  ?%' AND A2.C_DEST LIKE 'AAA%' OR " +
+                "NOT A3.C_DATE<{:3} AND A1.ID=A2.ID)";
+
+        List<Integer> bindIndexes = Pattern.compile("\\{:\\d+\\}")
+                .matcher(testSql)
+                .results()
+                .map(MatchResult::group)
+                .map(it -> it.substring(2, it.length() - 1))
+                .map(Integer::valueOf)
+                .toList();
+
         Pattern pattern = Pattern.compile("\\{:\\d+\\}");
-        Matcher matcher = pattern.matcher("(A1.ID= {:12} AND NOT \"a2\".C_DEST LIKE 'A1.ID  =  ?%' AND A2.C_DEST LIKE 'AAA%' OR " +
-                "NOT A3.C_DATE<{:3} AND A1.ID=A2.ID)");
+        Matcher matcher = pattern.matcher(testSql);
         while (matcher.find()) {
             System.out.println("group: " + matcher.group());
             System.out.println("idx: " + matcher.group().substring(2, matcher.group().length() - 1));
