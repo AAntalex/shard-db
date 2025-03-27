@@ -27,6 +27,7 @@ public abstract class AbstractTransactionalQuery implements TransactionalQuery, 
     protected DataBaseInstance shard;
     protected final List<TransactionalQuery> relatedQueries = new ArrayList<>();
     protected final List<TransactionalQuery> queryParts = new ArrayList<>();
+    protected List<Integer> bindIndexes = new ArrayList<>();
 
     private long duration;
     private int resultUpdate;
@@ -88,18 +89,28 @@ public abstract class AbstractTransactionalQuery implements TransactionalQuery, 
 
     @Override
     public TransactionalQuery bindAll(Object... objects) {
-        for (int i = 0; i < objects.length; i++) {
-            bind(i+1, objects[i]);
+        if (!bindIndexes.isEmpty()) {
+            IntStream.range(0, bindIndexes.size())
+                            .forEach(idx -> bind(idx + 1, objects[idx]));
+        } else {
+            for (int i = 0; i < objects.length; i++) {
+                bind(i+1, objects[i]);
+            }
         }
         return this;
     }
 
     @Override
     public TransactionalQuery bindAll(List<String> binds, List<Class<?>> types) {
-        IntStream.range(0, binds.size())
-                .forEach(idx ->
-                        bind(idx + 1, binds.get(idx), types.get(idx))
-                );
+        if (!bindIndexes.isEmpty()) {
+            IntStream.range(0, bindIndexes.size())
+                    .forEach(idx -> bind(idx + 1, binds.get(idx), types.get(idx)));
+        } else {
+            IntStream.range(0, binds.size())
+                    .forEach(idx ->
+                            bind(idx + 1, binds.get(idx), types.get(idx))
+                    );
+        }
         return this;
     }
 
@@ -287,6 +298,11 @@ public abstract class AbstractTransactionalQuery implements TransactionalQuery, 
     @Override
     public long getDuration() {
         return duration;
+    }
+
+    @Override
+    public void setBindIndexes(List<Integer> bindIndexes) {
+        this.bindIndexes = bindIndexes;
     }
 
     protected void bindOriginal(int idx, String o, Class<?> clazz) throws Exception {

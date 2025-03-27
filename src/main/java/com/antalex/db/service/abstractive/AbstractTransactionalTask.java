@@ -11,6 +11,9 @@ import lombok.extern.slf4j.Slf4j;
 import java.util.*;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Future;
+import java.util.regex.MatchResult;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
 import java.util.stream.Stream;
 
 @Slf4j
@@ -224,6 +227,19 @@ public abstract class AbstractTransactionalTask implements TransactionalTask {
     @Override
     public TransactionalQuery createQuery(String query, QueryType queryType, String name) {
         log.trace("Create Query '{}' on {}", query, shard.getName());
+        if (Optional.ofNullable(query).map(String::isEmpty).orElse(true)) {
+            return null;
+        }
+        List<Integer> bindIndexes = null;
+        if (query.contains("{:")) {
+            Matcher matcher = Pattern.compile("\\{:\\d+}").matcher(query);
+            bindIndexes = matcher.results()
+                    .map(MatchResult::group)
+                    .map(it -> it.substring(2, it.length() - 1))
+                    .map(Integer::valueOf)
+                    .toList();
+            query = matcher.replaceAll("?");
+        }
         TransactionalQuery transactionalQuery = createQuery(query, queryType);
         if (queryType == QueryType.DML) {
             Optional
@@ -234,6 +250,9 @@ public abstract class AbstractTransactionalTask implements TransactionalTask {
         }
         if (queryType == QueryType.SELECT) {
             transactionalQuery.setExecutorService(executorService);
+        }
+        if (Objects.nonNull(bindIndexes)) {
+            transactionalQuery.setBindIndexes(bindIndexes);
         }
         return transactionalQuery;
     }

@@ -36,6 +36,7 @@ public interface TransactionalQuery {
     int getResultUpdate();
     int[] getResultUpdateBatch();
     long getDuration();
+    void setBindIndexes(List<Integer> bindIndexes);
 
     default TransactionalQuery bind(Object o) {
         return bind(o, false);

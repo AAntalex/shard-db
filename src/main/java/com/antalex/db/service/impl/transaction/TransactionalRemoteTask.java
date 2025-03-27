@@ -12,7 +12,6 @@ import com.antalex.db.exception.ShardDataBaseException;
 import com.antalex.db.model.enums.QueryType;
 import com.antalex.db.service.api.TransactionalQuery;
 
-import java.util.Optional;
 import java.util.UUID;
 import java.util.concurrent.ExecutorService;
 
@@ -71,9 +70,6 @@ public class TransactionalRemoteTask extends AbstractTransactionalTask {
 
     @Override
     protected TransactionalQuery createQuery(String query, QueryType queryType) {
-        if (Optional.ofNullable(query).map(String::isEmpty).orElse(true)) {
-            return null;
-        }
         if (
                 (
                         queryType == QueryType.DML ||

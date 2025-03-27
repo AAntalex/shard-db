@@ -14,7 +14,6 @@ import lombok.extern.slf4j.Slf4j;
 
 import java.sql.Connection;
 import java.sql.SQLException;
-import java.util.Optional;
 import java.util.UUID;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.TimeUnit;
@@ -75,9 +74,6 @@ public class TransactionalSQLTask extends AbstractTransactionalTask {
 
     @Override
     protected TransactionalQuery createQuery(String query, QueryType queryType) {
-        if (Optional.ofNullable(query).map(String::isEmpty).orElse(true)) {
-            return null;
-        }
         try {
             if (
                     (
