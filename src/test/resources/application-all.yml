@@ -1,0 +1,139 @@
+#dialect: org.hibernate.dialect.PostgreSQLDialect
+#dialect: org.hibernate.dialect.Oracle12cDialect
+
+hibernate:
+  dialect: org.hibernate.dialect.PostgreSQLDialect
+  jdbc:
+    batch_size: 1000000
+  order_inserts: true
+  order_updates: true
+  enable_lazy_load_no_trans: true
+  ddl-auto: update
+  show_sql: false
+  format_sql: false
+  id.new_generator_mappings: true
+
+shardDbConfig:
+  processorTimeOut: 3600
+  sequenceCacheSize: 1000000
+  sqlInClauseLimit: 30
+  #activeConnectionParallelLimit: 10
+  percentActiveConnectionParallelLimit: 30
+  parallelRun: true
+  LockProcessor:
+    timeOut: 10
+    delay: 1
+  ThreadPool:
+    nameFormat: Multi-DB-%d
+    corePoolSize: 10
+    keepAliveTime: 60
+    maximumPoolSize: 1000
+  liquibase:
+    changeLogSrc: classpath:db/changelog
+    changeLogName: db.changelog-master.yaml
+    enabled: true
+  hikari:
+    minimumIdle: 0
+    maximumPoolSize: 20
+    idleTimeout: 60
+  checks:
+    checkShardID: false
+    checkClusterID: true
+    checkClusterName: true
+    checkMainShard: false
+    checkClusterDefault: false
+  clusters:
+    - name: DEFAULT
+      defaultCluster: true
+      shards:
+        - datasource:
+            url: jdbc:postgresql://localhost:5432/main_1
+            username: main_1
+            password: main_1
+        - datasource:
+            url: jdbc:postgresql://localhost:5432/main_2
+            username: main_2
+            password: main_2
+        - datasource:
+            driver: oracle.jdbc.driver.OracleDriver
+            url: jdbc:oracle:thin:@localhost:1521/eks
+            username: IBS
+            password: IBS
+          id: 2
+        - remote:
+            url: http://localhost:8080
+            owner: IBS
+          id: 1
+      #activeConnectionParallelLimit: 6
+      sequenceCacheSize: 10000
+      hikari:
+        minimumIdle: 0
+        maximumPoolSize: 10
+        idleTimeout: 120
+    - name: INTEGR
+      shards:
+        - datasource:
+            url: ${PMTS_DATASOURCE_JDBC_URL_INTEGR_S1:jdbc:postgresql://d5pmts-pgc008lk.corp.dev.vtb:5432/segment_integr}
+            username: ${PMTS_DB_NTEGR_S1_USER:segment_integr_admin}
+            password: ${PMTS_DB_NTEGR_S1_PASSWORD:8hLQfz8Fu7OqycZFW_BBtWpmUNgp38Kq636Sc8bSM8NIS.eIyrXJA_hiklDLjmiJU5rC7U_.ls9JILGsJlBodYR}
+            owner: segment_integr
+        - datasource:
+            url: ${PMTS_DATASOURCE_JDBC_URL_INTEGR_S2:jdbc:postgresql://d5pmts-pgc004lk.corp.dev.vtb:5432/segment_integr}
+            username: ${PMTS_DB_NTEGR_S2_USER:segment_integr_admin}
+            password: ${PMTS_DB_NTEGR_S2_PASSWORD:eRgF58deSaB-EvQATUdpVVBjnyyh63MtOYOVMvgAkHNT3zCpCPTS5yKuzq5Eq.LsCPcWxomluk}
+            owner: segment_integr
+        - datasource:
+            driver: oracle.jdbc.driver.OracleDriver
+            url: jdbc:oracle:thin:@d5cftm-apc005ln.corp.dev.vtb:1521/ELVIS
+            username: IBS
+            password: IBS
+        - remote:
+            url: http://localhost:8080
+            owner: segment_integr
+          id: 2
+    - name: MAIN
+      shards:
+        - datasource:
+            driver: oracle.jdbc.driver.OracleDriver
+            url: jdbc:oracle:thin:@d5cftm-apc005ln.corp.dev.vtb:1521/ELVIS
+            username: IBS
+            password: IBS
+          id: 1
+        - datasource:
+            driver: org.h2.Driver
+            url: jdbc:h2:file:C:/LocalPPRB/H2DB2;MV_STORE=TRUE;INIT=CREATE SCHEMA IF NOT EXISTS TEST
+            username: TEST
+            password: TEST
+            owner: TEST
+        - datasource:
+            driver: oracle.jdbc.driver.OracleDriver
+            url: jdbc:oracle:thin:@localhost:1521/eks
+            username: TEST
+            password: TEST
+            owner: IBS
+          id: 2
+          hikari:
+            minimumIdle: 30
+            maximumPoolSize: 200
+          TransactionConfig:
+            activeConnectionParallelLimit: 100
+    - name: COMMON_INTEGR
+      shards:
+        - datasource:
+            url: ${PMTS_DATASOURCE_JDBC_URL_CMN_INTEGR:jdbc:postgresql://d5pmts-pgc003lk.corp.dev.vtb:5432/common_integr}
+            username: ${PMTS_DB_CMN_INTEGR_USER:common_integr_admin}
+            password: ${PMTS_DB_CMN_INTEGR_PASSWORD:6to43yM5Y5giWnDQDtkYAoFyI_-io3kfjfBGfvgh6H9s3.v.Fr4YbumIOFX8g3qq5v7P29T7wLD99ZRs9m2D-AK3u-ThRbIh8F2_e8lt41lSCUChNg}
+            owner: common_integr
+    - name: RAW
+      id: 1
+      hikari:
+        minimumIdle: 10
+        maximumPoolSize: 20
+      TransactionConfig:
+        activeConnectionParallelLimit: 10
+      shards:
+        - datasource:
+            driver: oracle.jdbc.driver.OracleDriver
+            url: jdbc:oracle:thin:@d5ubss-or5001lk.corp.dev.vtb:1521/TARIFA
+            username: IBS
+            password: IBS

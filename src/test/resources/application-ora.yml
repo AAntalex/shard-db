@@ -1,0 +1,57 @@
+hibernate:
+  dialect: org.hibernate.dialect.Oracle12cDialect
+  jdbc:
+    batch_size: 1000000
+  order_inserts: true
+  order_updates: true
+  enable_lazy_load_no_trans: true
+  ddl-auto: update
+  show_sql: false
+  format_sql: false
+  id.new_generator_mappings: true
+
+shardDbConfig:
+  processorTimeOut: 3600
+  sequenceCacheSize: 1000000
+  sqlInClauseLimit: 30
+  #activeConnectionParallelLimit: 10
+  percentActiveConnectionParallelLimit: 30
+  parallelRun: true
+  LockProcessor:
+    timeOut: 10
+    delay: 1
+  ThreadPool:
+    nameFormat: Multi-DB-%d
+    corePoolSize: 10
+    keepAliveTime: 60
+    maximumPoolSize: 1000
+  liquibase:
+    changeLogSrc: classpath:db/changelog
+    changeLogName: db.changelog-master.yaml
+    enabled: true
+  hikari:
+    minimumIdle: 0
+    maximumPoolSize: 20
+    idleTimeout: 60
+  checks:
+    checkShardID: false
+    checkClusterID: true
+    checkClusterName: true
+    checkMainShard: false
+    checkClusterDefault: false
+  clusters:
+    - name: DEFAULT
+      defaultCluster: true
+      shards:
+        - datasource:
+            driver: oracle.jdbc.driver.OracleDriver
+            url: jdbc:oracle:thin:@localhost:1521/eks
+            username: IBS
+            password: IBS
+          id: 2
+      #activeConnectionParallelLimit: 6
+      sequenceCacheSize: 10000
+      hikari:
+        minimumIdle: 0
+        maximumPoolSize: 10
+        idleTimeout: 120

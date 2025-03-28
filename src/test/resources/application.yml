@@ -1,0 +1,49 @@
+test:
+  scheduler:
+    scheduler-thread-count: 10
+    intervalSec: 20
+
+spring:
+  profiles:
+    active: ${PROFILE:postgres-test}
+  liquibase:
+    enabled: false
+  jpa:
+    hibernate:
+      ddl-auto: update
+  application:
+    name: AAA-test
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health,info,prometheus,heapdump,threaddump,loggers,refresh,metric
+  endpoint:
+    health:
+      enabled: true
+      probes.enabled: true
+      show-details: always
+    prometheus:
+      enabled: true
+    info:
+      enabled: true
+    loggers:
+      enabled: true
+  metrics:
+    distribution:
+      percentiles-histogram:
+        http.server.requests: true
+    tags:
+      application: ${spring.application.name}
+  prometheus:
+    metrics:
+      export:
+        enabled: true
+
+logging:
+  level:
+    #com.antalex.db: trace
+    com.antalex.service: trace
+    org.hibernate.type:
+      descriptor:
+        sql.BasicBinder: INFO

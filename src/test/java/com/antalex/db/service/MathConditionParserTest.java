@@ -1,4 +1,4 @@
-package com.antalex.db;
+package com.antalex.db.service;
 
 import com.antalex.db.model.BooleanExpression;
 import com.antalex.db.service.impl.MathConditionParser;

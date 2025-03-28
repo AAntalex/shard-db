@@ -6,14 +6,9 @@ import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 
-import java.util.List;
-import java.util.regex.MatchResult;
-import java.util.regex.Matcher;
-import java.util.regex.Pattern;
-
 class SqlConditionParserTest {
     @Test
-    @DisplayName("Тест упрощения логического выражения")
+    @DisplayName("Тест упрощения логического SQL-выражения")
     void simplifyingExpressionTest() {
         SQLConditionParser parser = new SQLConditionParser();
 
@@ -52,7 +47,7 @@ class SqlConditionParserTest {
     }
 
     @Test
-    @DisplayName("Тест разбора усоорвия SQL-выражения")
+    @DisplayName("Тест разбора условия SQL-выражения")
     void parseSqlConditionTest() {
         SQLConditionParser parser = new SQLConditionParser();
         BooleanExpression expression = parser.parse(
@@ -73,37 +68,17 @@ class SqlConditionParserTest {
 
         expression = parser.parse(
                 """
-                    (a1.Id = :1 or a1.C_COL = :2)
-                and A1.ID = :1
+                    (a1.Id = {:1} or a1.C_COL = {:2})
+                and A1.ID = {:1}
                 and A2.C_DEST like 'AAA%'
                 and "a2".C_DEST Not like 'A1.ID  =  ?%'
-                or a3.C_DATE >= :3 and a1.ID = a2.ID
+                or a3.C_DATE >= {:3} and a1.ID = a2.ID
                 """
         );
         Assertions.assertEquals(
                 parser.toString(parser.simplifying(expression)),
-                "(A1.ID=:1 AND NOT \"a2\".C_DEST LIKE 'A1.ID  =  ?%' AND A2.C_DEST LIKE 'AAA%' OR " +
-                        "NOT A3.C_DATE<:3 AND A1.ID=A2.ID)"
+                "(A1.ID={:1} AND NOT \"a2\".C_DEST LIKE 'A1.ID  =  ?%' AND A2.C_DEST LIKE 'AAA%' OR " +
+                        "NOT A3.C_DATE<{:3} AND A1.ID=A2.ID)"
         );
-
-
-        String testSql = "(A1.ID= {:12} AND NOT \"a2\".C_DEST LIKE 'A1.ID  =  ?%' AND A2.C_DEST LIKE 'AAA%' OR " +
-                "NOT A3.C_DATE<{:3} AND A1.ID=A2.ID)";
-
-        List<Integer> bindIndexes = Pattern.compile("\\{:\\d+\\}")
-                .matcher(testSql)
-                .results()
-                .map(MatchResult::group)
-                .map(it -> it.substring(2, it.length() - 1))
-                .map(Integer::valueOf)
-                .toList();
-
-        Pattern pattern = Pattern.compile("\\{:\\d+\\}");
-        Matcher matcher = pattern.matcher(testSql);
-        while (matcher.find()) {
-            System.out.println("group: " + matcher.group());
-            System.out.println("idx: " + matcher.group().substring(2, matcher.group().length() - 1));
-        }
-        System.out.println("RES: " + matcher.replaceAll("?"));
     }
 }
