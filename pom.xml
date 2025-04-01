@@ -22,16 +22,6 @@
         <liquibase.version>4.27.0</liquibase.version>
     </properties>
 
-    <distributionManagement>
-        <snapshotRepository>
-            <id>pmts-maven-snapshot</id>
-            <url>https://sfera.inno.local/app/repo-ci-maven/api/repository/pmts-maven-snapshot/</url>
-        </snapshotRepository>
-        <repository>
-            <id>pmts-maven-lib</id>
-            <url>https://sfera.inno.local/app/repo-ci-maven/api/repository/pmts-maven-lib/</url>
-        </repository>
-    </distributionManagement>
 
     <dependencies>
         <dependency>
@@ -45,14 +35,20 @@
 
         <!--Test dependencies-->
         <dependency>
-            <groupId>org.mockito</groupId>
-            <artifactId>mockito-junit-jupiter</artifactId>
+            <groupId>org.springframework.boot</groupId>
+            <artifactId>spring-boot-starter-test</artifactId>
             <scope>test</scope>
         </dependency>
-
-
-
-
+        <dependency>
+            <groupId>org.testcontainers</groupId>
+            <artifactId>testcontainers</artifactId>
+            <scope>test</scope>
+        </dependency>
+        <dependency>
+            <groupId>org.testcontainers</groupId>
+            <artifactId>postgresql</artifactId>
+            <scope>test</scope>
+        </dependency>
 
         <dependency>
             <groupId>com.google.auto.service</groupId>

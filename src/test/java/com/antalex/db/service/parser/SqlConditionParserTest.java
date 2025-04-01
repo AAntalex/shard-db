@@ -1,7 +1,7 @@
-package com.antalex.db;
+package com.antalex.db.service.parser;
 
 import com.antalex.db.model.BooleanExpression;
-import com.antalex.db.service.impl.SQLConditionParser;
+import com.antalex.db.service.impl.parser.SQLConditionParser;
 import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;

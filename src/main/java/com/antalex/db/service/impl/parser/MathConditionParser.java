@@ -1,4 +1,4 @@
-package com.antalex.db.service.impl;
+package com.antalex.db.service.impl.parser;
 
 import com.antalex.db.service.abstractive.AbstractBooleanExpressionParser;
 

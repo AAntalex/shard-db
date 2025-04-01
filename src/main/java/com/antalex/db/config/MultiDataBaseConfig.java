@@ -7,10 +7,10 @@ import org.springframework.context.annotation.Configuration;
 import java.util.List;
 
 @Configuration
-@ConfigurationProperties(prefix = ShardDataBaseConfig.CONFIG_NAME)
+@ConfigurationProperties(prefix = MultiDataBaseConfig.CONFIG_NAME)
 @Data
-public class ShardDataBaseConfig {
-    public static final String CONFIG_NAME = "shard-db-config";
+public class MultiDataBaseConfig {
+    public static final String CONFIG_NAME = "multi-db-config";
 
     private String segment;
     private Integer processorTimeOut;

@@ -74,7 +74,7 @@ public class ShardDatabaseManagerImpl implements ShardDataBaseManager {
     private static final String SELECT_DYNAMIC_DB_INFO = "SELECT SEGMENT_NAME,ACCESSIBLE FROM $$$.APP_DATABASE";
 
     private final ResourceLoader resourceLoader;
-    private final ShardDataBaseConfig shardDataBaseConfig;
+    private final MultiDataBaseConfig multiDataBaseConfig;
     private final SharedTransactionManager sharedTransactionManager;
     private final TransactionalSQLTaskFactory taskFactory;
     private final TransactionalRemoteTaskFactory remoteTaskFactory;
@@ -99,14 +99,14 @@ public class ShardDatabaseManagerImpl implements ShardDataBaseManager {
     @Autowired
     ShardDatabaseManagerImpl(
             ResourceLoader resourceLoader,
-            ShardDataBaseConfig shardDataBaseConfig,
+            MultiDataBaseConfig multiDataBaseConfig,
             SharedTransactionManager sharedTransactionManager,
             TransactionalSQLTaskFactory taskFactory,
             TransactionalRemoteTaskFactory remoteTaskFactory,
             LockManager lockManager)
     {
         this.resourceLoader = resourceLoader;
-        this.shardDataBaseConfig = shardDataBaseConfig;
+        this.multiDataBaseConfig = multiDataBaseConfig;
         this.sharedTransactionManager = sharedTransactionManager;
         this.taskFactory = taskFactory;
         this.remoteTaskFactory = remoteTaskFactory;
@@ -379,7 +379,7 @@ public class ShardDatabaseManagerImpl implements ShardDataBaseManager {
         TransactionalQuery transactionalQuery = getTransactionalTask(shard).getQuery(query, queryType);
         if (queryType == QueryType.SELECT) {
             transactionalQuery.setParallelRun(
-                    Optional.ofNullable(shardDataBaseConfig.getParallelRun()).orElse(true)
+                    Optional.ofNullable(multiDataBaseConfig.getParallelRun()).orElse(true)
             );
         }
         return transactionalQuery;
@@ -447,7 +447,7 @@ public class ShardDatabaseManagerImpl implements ShardDataBaseManager {
                         if (mainQuery == null) {
                             mainQuery = currentQuery;
                             mainQuery.setParallelRun(
-                                    Optional.ofNullable(shardDataBaseConfig.getParallelRun()).orElse(true)
+                                    Optional.ofNullable(multiDataBaseConfig.getParallelRun()).orElse(true)
                             );
                         } else {
                             mainQuery.addRelatedQuery(currentQuery);
@@ -561,7 +561,7 @@ public class ShardDatabaseManagerImpl implements ShardDataBaseManager {
         } else {
             Assert.isTrue(
                     !Optional
-                            .ofNullable(shardDataBaseConfig.getChecks())
+                            .ofNullable(multiDataBaseConfig.getChecks())
                             .map(ChecksConfig::getCheckShardID)
                             .orElse(true) ||
                             shard.getId().equals(shardId),
@@ -569,7 +569,7 @@ public class ShardDatabaseManagerImpl implements ShardDataBaseManager {
                             "Идентификатор шарды в настройках '%s.clusters.shards.id' = '%d' " +
                                     "кластера '%s' " +
                                     "не соответствует идентификатору в БД = '%d'.",
-                            ShardDataBaseConfig.CONFIG_NAME, shard.getId(), cluster.getName(), shardId
+                            MultiDataBaseConfig.CONFIG_NAME, shard.getId(), cluster.getName(), shardId
                     )
             );
         }
@@ -578,7 +578,7 @@ public class ShardDatabaseManagerImpl implements ShardDataBaseManager {
     private void checkMainShard(Cluster cluster, DataBaseInstance shard, boolean mainShard) {
         Assert.isTrue(
                 !Optional
-                        .ofNullable(shardDataBaseConfig.getChecks())
+                        .ofNullable(multiDataBaseConfig.getChecks())
                         .map(ChecksConfig::getCheckMainShard)
                         .orElse(false) ||
                         shard.getId().equals(cluster.getMainShard().getId()) == mainShard,
@@ -598,14 +598,14 @@ public class ShardDatabaseManagerImpl implements ShardDataBaseManager {
         } else {
             Assert.isTrue(
                     !Optional
-                            .ofNullable(shardDataBaseConfig.getChecks())
+                            .ofNullable(multiDataBaseConfig.getChecks())
                             .map(ChecksConfig::getCheckClusterID)
                             .orElse(true) ||
                             cluster.getId().equals(clusterId),
                     String.format(
                             "Идентификатор кластера '%s' в настройках '%s.clusters.id' = '%d' " +
                                     "не соответствует идентификатору в БД (%s) = '%d'.",
-                            ShardDataBaseConfig.CONFIG_NAME, cluster.getName(), cluster.getId(), shardName, clusterId
+                            MultiDataBaseConfig.CONFIG_NAME, cluster.getName(), cluster.getId(), shardName, clusterId
                     )
             );
         }
@@ -614,14 +614,14 @@ public class ShardDatabaseManagerImpl implements ShardDataBaseManager {
     private void checkClusterName(Cluster cluster, String clusterName, String shardName) {
         Assert.isTrue(
                 !Optional
-                        .ofNullable(shardDataBaseConfig.getChecks())
+                        .ofNullable(multiDataBaseConfig.getChecks())
                         .map(ChecksConfig::getCheckClusterName)
                         .orElse(true) ||
                         cluster.getName().equals(clusterName),
                 String.format(
                         "Наименование кластера '%s' в настройках '%s.clusters.name' = '%s' " +
                                 "не соответствует наименованию в БД (%s) = '%s'.",
-                        ShardDataBaseConfig.CONFIG_NAME, cluster.getName(), cluster.getName(), shardName, clusterName
+                        MultiDataBaseConfig.CONFIG_NAME, cluster.getName(), cluster.getName(), shardName, clusterName
                 )
         );
     }
@@ -629,7 +629,7 @@ public class ShardDatabaseManagerImpl implements ShardDataBaseManager {
     private void checkClusterDefault(Cluster cluster, boolean clusterDefault, String shardName) {
         Assert.isTrue(
                 !Optional
-                        .ofNullable(shardDataBaseConfig.getChecks())
+                        .ofNullable(multiDataBaseConfig.getChecks())
                         .map(ChecksConfig::getCheckClusterDefault)
                         .orElse(false) ||
                         cluster.getName().equals(getDefaultCluster().getName()) == clusterDefault,
@@ -806,7 +806,7 @@ public class ShardDatabaseManagerImpl implements ShardDataBaseManager {
         transaction.commit(false);
     }
 
-    private <T> Optional<T> getHikariConfigValue(ShardDataBaseConfig shardDataBaseConfig,
+    private <T> Optional<T> getHikariConfigValue(MultiDataBaseConfig multiDataBaseConfig,
                                                  ClusterConfig clusterConfig,
                                                  ShardConfig shardConfig,
                                                  Function<HikariSettings, T> functionGet)
@@ -818,7 +818,7 @@ public class ShardDatabaseManagerImpl implements ShardDataBaseManager {
                                 Optional.ofNullable(clusterConfig.getHikari())
                                         .map(functionGet)
                                         .orElse(
-                                                Optional.ofNullable(shardDataBaseConfig.getHikari())
+                                                Optional.ofNullable(multiDataBaseConfig.getHikari())
                                                         .map(functionGet)
                                                         .orElse(null)
                                         )
@@ -826,13 +826,13 @@ public class ShardDatabaseManagerImpl implements ShardDataBaseManager {
         );
     }
 
-    private <T> void setHikariConfigValue(ShardDataBaseConfig shardDataBaseConfig,
+    private <T> void setHikariConfigValue(MultiDataBaseConfig multiDataBaseConfig,
                                           ClusterConfig clusterConfig,
                                           ShardConfig shardConfig,
                                           Function<HikariSettings, T> functionGet,
                                           Consumer<T> functionSet)
     {
-        getHikariConfigValue(shardDataBaseConfig, clusterConfig, shardConfig, functionGet).ifPresent(functionSet);
+        getHikariConfigValue(multiDataBaseConfig, clusterConfig, shardConfig, functionGet).ifPresent(functionSet);
     }
 
     private static <T> void setDataBaseConfigValue(DataSourceConfig dataSourceConfig,
@@ -852,71 +852,71 @@ public class ShardDatabaseManagerImpl implements ShardDataBaseManager {
 
     private void  setOptionalHikariConfig(
             HikariConfig config,
-            ShardDataBaseConfig shardDataBaseConfig,
+            MultiDataBaseConfig multiDataBaseConfig,
             ClusterConfig clusterConfig,
             ShardConfig shardConfig)
     {
-        setHikariConfigValue(shardDataBaseConfig, clusterConfig, shardConfig,
+        setHikariConfigValue(multiDataBaseConfig, clusterConfig, shardConfig,
                 HikariSettings::getMinimumIdle, config::setMinimumIdle
         );
-        setHikariConfigValue(shardDataBaseConfig, clusterConfig, shardConfig,
+        setHikariConfigValue(multiDataBaseConfig, clusterConfig, shardConfig,
                 HikariSettings::getMaximumPoolSize, config::setMaximumPoolSize
         );
-        getHikariConfigValue(shardDataBaseConfig, clusterConfig, shardConfig, HikariSettings::getIdleTimeout)
+        getHikariConfigValue(multiDataBaseConfig, clusterConfig, shardConfig, HikariSettings::getIdleTimeout)
                 .map(SECONDS::toMillis)
                 .ifPresent(config::setIdleTimeout);
-        getHikariConfigValue(shardDataBaseConfig, clusterConfig, shardConfig, HikariSettings::getConnectionTimeout)
+        getHikariConfigValue(multiDataBaseConfig, clusterConfig, shardConfig, HikariSettings::getConnectionTimeout)
                 .map(SECONDS::toMillis)
                 .ifPresent(config::setConnectionTimeout);
-        getHikariConfigValue(shardDataBaseConfig, clusterConfig, shardConfig, HikariSettings::getMaxLifetime)
+        getHikariConfigValue(multiDataBaseConfig, clusterConfig, shardConfig, HikariSettings::getMaxLifetime)
                 .map(SECONDS::toMillis)
                 .ifPresent(config::setMaxLifetime);
-        getHikariConfigValue(shardDataBaseConfig, clusterConfig, shardConfig, HikariSettings::getKeepAliveTime)
+        getHikariConfigValue(multiDataBaseConfig, clusterConfig, shardConfig, HikariSettings::getKeepAliveTime)
                 .map(SECONDS::toMillis)
                 .ifPresent(config::setKeepaliveTime);
-        setHikariConfigValue(shardDataBaseConfig, clusterConfig, shardConfig,
+        setHikariConfigValue(multiDataBaseConfig, clusterConfig, shardConfig,
                 HikariSettings::getPoolName, config::setPoolName
         );
     }
 
     private HikariConfig getHikariConfig(
-            ShardDataBaseConfig shardDataBaseConfig,
+            MultiDataBaseConfig multiDataBaseConfig,
             ClusterConfig clusterConfig,
             ShardConfig shardConfig)
     {
         HikariConfig config = new HikariConfig();
-        setOptionalDataSourceConfig(config, shardConfig.getDataSource());
-        setOptionalHikariConfig(config, shardDataBaseConfig, clusterConfig, shardConfig);
+        setOptionalDataSourceConfig(config, shardConfig.getDatasource());
+        setOptionalHikariConfig(config, multiDataBaseConfig, clusterConfig, shardConfig);
         return config;
     }
 
     private void processLiquibaseConfig() {
         this.changLogPath = Optional
-                .ofNullable(shardDataBaseConfig.getLiquibase())
+                .ofNullable(multiDataBaseConfig.getLiquibase())
                 .map(LiquibaseConfig::getChangeLogSrc)
                 .orElse(DEFAULT_CHANGE_LOG_PATH);
         this.changLogName = Optional
-                .ofNullable(shardDataBaseConfig.getLiquibase())
+                .ofNullable(multiDataBaseConfig.getLiquibase())
                 .map(LiquibaseConfig::getChangeLogName)
                 .orElse(DEFAULT_CHANGE_LOG_NAME);
         this.liquibaseEnable = Optional
-                .ofNullable(shardDataBaseConfig.getLiquibase())
+                .ofNullable(multiDataBaseConfig.getLiquibase())
                 .map(LiquibaseConfig::getEnabled)
                 .orElse(false);
     }
 
     private void processThreadPoolConfig() {
         ThreadPoolExecutor executor = (ThreadPoolExecutor) this.executorService;
-        Optional.ofNullable(shardDataBaseConfig.getThreadPool())
+        Optional.ofNullable(multiDataBaseConfig.getThreadPool())
                 .map(ThreadPoolConfig::getCorePoolSize)
                 .ifPresent(executor::setCorePoolSize);
-        Optional.ofNullable(shardDataBaseConfig.getThreadPool())
+        Optional.ofNullable(multiDataBaseConfig.getThreadPool())
                 .map(ThreadPoolConfig::getMaximumPoolSize)
                 .ifPresent(executor::setMaximumPoolSize);
-        Optional.ofNullable(shardDataBaseConfig.getThreadPool())
+        Optional.ofNullable(multiDataBaseConfig.getThreadPool())
                 .map(ThreadPoolConfig::getKeepAliveTime)
                 .ifPresent(keepAliveTime -> executor.setKeepAliveTime(keepAliveTime, TimeUnit.SECONDS));
-        Optional.ofNullable(shardDataBaseConfig.getThreadPool())
+        Optional.ofNullable(multiDataBaseConfig.getThreadPool())
                 .map(ThreadPoolConfig::getNameFormat)
                 .ifPresent(nameFormat ->
                         executor.setThreadFactory(new ThreadFactoryBuilder().setNameFormat(nameFormat).build()));
@@ -924,44 +924,44 @@ public class ShardDatabaseManagerImpl implements ShardDataBaseManager {
 
     private void processLockConfig() {
         this.lockManager.setDelay(
-                Optional.ofNullable(shardDataBaseConfig.getLockProcessor())
+                Optional.ofNullable(multiDataBaseConfig.getLockProcessor())
                         .map(LockProcessorConfig::getDelay)
                         .orElse(DEFAULT_DELAY_LOCK_PROCESSOR)
         );
         this.lockManager.setTimeOut(
-                Optional.ofNullable(shardDataBaseConfig.getLockProcessor())
+                Optional.ofNullable(multiDataBaseConfig.getLockProcessor())
                         .map(LockProcessorConfig::getTimeOut)
                         .orElse(DEFAULT_TIME_OUT_LOCK_PROCESSOR)
         );
     }
 
     private void getProperties() {
-        this.segment = shardDataBaseConfig.getSegment();
+        this.segment = multiDataBaseConfig.getSegment();
         this.sqlInClauseLimit = Optional
-                .ofNullable(shardDataBaseConfig.getSqlInClauseLimit())
+                .ofNullable(multiDataBaseConfig.getSqlInClauseLimit())
                 .orElse(SQL_IN_CLAUSE_LIMIT);
         this.timeOutDbProcessor = Optional
-                .ofNullable(shardDataBaseConfig.getProcessorTimeOut())
+                .ofNullable(multiDataBaseConfig.getProcessorTimeOut())
                 .orElse(DEFAULT_TIME_OUT_DB_PROCESSOR);
         this.processLiquibaseConfig();
         this.processThreadPoolConfig();
         this.processLockConfig();
         this.sharedTransactionManager.setParallelRun(
-                Optional.ofNullable(shardDataBaseConfig.getParallelRun()).orElse(true));
+                Optional.ofNullable(multiDataBaseConfig.getParallelRun()).orElse(true));
         Assert.notEmpty(
-                shardDataBaseConfig.getClusters(),
-                String.format("Property '%s.clusters' must not be empty", ShardDataBaseConfig.CONFIG_NAME)
+                multiDataBaseConfig.getClusters(),
+                String.format("Property '%s.clusters' must not be empty", MultiDataBaseConfig.CONFIG_NAME)
         );
         Assert.isTrue(
-                shardDataBaseConfig.getClusters().size() <= ShardUtils.MAX_CLUSTERS,
+                multiDataBaseConfig.getClusters().size() <= ShardUtils.MAX_CLUSTERS,
                 "Number of clusters cannot be more than " + ShardUtils.MAX_CLUSTERS
         );
-        shardDataBaseConfig.getClusters().forEach(clusterConfig->{
+        multiDataBaseConfig.getClusters().forEach(clusterConfig->{
             Cluster cluster = new Cluster();
             cluster.setName(clusterConfig.getName());
             Assert.notNull(
                     cluster.getName(),
-                    String.format("Property '%s.clusters.name' must not be empty", ShardDataBaseConfig.CONFIG_NAME)
+                    String.format("Property '%s.clusters.name' must not be empty", MultiDataBaseConfig.CONFIG_NAME)
             );
             if (Objects.isNull(getDefaultCluster()) ||
                     Optional.ofNullable(clusterConfig.getDefaultCluster()).orElse(false))
@@ -973,7 +973,7 @@ public class ShardDatabaseManagerImpl implements ShardDataBaseManager {
 
             Assert.notEmpty(
                     clusterConfig.getShards(),
-                    String.format("Property '%s.clusters.shards' must not be empty", ShardDataBaseConfig.CONFIG_NAME)
+                    String.format("Property '%s.clusters.shards' must not be empty", MultiDataBaseConfig.CONFIG_NAME)
             );
             Assert.isTrue(
                     clusterConfig.getShards().size() <= ShardUtils.MAX_SHARDS,
@@ -982,12 +982,12 @@ public class ShardDatabaseManagerImpl implements ShardDataBaseManager {
 
             clusterConfig.getShards().forEach(shardConfig-> {
                 DataBaseInstance shard = new DataBaseInstance();
-                if (Optional.ofNullable(shardConfig.getDataSource()).map(DataSourceConfig::getUrl).isPresent()) {
-                    HikariConfig hikariConfig = getHikariConfig(shardDataBaseConfig, clusterConfig, shardConfig);
+                if (Optional.ofNullable(shardConfig.getDatasource()).map(DataSourceConfig::getUrl).isPresent()) {
+                    HikariConfig hikariConfig = getHikariConfig(multiDataBaseConfig, clusterConfig, shardConfig);
                     HikariDataSource dataSource = new HikariDataSource(hikariConfig);
                     shard.setDataSource(dataSource);
                     shard.setOwner(
-                            Optional.ofNullable(shardConfig.getDataSource())
+                            Optional.ofNullable(shardConfig.getDatasource())
                                     .map(DataSourceConfig::getOwner)
                                     .orElse(dataSource.getUsername())
                     );
@@ -996,7 +996,7 @@ public class ShardDatabaseManagerImpl implements ShardDataBaseManager {
                                     Optional.ofNullable(clusterConfig.getPercentActiveConnectionParallelLimit())
                                             .orElse(
                                                     Optional.ofNullable(
-                                                            shardDataBaseConfig
+                                                            multiDataBaseConfig
                                                                     .getPercentActiveConnectionParallelLimit()
                                                             )
                                                             .orElse(PERCENT_OF_ACTIVE_CONNECTION_FOR_PARALLEL_LIMIT)
@@ -1008,7 +1008,7 @@ public class ShardDatabaseManagerImpl implements ShardDataBaseManager {
                                             Optional.ofNullable(clusterConfig.getActiveConnectionParallelLimit())
                                                     .orElse(
                                                             Optional.ofNullable(
-                                                                    shardDataBaseConfig
+                                                                    multiDataBaseConfig
                                                                             .getActiveConnectionParallelLimit()
                                                                     )
                                                                     .orElse(
@@ -1049,8 +1049,8 @@ public class ShardDatabaseManagerImpl implements ShardDataBaseManager {
                             String.format(
                                     "Properties '%s.clusters.shards.datasource.url' or '%s.clusters.shards.remote.url'" +
                                     " must not be empty",
-                                    ShardDataBaseConfig.CONFIG_NAME,
-                                    ShardDataBaseConfig.CONFIG_NAME
+                                    MultiDataBaseConfig.CONFIG_NAME,
+                                    MultiDataBaseConfig.CONFIG_NAME
                             )
                     );
                     shard.setOwner(
@@ -1065,7 +1065,7 @@ public class ShardDatabaseManagerImpl implements ShardDataBaseManager {
                                 .orElse(
                                         Optional.ofNullable(clusterConfig.getSequenceCacheSize())
                                                 .orElse(
-                                                        shardDataBaseConfig.getSequenceCacheSize()
+                                                        multiDataBaseConfig.getSequenceCacheSize()
                                                 )
                                 )
                 );
@@ -1088,7 +1088,7 @@ public class ShardDatabaseManagerImpl implements ShardDataBaseManager {
                                 Optional.ofNullable(shardConfig.getId())
                                         .map(it -> cluster.getName() + "-" + it)
                                         .orElse(cluster.getName()),
-                                Optional.ofNullable(shardConfig.getDataSource())
+                                Optional.ofNullable(shardConfig.getDatasource())
                                         .map(DataSourceConfig::getUrl)
                                         .orElse(shard.getUrl())
                         )

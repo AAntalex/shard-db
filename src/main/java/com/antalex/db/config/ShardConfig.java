@@ -6,7 +6,7 @@ import lombok.Data;
 public class ShardConfig {
     private Short id;
     private Boolean main;
-    private DataSourceConfig dataSource;
+    private DataSourceConfig datasource;
     private RemoteConfig remote;
     private HikariSettings hikari;
     private Integer activeConnectionParallelLimit;
