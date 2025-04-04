@@ -1,0 +1,11 @@
+databaseChangeLog:
+  - include:
+      file: db/changelog/clusters/DEFAULT/app/classes/ClientCategory/create.yml
+  - include:
+      file: db/changelog/clusters/DEFAULT/app/classes/Client/create.yml
+  - include:
+      file: db/changelog/clusters/DEFAULT/app/classes/Account/create.yml
+  - include:
+      file: db/changelog/clusters/DEFAULT/app/classes/Payment/create.yml
+  - include:
+      file: db/changelog/clusters/DEFAULT/app/classes/ExternalPayment/create.yml

@@ -14,7 +14,7 @@ import java.time.OffsetDateTime;
 import java.util.Date;
 
 @EqualsAndHashCode(callSuper = true)
-@Table(
+@Table(name = "T_PAYMENT",
        indexes = {
                @Index(columnList = "date,num,sum"),
                @Index(columnList = "dateProv")

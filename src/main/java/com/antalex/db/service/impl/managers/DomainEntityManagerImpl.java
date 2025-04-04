@@ -144,11 +144,17 @@ public class DomainEntityManagerImpl implements DomainEntityManager {
 
     @Override
     public <T extends Domain, M extends ShardInstance> T map(final Class<T> clazz, M entity) {
+        if (entity == null) {
+            return null;
+        }
         return (T) getMapper(clazz).domainEntityMapper.map(entity);
     }
 
     @Override
     public <T extends Domain, M extends ShardInstance> M map(final Class<T> clazz, T domain) {
+        if (domain == null) {
+            return null;
+        }
         return (M) getMapper(clazz).domainEntityMapper.map(domain);
     }
 

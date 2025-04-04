@@ -10,7 +10,7 @@ import lombok.experimental.Accessors;
 import javax.persistence.Table;
 
 @EqualsAndHashCode(callSuper = true)
-@Table
+@Table(name = "T_CLIENT_CATEGORY")
 @Data
 @Accessors(chain = true, fluent = true)
 @ShardEntity(type = ShardType.REPLICABLE)

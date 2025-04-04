@@ -10,7 +10,7 @@ import lombok.experimental.Accessors;
 import javax.persistence.*;
 
 @EqualsAndHashCode(callSuper = true)
-@Table(
+@Table(name = "T_CLIENT",
        indexes = {
                 @Index(columnList = "name")
         })

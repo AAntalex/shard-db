@@ -11,7 +11,7 @@ import javax.persistence.*;
 import java.util.Date;
 
 @EqualsAndHashCode(callSuper = true)
-@Table(
+@Table(name = "T_EXTERNAL_PAYMENT",
        indexes = {
                @Index(columnList = "date"),
                @Index(columnList = "doc")

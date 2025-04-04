@@ -16,15 +16,13 @@ public class ClientCategoryGenerator implements DataGeneratorService<ClientCateg
     private DomainEntityManager entityManager;
 
     @Override
-    public List<ClientCategoryDomain> generate() {
-        return entityManager.updateAll(
-                Collections.singletonList(
-                        Optional.ofNullable(entityManager.find(ClientCategoryDomain.class, "${code}=?", "VIP"))
-                                .orElseGet(() -> entityManager.newDomain(ClientCategoryDomain.class)
-                                        .categoryCode("VIP")
-                                        .description("VIP-клиент")
-                                )
-                )
+    public List<ClientCategoryDomain> generate(int count) {
+        return Collections.singletonList(
+                Optional.ofNullable(entityManager.find(ClientCategoryDomain.class, "${categoryCode}=?", "VIP"))
+                        .orElseGet(() -> entityManager.newDomain(ClientCategoryDomain.class)
+                                .categoryCode("VIP")
+                                .description("VIP-клиент")
+                        )
         );
     }
 }

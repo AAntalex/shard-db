@@ -1,0 +1,79 @@
+databaseChangeLog:
+- changeSet:
+    id: 'create$Payment'
+    author: Antalex
+    preConditions:
+      - onFail: MARK_RAN
+      - not:
+        - tableExists:
+            tableName: T_PAYMENT
+    changes:
+      - createTable:
+          tableName: T_PAYMENT
+          columns:
+            - column:
+                name: ID
+                type: bigint
+                constraints:
+                  primaryKey: true
+                  nullable: false
+                  primaryKeyName: PK_PAYMENT_ID
+            - column:
+                name: SN
+                type: int
+            - column:
+                name: ST
+                type: VARCHAR(40)
+            - column:
+                name: PREV_ST
+                type: VARCHAR(40)
+            - column:
+                name: SHARD_MAP
+                type: bigint
+            - column:
+                name: C_ACC_DT
+                type: bigint
+            - column:
+                name: C_ACC_CT
+                type: bigint
+            - column:
+                name: C_SUM
+                type: number
+            - column:
+                name: C_DATE_PROV
+                type: datetime
+            - column:
+                name: C_NUM
+                type: int
+            - column:
+                name: C_DATE
+                type: date
+      - createIndex:
+          columns:
+            - column:
+                name:  C_ACC_DT
+          indexName:  IDX_PAYMENT_ACC_DT
+          tableName:  T_PAYMENT
+      - createIndex:
+          columns:
+            - column:
+                name:  C_ACC_CT
+          indexName:  IDX_PAYMENT_ACC_CT
+          tableName:  T_PAYMENT
+      - createIndex:
+          columns:
+            - column:
+                name:  C_DATE_PROV
+          indexName:  IDX_PAYMENT_DATE_PROV
+          tableName:  T_PAYMENT
+      - createIndex:
+          columns:
+            - column:
+                name:  C_DATE
+            - column:
+                name:  C_NUM
+            - column:
+                name:  C_SUM
+          indexName:  IDX_PAYMENT_DATE_NUM_SUM
+          tableName:  T_PAYMENT
+

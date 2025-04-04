@@ -6,5 +6,5 @@ import com.antalex.db.domain.abstraction.Domain;
 import java.util.List;
 
 public interface DataGeneratorService<T extends Domain> {
-    List<T> generate();
+    List<T> generate(int count);
 }

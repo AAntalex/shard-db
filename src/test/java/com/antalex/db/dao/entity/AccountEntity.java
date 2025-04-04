@@ -16,7 +16,7 @@ import java.math.BigDecimal;
 import java.time.OffsetDateTime;
 
 @EqualsAndHashCode(callSuper = true)
-@Table(
+@Table(name = "T_ACCOUNT",
        indexes = {
                @Index(columnList = "code"),
                @Index(columnList = "dateOpen")

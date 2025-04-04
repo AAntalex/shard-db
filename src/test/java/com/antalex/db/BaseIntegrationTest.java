@@ -17,7 +17,7 @@ public abstract class BaseIntegrationTest {
 
     protected static final PostgreSQLContainer<?> POSTGRES_SQL = new PostgreSQLContainer<>(POSTGRES_DOCKER_IMAGE_NAME)
                     .withDatabaseName(DATABASE_NAME)
-                    .withInitScript("db/createSchema.sql")
+                    .withInitScript("db/createSchema1.sql")
                     .withReuse(true)
                     .withTmpFs(Map.of("/var/postgres/data", "rw"));
 
@@ -26,10 +26,21 @@ public abstract class BaseIntegrationTest {
      */
     @DynamicPropertySource
     static void startContainersAndSetEnvironmentProperties(DynamicPropertyRegistry registry) {
-        POSTGRES_SQL.start();
 
-        registry.add("multiDbConfig.clusters[0].shards[0].datasource.url", POSTGRES_SQL::getJdbcUrl);
-        registry.add("multiDbConfig.clusters[0].shards[0].datasource.username", POSTGRES_SQL::getUsername);
-        registry.add("multiDbConfig.clusters[0].shards[0].datasource.password", POSTGRES_SQL::getPassword);
+
+        //POSTGRES_SQL.start();
+
+
+        PostgreSQLContainer<?> container = new PostgreSQLContainer<>(POSTGRES_DOCKER_IMAGE_NAME)
+                .withInitScript("db/createSchema.sql")
+                .withReuse(true)
+                .withTmpFs(Map.of("/var/postgres/data", "rw"));
+
+        container.start();
+
+        registry.add("DATASOURCE_JDBC_URL", container::getJdbcUrl);
+        registry.add("DATASOURCE_JDBC_USR", container::getUsername);
+        registry.add("DATASOURCE_JDBC_PSW", container::getPassword);
+
     }
 }

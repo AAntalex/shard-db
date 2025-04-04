@@ -1,3 +1,6 @@
+logging:
+  level:
+    com.antalex.db: trace
 spring:
   liquibase:
     enabled: false
@@ -24,7 +27,7 @@ multiDbConfig:
     enabled: true
   hikari:
     minimumIdle: 0
-    maximumPoolSize: 20
+    maximumPoolSize: 15
     idleTimeout: 60
   checks:
     checkShardID: true
@@ -36,8 +39,7 @@ multiDbConfig:
     - name: DEFAULT
       defaultCluster: true
       shards:
-        - id: 1
-          datasource:
-            url: jdbc:postgresql://localhost:5432/test
-            username: test
-            password: test
+        - datasource:
+            url: ${DATASOURCE_JDBC_URL}
+            username: ${DATASOURCE_JDBC_USR}
+            password: ${DATASOURCE_JDBC_PSW}

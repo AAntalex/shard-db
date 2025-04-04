@@ -1,0 +1,62 @@
+databaseChangeLog:
+- changeSet:
+    id: 'create$Account'
+    author: Antalex
+    preConditions:
+      - onFail: MARK_RAN
+      - not:
+        - tableExists:
+            tableName: T_ACCOUNT
+    changes:
+      - createTable:
+          tableName: T_ACCOUNT
+          columns:
+            - column:
+                name: ID
+                type: bigint
+                constraints:
+                  primaryKey: true
+                  nullable: false
+                  primaryKeyName: PK_ACCOUNT_ID
+            - column:
+                name: SN
+                type: int
+            - column:
+                name: ST
+                type: VARCHAR(40)
+            - column:
+                name: PREV_ST
+                type: VARCHAR(40)
+            - column:
+                name: SHARD_MAP
+                type: bigint
+            - column:
+                name: C_CODE
+                type: VARCHAR(20)
+            - column:
+                name: C_CLIENT
+                type: bigint
+            - column:
+                name: C_BALANCE
+                type: number
+            - column:
+                name: C_DATE_OPEN
+                type: datetime
+      - createIndex:
+          columns:
+            - column:
+                name:  C_CODE
+          indexName:  IDX_ACCOUNT_CODE
+          tableName:  T_ACCOUNT
+      - createIndex:
+          columns:
+            - column:
+                name:  C_CLIENT
+          indexName:  IDX_ACCOUNT_CLIENT
+          tableName:  T_ACCOUNT
+      - createIndex:
+          columns:
+            - column:
+                name:  C_DATE_OPEN
+          indexName:  IDX_ACCOUNT_DATE_OPEN
+          tableName:  T_ACCOUNT
