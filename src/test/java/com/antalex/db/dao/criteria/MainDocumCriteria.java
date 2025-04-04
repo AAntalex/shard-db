@@ -56,5 +56,4 @@ public class MainDocumCriteria {
     private String ctClientName;
     @CriteriaAttribute("ext_doc.receiver")
     private String receiver;
-
 }
