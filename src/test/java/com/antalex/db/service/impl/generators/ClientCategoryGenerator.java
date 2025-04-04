@@ -13,13 +13,13 @@ import java.util.Optional;
 @Component
 public class ClientCategoryGenerator implements DataGeneratorService<ClientCategoryDomain> {
     @Autowired
-    private DomainEntityManager entityManager;
+    private DomainEntityManager domainManager;
 
     @Override
     public List<ClientCategoryDomain> generate(int count) {
         return Collections.singletonList(
-                Optional.ofNullable(entityManager.find(ClientCategoryDomain.class, "${categoryCode}=?", "VIP"))
-                        .orElseGet(() -> entityManager.newDomain(ClientCategoryDomain.class)
+                Optional.ofNullable(domainManager.find(ClientCategoryDomain.class, "${categoryCode}=?", "VIP"))
+                        .orElseGet(() -> domainManager.newDomain(ClientCategoryDomain.class)
                                 .categoryCode("VIP")
                                 .description("VIP-клиент")
                         )
