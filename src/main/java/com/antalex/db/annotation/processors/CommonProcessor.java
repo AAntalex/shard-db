@@ -29,7 +29,7 @@ public class CommonProcessor extends AbstractProcessor {
                         DomainClassBuilder.createMapperClass(annotatedElement, processingEnv);
                     }
                 } catch (IOException err) {
-                    err.printStackTrace();
+                    throw new RuntimeException(err);
                 }
             }
         }
