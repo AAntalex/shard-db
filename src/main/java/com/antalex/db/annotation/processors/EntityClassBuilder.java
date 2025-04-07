@@ -744,7 +744,10 @@ public class EntityClassBuilder {
                                     dataStorage.getFetchType() == FetchType.EAGER &&
                                             Optional.ofNullable(dataStorage.getCluster())
                                                     .map(it -> it == cluster)
-                                                    .orElse(true)
+                                                    .orElse(true)  &&
+                                            (
+                                                    SHARD_TYPE != ShardType.REPLICABLE ||
+                                                            dataStorage.getShardType() == ShardType.REPLICABLE)
                             ) {
                                     idx++;
                                     selectPrefix

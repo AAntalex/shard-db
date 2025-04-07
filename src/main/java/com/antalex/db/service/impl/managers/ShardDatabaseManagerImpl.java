@@ -386,6 +386,20 @@ public class ShardDatabaseManagerImpl implements ShardDataBaseManager {
     }
 
     @Override
+    public DataBaseInstance getNextShard(Cluster cluster) {
+        DataBaseInstance shard = cluster.getShards().get((int) shardSequences.get(cluster.getName()).nextValue());
+        Short shardId = shard.getId();
+        while (!isEnabled(shard)) {
+            shard = cluster.getShards().get((int) shardSequences.get(cluster.getName()).nextValue());
+            Assert.isTrue(
+                    !shardId.equals(shard.getId()),
+                    "Отсутствуют доступные шарды в кластере " + cluster.getName() + "!"
+            );
+        }
+        return shard;
+    }
+
+    @Override
     public QueryQueue createQueryQueueByIds(String query, List<Long> ids) {
         if (!query.contains("<IDS>")) {
             throw new ShardDataBaseException("В запросе отсутствует обязательный параметр <IDS>!");
@@ -536,16 +550,6 @@ public class ShardDatabaseManagerImpl implements ShardDataBaseManager {
                         !onlyNew && shardMap.equals(0L) ||
                                 (ShardUtils.getShardMap(shard.getId()) & shardMap) > 0L
                 );
-    }
-
-    private DataBaseInstance getNextShard(Cluster cluster) {
-        DataBaseInstance shard = cluster.getShards().get((int) shardSequences.get(cluster.getName()).nextValue());
-        Short shardId = shard.getId();
-        while (!isEnabled(shard)) {
-            shard = cluster.getShards().get((int) shardSequences.get(cluster.getName()).nextValue());
-            Assert.isTrue(!shardId.equals(shard.getId()), "Отсутствуют доступные шарды!");
-        }
-        return shard;
     }
 
     private void processDataBaseInfo() {

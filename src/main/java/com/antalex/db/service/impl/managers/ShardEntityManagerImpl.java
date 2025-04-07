@@ -399,7 +399,18 @@ public class ShardEntityManagerImpl implements ShardEntityManager {
             QueryType queryType)
     {
         ShardEntityRepository<T> repository = getEntityRepository(clazz);
-        return createQueries(repository.getCluster(), query, queryType);
+        if (
+                Optional.ofNullable(repository.getShardType())
+                        .map(it ->  it == ShardType.REPLICABLE)
+                        .orElse(false)
+        ) {
+            return Collections.singletonList(
+                    dataBaseManager.createQuery(
+                            dataBaseManager.getNextShard(repository.getCluster()), query, queryType)
+            );
+        } else {
+            return createQueries(repository.getCluster(), query, queryType);
+        }
     }
 
     @Override
