@@ -39,7 +39,7 @@ import java.util.Date;
                 retentionTime = 60
         )
 )
-public class MainDocumCriteria {
+public class PaymentCriteria {
     @CriteriaAttribute("${md.num}")
     private Integer num;
     @CriteriaAttribute("${md.sum}")
