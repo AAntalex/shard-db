@@ -550,6 +550,7 @@ public class ShardEntityManagerImpl implements ShardEntityManager {
             Map<String, DataStorage> storageMap,
             ResultQuery result,
             Cluster cluster,
+            ShardType shardType,
             int index)
     {
         List<AttributeStorage> attributeStorageList = new ArrayList<>();
@@ -559,7 +560,10 @@ public class ShardEntityManagerImpl implements ShardEntityManager {
                         dataStorage.getFetchType() == FetchType.EAGER &&
                                 Optional.ofNullable(dataStorage.getCluster())
                                         .map(it -> it == cluster)
-                                        .orElse(true)
+                                        .orElse(true) &&
+                                (
+                                        shardType != ShardType.REPLICABLE ||
+                                                dataStorage.getShardType() == ShardType.REPLICABLE)
                 ) {
                     AttributeStorage attributeStorage =
                             attributeStorageRepository.extractValues(null, result, index);

@@ -101,6 +101,7 @@ public interface ShardEntityManager {
             Map<String, DataStorage> storageMap,
             ResultQuery result,
             Cluster cluster,
+            ShardType shardType,
             int index
     );
     EntityTransaction getTransaction();

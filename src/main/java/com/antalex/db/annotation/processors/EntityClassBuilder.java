@@ -1079,8 +1079,10 @@ public class EntityClassBuilder {
                                 "                index = index + " + getCountSelectColumns(entityClassDto) + ";\n",
                         String::concat
                 ) +
-                "                entity.setAttributeStorage(entityManager.extractAttributeStorage" +
-                "(storageMap, result, cluster, index));\n";
+                "                entity.setAttributeStorage(\n" +
+                "                        entityManager.extractAttributeStorage(storageMap, result, cluster, " +
+                "getShardType(entity), index)\n" +
+                "                );\n";
     }
 
     private static String getResultObjectCode(EntityFieldDto field) {

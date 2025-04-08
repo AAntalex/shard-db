@@ -2,9 +2,7 @@ package com.antalex.db.service;
 
 import com.antalex.db.BaseIntegrationTest;
 import com.antalex.db.dao.domain.ClientCategoryDomain;
-import com.antalex.db.dao.domain.ClientDomain;
 import com.antalex.db.dao.domain.PaymentDomain;
-import com.antalex.db.service.impl.generators.ClientGenerator;
 import com.antalex.db.service.impl.generators.PaymentGenerator;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
