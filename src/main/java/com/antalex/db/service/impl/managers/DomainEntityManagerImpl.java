@@ -5,6 +5,7 @@ import com.antalex.db.entity.AttributeHistoryEntity;
 import com.antalex.db.entity.AttributeStorage;
 import com.antalex.db.entity.abstraction.ShardInstance;
 import com.antalex.db.exception.ShardDataBaseException;
+import com.antalex.db.model.Cluster;
 import com.antalex.db.model.DataStorage;
 import com.antalex.db.model.dto.AttributeHistory;
 import com.antalex.db.service.SharedTransactionManager;
@@ -134,6 +135,13 @@ public class DomainEntityManagerImpl implements DomainEntityManager {
     @Override
     public <T extends Domain> Map<String, String> getFieldMap(Class<T> clazz) {
         return getMapper(clazz).domainEntityMapper.getFieldMap();
+    }
+
+    @Override
+    public <T extends Domain> Cluster getCluster(Class<T> clazz) {
+        Mapper mapper = getMapper(clazz);
+        return Optional.ofNullable(mapper.domainEntityMapper.getCluster())
+                .orElseGet(() -> entityManager.getCluster(mapper.entityClass));
     }
 
     @Override
@@ -319,7 +327,7 @@ public class DomainEntityManagerImpl implements DomainEntityManager {
         }
         mapper = Optional
                 .ofNullable(MAPPERS.get(clazz.getSuperclass()))
-                .orElse(MAPPERS.get(clazz));
+                .orElseGet(() -> MAPPERS.get(clazz));
         if (mapper == null) {
             throw new ShardDataBaseException(
                     String.format(

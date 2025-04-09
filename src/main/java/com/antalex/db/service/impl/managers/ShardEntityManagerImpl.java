@@ -68,7 +68,7 @@ public class ShardEntityManagerImpl implements ShardEntityManager {
         }
         repository = Optional
                 .ofNullable(REPOSITORIES.get(clazz.getSuperclass()))
-                .orElse(REPOSITORIES.get(clazz));
+                .orElseGet(() -> REPOSITORIES.get(clazz));
         if (repository == null) {
             throw new ShardDataBaseException(
                     String.format(
@@ -250,7 +250,7 @@ public class ShardEntityManagerImpl implements ShardEntityManager {
                                                             )
                                                             .orElse(storage)
                                             )
-                                            .orElse(
+                                            .orElseGet(() ->
                                                     StorageContext.builder()
                                                             .cluster(cluster)
                                                             .temporary(true)

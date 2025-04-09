@@ -11,4 +11,5 @@ public class CriteriaElement {
     private String tableName;
     private String tableAlias;
     private List<String> columns;
+    private Cluster cluster;
 }

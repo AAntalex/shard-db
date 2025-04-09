@@ -317,6 +317,11 @@ public class DomainClassBuilder {
                             "    }\n" +
                             "\n" +
                             "    @Override\n" +
+                            "    public Cluster getCluster() {\n" +
+                            "        return cluster;\n" +
+                            "    }\n" +
+                            "\n" +
+                            "    @Override\n" +
                             "    public " + domainClassDto.getTargetClassName() + " newDomain(" +
                             domainClassDto.getEntityClass().getTargetClassName() + " entity) {\n" +
                             "        entity.setCluster(this.cluster);\n" +
