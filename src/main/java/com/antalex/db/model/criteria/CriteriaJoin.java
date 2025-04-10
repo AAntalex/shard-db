@@ -13,6 +13,6 @@ public class CriteriaJoin {
     private CriteriaElement element;
     private String on;
     private JoinType joinType;
-    private List<Pair<String, String>> joinColumns;
+    private Pair<String, String> joinColumns;
     private boolean linked;
 }
