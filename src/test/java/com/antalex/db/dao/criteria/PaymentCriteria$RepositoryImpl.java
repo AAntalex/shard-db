@@ -12,6 +12,7 @@ import org.springframework.stereotype.Component;
 
 import javax.persistence.criteria.JoinType;
 import java.util.Arrays;
+import java.util.Collections;
 import java.util.stream.Stream;
 
 @Component
@@ -24,13 +25,13 @@ public class PaymentCriteria$RepositoryImpl implements CriteriaRepository<Paymen
     @Autowired
     PaymentCriteria$RepositoryImpl(DomainEntityManager domainManager) {
         this.domainManager = domainManager;
-        this.mainElement = getCriteriaElement$md();
+        this.mainElement = criteriaElement$md();
     }
 
-    private CriteriaElement getCriteriaElement$md() {
+    private CriteriaElement criteriaElement$md() {
         return new CriteriaElement()
                 .tableName("T_PAYMENT")
-                .tableAlias("md")
+                .tableAlias("MD")
                 .cluster(domainManager.getCluster(PaymentDomain.class))
                 .shardType(ShardType.MULTI_SHARDABLE)
                 .columns(
@@ -46,115 +47,115 @@ public class PaymentCriteria$RepositoryImpl implements CriteriaRepository<Paymen
                                         .joinType(JoinType.INNER)
                                         .linked(true)
                                         .joinColumns(Pair.of("C_ACC_DT", "ID"))
-                                        .element(getCriteriaElement$accDt()),
+                                        .element(criteriaElement$accDt()),
                                 new CriteriaJoin()
                                         .joinType(JoinType.INNER)
                                         .linked(true)
                                         .joinColumns(Pair.of("C_ACC_CT", "ID"))
-                                        .element(getCriteriaElement$accCt()),
+                                        .element(criteriaElement$accCt()),
                                 new CriteriaJoin()
                                         .joinType(JoinType.LEFT)
                                         .linked(false)
                                         .joinColumns(Pair.of("ID", "C_DOC"))
-                                        .element(getCriteriaElement$extDoc())
+                                        .element(criteriaElement$extDoc())
                         )
                 );
     }
 
-    private CriteriaElement getCriteriaElement$accDt() {
+    private CriteriaElement criteriaElement$accDt() {
         return new CriteriaElement()
                 .tableName("T_ACCOUNT")
-                .tableAlias("acc_dt")
+                .tableAlias("ACC_DT")
                 .cluster(domainManager.getCluster(AccountDomain.class))
                 .shardType(ShardType.SHARDABLE)
                 .columns(
-                        Arrays.asList(
+                        Collections.singletonList(
                                 "C_CODE"
                         )
                 )
                 .joins(
-                        Arrays.asList(
+                        Collections.singletonList(
                                 new CriteriaJoin()
                                         .joinType(JoinType.INNER)
                                         .linked(true)
                                         .joinColumns(Pair.of("C_CLIENT", "ID"))
-                                        .element(getCriteriaElement$clDt())
+                                        .element(criteriaElement$clDt())
                         )
                 );
     }
 
-    private CriteriaElement getCriteriaElement$clDt() {
+    private CriteriaElement criteriaElement$clDt() {
         return new CriteriaElement()
                 .tableName("T_CLIENT")
-                .tableAlias("cl_dt")
+                .tableAlias("CL_DT")
                 .cluster(domainManager.getCluster(ClientDomain.class))
                 .shardType(ShardType.SHARDABLE)
                 .columns(
-                        Arrays.asList(
+                        Collections.singletonList(
                                 "C_NAME"
                         )
                 );
     }
 
-    private CriteriaElement getCriteriaElement$accCt() {
+    private CriteriaElement criteriaElement$accCt() {
         return new CriteriaElement()
                 .tableName("T_ACCOUNT")
-                .tableAlias("acc_ct")
+                .tableAlias("ACC_CT")
                 .cluster(domainManager.getCluster(AccountDomain.class))
                 .shardType(ShardType.SHARDABLE)
                 .columns(
-                        Arrays.asList(
+                        Collections.singletonList(
                                 "C_CODE"
                         )
                 )
                 .joins(
-                        Arrays.asList(
+                        Collections.singletonList(
                                 new CriteriaJoin()
                                         .joinType(JoinType.INNER)
                                         .linked(true)
                                         .joinColumns(Pair.of("C_CLIENT", "ID"))
-                                        .element(getCriteriaElement$clCt())
+                                        .element(criteriaElement$clCt())
                         )
                 );
     }
 
-    private CriteriaElement getCriteriaElement$clCt() {
+    private CriteriaElement criteriaElement$clCt() {
         return new CriteriaElement()
                 .tableName("T_CLIENT")
-                .tableAlias("cl_ct")
+                .tableAlias("CL_CT")
                 .cluster(domainManager.getCluster(ClientDomain.class))
                 .shardType(ShardType.SHARDABLE)
                 .columns(
-                        Arrays.asList(
+                        Collections.singletonList(
                                 "C_NAME"
                         )
                 ).joins(
-                        Arrays.asList(
+                        Collections.singletonList(
                                 new CriteriaJoin()
                                         .joinType(JoinType.INNER)
                                         .linked(false)
                                         .joinColumns(Pair.of("C_CATEGORY", "ID"))
-                                        .element(getCriteriaElement$clCat())
+                                        .element(criteriaElement$clCat())
                         )
                 );
     }
 
-    private CriteriaElement getCriteriaElement$clCat() {
+    private CriteriaElement criteriaElement$clCat() {
         return new CriteriaElement()
                 .tableName("T_CLIENT_CATEGORY")
-                .tableAlias("cl_cat")
+                .tableAlias("CL_CAT")
                 .cluster(domainManager.getCluster(ClientCategoryDomain.class))
                 .shardType(ShardType.REPLICABLE);
     }
 
-    private CriteriaElement getCriteriaElement$extDoc() {
+    private CriteriaElement criteriaElement$extDoc() {
         return new CriteriaElement()
                 .tableName("T_EXTERNAL_PAYMENT")
-                .tableAlias("ext_doc")
+                .tableAlias("EXT_DOC")
                 .cluster(domainManager.getCluster(ExternalPaymentDomain.class))
                 .shardType(ShardType.SHARDABLE)
                 .columns(
-                        Arrays.asList(
+                        Collections.singletonList(
                                 "C_RECEIVER"
                         )
                 );
