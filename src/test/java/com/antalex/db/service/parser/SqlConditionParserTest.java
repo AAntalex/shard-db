@@ -61,9 +61,10 @@ class SqlConditionParserTest {
         );
         Assertions.assertEquals(
                 parser.toString(parser.simplifying(expression)),
-                "(A1.ID=:1 AND NOT \"a2\".C_DEST LIKE 'A1.ID  =  ?%' AND A1.ID=:3 AND A2.C_DEST LIKE 'AAA%' " +
-                        "OR A1.C_COL=:2 AND NOT \"a2\".C_DEST LIKE 'A1.ID  =  ?%' AND A1.ID=:3 AND " +
-                        "A2.C_DEST LIKE 'AAA%' OR A1.ID=A2.ID AND NOT A3.C_DATE<:4)"
+                "(A1.ID={:3} AND A1.ID={:1} AND NOT \"a2\".C_DEST LIKE 'A1.ID  =  ?%' AND " +
+                        "A2.C_DEST LIKE 'AAA%' OR A1.ID={:3} AND A1.C_COL={:2} AND " +
+                        "NOT \"a2\".C_DEST LIKE 'A1.ID  =  ?%' AND A2.C_DEST LIKE 'AAA%' " +
+                        "OR NOT A3.C_DATE<{:4} AND A1.ID=A2.ID)"
         );
 
         expression = parser.parse(

@@ -28,6 +28,9 @@ public class PaymentCriteria$RepositoryImpl implements CriteriaRepository<Paymen
         this.mainElement = criteriaElement$md();
     }
 
+
+
+
     private CriteriaElement criteriaElement$md() {
         return new CriteriaElement()
                 .tableName("T_PAYMENT")

@@ -56,7 +56,7 @@ public class SQLConditionParser extends AbstractBooleanExpressionParser {
     @Override
     protected String processChar(Character currentCharacter) {
         if (currentCharacter == '?') {
-            return ":" + ++bindIndex;
+            return "{:" + ++bindIndex + "}";
         }
         return super.processChar(currentCharacter);
     }
