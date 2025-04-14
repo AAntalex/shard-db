@@ -13,7 +13,7 @@ import java.util.List;
 public class CriteriaElement {
     private String tableName;
     private String tableAlias;
-    private List<String> columns = new ArrayList<>();;
+    private Long columns;
     private List<CriteriaJoin> joins = new ArrayList<>();
     private Cluster cluster;
     private ShardType shardType;
