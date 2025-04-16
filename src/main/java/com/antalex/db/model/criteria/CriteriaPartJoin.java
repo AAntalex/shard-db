@@ -5,14 +5,11 @@ import lombok.experimental.Accessors;
 import org.apache.commons.lang3.tuple.Pair;
 
 import javax.persistence.criteria.JoinType;
-import java.util.List;
 
 @Data
 @Accessors(chain = true, fluent = true)
-public class CriteriaJoin {
-    private CriteriaElement element;
-    private String on;
+public class CriteriaPartJoin {
+    private CriteriaPart criteriaPart;
     private JoinType joinType;
-    private Pair<String, String> joinColumns;
-    private boolean linked;
+    private Pair<Integer, Integer> joinColumns;
 }
