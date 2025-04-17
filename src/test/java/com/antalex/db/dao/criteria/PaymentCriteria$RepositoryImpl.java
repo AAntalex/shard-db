@@ -17,6 +17,7 @@ import javax.persistence.criteria.JoinType;
 import java.util.Arrays;
 import java.util.Collections;
 import java.util.List;
+import java.util.Optional;
 import java.util.stream.Stream;
 
 @Component
@@ -59,28 +60,45 @@ public class PaymentCriteria$RepositoryImpl implements CriteriaRepository<Paymen
         this.mainElement = criteriaElement$md();
     }
 
-    private CriteriaPart toCriteriaPart(CriteriaElement element) {
-        CriteriaPart criteriaPart = new CriteriaPart()
-                .from(getTableName(element))
-                .cluster(element.cluster())
-                .columns(element.columns());
-
+    private CriteriaPart toCriteriaPart(CriteriaElement element, CriteriaPart parentPart, Boolean linkable) {
+        CriteriaPart criteriaPart = Optional
+                .ofNullable(parentPart)
+                .orElseGet(() ->
+                                new CriteriaPart()
+                                        .from(getTableName(element))
+                                        .cluster(element.cluster())
+                                        .columns(element.columns())
+                );
         for (CriteriaElementJoin join: element.joins()) {
             if (criteriaPart.cluster() == join.element().cluster() &&
                     (
                             dataBaseManager.getEnabledShards(criteriaPart.cluster()).count() == 1 ||
-                                    join.linked()
-
-
-
+                                    join.linked() &&
+                                            (element.shardType() == ShardType.SHARDABLE ||
+                                                    linkable == null ||
+                                                    linkable &
+                                                            Optional
+                                                                    .ofNullable(join.joinColumns())
+                                                                    .map(Pair::getLeft)
+                                                                    .map(JOIN_COLUMNS::get)
+                                                                    .map(column -> column.endsWith(".ID"))
+                                                                    .orElse(false)
+                                                    )
                     )
             ) {
+                linkable = element.shardType() == ShardType.SHARDABLE ||
+                        Optional
+                                .ofNullable(join.joinColumns())
+                                .map(Pair::getLeft)
+                                .map(JOIN_COLUMNS::get)
+                                .map(column -> column.endsWith(".ID"))
+                                .orElse(false);
                 joinElement(criteriaPart, join);
             } else {
                 criteriaPart
                         .joins()
                         .add(new CriteriaPartJoin()
-                                .criteriaPart(toCriteriaPart(join.element()))
+                                .criteriaPart(toCriteriaPart(join.element(), null, null))
                                 .joinColumns(join.joinColumns())
                                 .joinType(join.joinType())
                         );
@@ -93,8 +111,14 @@ public class PaymentCriteria$RepositoryImpl implements CriteriaRepository<Paymen
         return element.tableName() + " " + element.tableAlias();
     }
 
-    private String getOn(Pair<Integer, Integer> joinColumns) {
-        return " ON " + JOIN_COLUMNS.get(joinColumns.getLeft()) + "=" + JOIN_COLUMNS.get(joinColumns.getRight());
+    private String getOn(CriteriaElementJoin join) {
+        return " ON " +
+                Optional
+                        .ofNullable(join.on())
+                        .orElseGet(() ->
+                                JOIN_COLUMNS.get(join.joinColumns().getLeft()) + "="
+                                        + JOIN_COLUMNS.get(join.joinColumns().getRight())
+                        );
     }
 
     private void joinElement(CriteriaPart criteriaPart, CriteriaElementJoin join) {
@@ -103,9 +127,20 @@ public class PaymentCriteria$RepositoryImpl implements CriteriaRepository<Paymen
                         criteriaPart.from() +
                                 getJoinText(join.joinType()) +
                                 getTableName(join.element()) +
-                                getOn(join.joinColumns())
+                                getOn(join)
                 )
                 .columns(criteriaPart.columns() | join.element().columns());
+        toCriteriaPart(
+                join.element(),
+                criteriaPart,
+                join.element().shardType() == ShardType.SHARDABLE ||
+                        Optional
+                                .ofNullable(join.joinColumns())
+                                .map(Pair::getRight)
+                                .map(JOIN_COLUMNS::get)
+                                .map(column -> column.endsWith(".ID"))
+                                .orElse(false)
+                );
     }
 
     private String getJoinText(JoinType joinType) {
