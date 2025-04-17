@@ -14,10 +14,7 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Component;
 
 import javax.persistence.criteria.JoinType;
-import java.util.Arrays;
-import java.util.Collections;
-import java.util.List;
-import java.util.Optional;
+import java.util.*;
 import java.util.stream.Stream;
 
 @Component
@@ -51,13 +48,13 @@ public class PaymentCriteria$RepositoryImpl implements CriteriaRepository<Paymen
 
     private final ShardDataBaseManager dataBaseManager;
     private final DomainEntityManager domainManager;
-    private CriteriaElement mainElement;
+    private List<CriteriaPart> criteriaRoutes = new ArrayList<>();
 
     @Autowired
     PaymentCriteria$RepositoryImpl(DomainEntityManager domainManager, ShardDataBaseManager dataBaseManager) {
         this.dataBaseManager = dataBaseManager;
         this.domainManager = domainManager;
-        this.mainElement = criteriaElement$md();
+        this.criteriaRoutes.add(toCriteriaPart(criteriaElement$md(), null, null));
     }
 
     private CriteriaPart toCriteriaPart(CriteriaElement element, CriteriaPart parentPart, Boolean linkable) {
