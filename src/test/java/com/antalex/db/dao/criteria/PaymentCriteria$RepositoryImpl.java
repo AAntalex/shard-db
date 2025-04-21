@@ -83,14 +83,19 @@ public class PaymentCriteria$RepositoryImpl implements CriteriaRepository<Paymen
                                                     )
                     )
             ) {
-                linkable = element.shardType() == ShardType.SHARDABLE ||
-                        Optional
-                                .ofNullable(join.joinColumns())
-                                .map(Pair::getLeft)
-                                .map(JOIN_COLUMNS::get)
-                                .map(column -> column.endsWith(".ID"))
-                                .orElse(false);
+                linkable = Optional.ofNullable(linkable)
+                        .orElseGet(() ->
+                                        element.shardType() == ShardType.SHARDABLE ||
+                                                Optional
+                                                        .ofNullable(join.joinColumns())
+                                                        .map(Pair::getLeft)
+                                                        .map(JOIN_COLUMNS::get)
+                                                        .map(column -> column.endsWith(".ID"))
+                                                        .orElse(false)
+                        );
                 joinElement(criteriaPart, join);
+
+                toCriteriaPart(join.element(), criteriaPart)
             } else {
                 criteriaPart
                         .joins()
@@ -119,6 +124,7 @@ public class PaymentCriteria$RepositoryImpl implements CriteriaRepository<Paymen
     }
 
     private void joinElement(CriteriaPart criteriaPart, CriteriaElementJoin join) {
+
         criteriaPart
                 .from(
                         criteriaPart.from() +
@@ -127,6 +133,8 @@ public class PaymentCriteria$RepositoryImpl implements CriteriaRepository<Paymen
                                 getOn(join)
                 )
                 .columns(criteriaPart.columns() | join.element().columns());
+
+
         toCriteriaPart(
                 join.element(),
                 criteriaPart,
