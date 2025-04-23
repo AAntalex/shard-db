@@ -124,6 +124,18 @@ public class PaymentCriteria$RepositoryImpl implements CriteriaRepository<Paymen
     }
 
     private void joinElement(CriteriaPart criteriaPart, CriteriaElementJoin join) {
+        if (join.element().shardType() != ShardType.SHARDABLE) {
+            join
+                    .element()
+                    .joins()
+                    .stream()
+                    .anyMatch(it ->
+                            it.linked() &&
+                                    (!JOIN_COLUMNS.get(join.joinColumns().getRight()).endsWith(".ID") ||
+                                            !join.joinColumns().getRight().equals(it.joinColumns().getLeft()))
+                    );
+        }
+
 
         criteriaPart
                 .from(
