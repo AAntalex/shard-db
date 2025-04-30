@@ -1,8 +1,8 @@
 package com.antalex.db.dao.criteria;
 
 import com.antalex.db.dao.domain.*;
-import com.antalex.db.model.criteria.CriteriaElement;
-import com.antalex.db.model.criteria.CriteriaElementJoin;
+import com.antalex.db.model.criteria.CriteriaElement2;
+import com.antalex.db.model.criteria.CriteriaElementJoin2;
 import com.antalex.db.model.criteria.CriteriaPart;
 import com.antalex.db.model.criteria.CriteriaPartJoin;
 import com.antalex.db.model.enums.ShardType;
@@ -57,7 +57,7 @@ public class PaymentCriteria$RepositoryImpl implements CriteriaRepository<Paymen
         this.criteriaRoutes.add(toCriteriaPart(criteriaElement$md(), null, null));
     }
 
-    private CriteriaPart toCriteriaPart(CriteriaElement element, CriteriaPart parentPart, Boolean linkable) {
+    private CriteriaPart toCriteriaPart(CriteriaElement2 element, CriteriaPart parentPart, Boolean linkable) {
         CriteriaPart criteriaPart = Optional
                 .ofNullable(parentPart)
                 .orElseGet(() ->
@@ -66,7 +66,7 @@ public class PaymentCriteria$RepositoryImpl implements CriteriaRepository<Paymen
                                         .cluster(element.cluster())
                                         .columns(element.columns())
                 );
-        for (CriteriaElementJoin join: element.joins()) {
+        for (CriteriaElementJoin2 join: element.joins()) {
             if (criteriaPart.cluster() == join.element().cluster() &&
                     (
                             dataBaseManager.getEnabledShards(criteriaPart.cluster()).count() == 1 ||
@@ -109,11 +109,11 @@ public class PaymentCriteria$RepositoryImpl implements CriteriaRepository<Paymen
         return criteriaPart;
     }
 
-    private String getTableName(CriteriaElement element) {
+    private String getTableName(CriteriaElement2 element) {
         return element.tableName() + " " + element.tableAlias();
     }
 
-    private String getOn(CriteriaElementJoin join) {
+    private String getOn(CriteriaElementJoin2 join) {
         return " ON " +
                 Optional
                         .ofNullable(join.on())
@@ -123,7 +123,7 @@ public class PaymentCriteria$RepositoryImpl implements CriteriaRepository<Paymen
                         );
     }
 
-    private void joinElement(CriteriaPart criteriaPart, CriteriaElementJoin join) {
+    private void joinElement(CriteriaPart criteriaPart, CriteriaElementJoin2 join) {
         if (join.element().shardType() != ShardType.SHARDABLE) {
             join
                     .element()
@@ -169,8 +169,8 @@ public class PaymentCriteria$RepositoryImpl implements CriteriaRepository<Paymen
     }
 
 
-    private CriteriaElement criteriaElement$md() {
-        return new CriteriaElement()
+    private CriteriaElement2 criteriaElement$md() {
+        return new CriteriaElement2()
                 .tableName("T_PAYMENT")
                 .tableAlias("MD")
                 .cluster(domainManager.getCluster(PaymentDomain.class))
@@ -178,17 +178,17 @@ public class PaymentCriteria$RepositoryImpl implements CriteriaRepository<Paymen
                 .columns(5L)
                 .joins(
                         Arrays.asList(
-                                new CriteriaElementJoin()
+                                new CriteriaElementJoin2()
                                         .joinType(JoinType.INNER)
                                         .linked(true)
                                         .joinColumns(Pair.of(1, 0))
                                         .element(criteriaElement$accDt()),
-                                new CriteriaElementJoin()
+                                new CriteriaElementJoin2()
                                         .joinType(JoinType.INNER)
                                         .linked(true)
                                         .joinColumns(Pair.of(3, 2))
                                         .element(criteriaElement$accCt()),
-                                new CriteriaElementJoin()
+                                new CriteriaElementJoin2()
                                         .joinType(JoinType.LEFT)
                                         .linked(false)
                                         .joinColumns(Pair.of(4, 5))
@@ -197,8 +197,8 @@ public class PaymentCriteria$RepositoryImpl implements CriteriaRepository<Paymen
                 );
     }
 
-    private CriteriaElement criteriaElement$accDt() {
-        return new CriteriaElement()
+    private CriteriaElement2 criteriaElement$accDt() {
+        return new CriteriaElement2()
                 .tableName("T_ACCOUNT")
                 .tableAlias("ACC_DT")
                 .cluster(domainManager.getCluster(AccountDomain.class))
@@ -206,7 +206,7 @@ public class PaymentCriteria$RepositoryImpl implements CriteriaRepository<Paymen
                 .columns(1L << 3)
                 .joins(
                         Collections.singletonList(
-                                new CriteriaElementJoin()
+                                new CriteriaElementJoin2()
                                         .joinType(JoinType.INNER)
                                         .linked(true)
                                         .joinColumns(Pair.of(7, 6))
@@ -215,8 +215,8 @@ public class PaymentCriteria$RepositoryImpl implements CriteriaRepository<Paymen
                 );
     }
 
-    private CriteriaElement criteriaElement$clDt() {
-        return new CriteriaElement()
+    private CriteriaElement2 criteriaElement$clDt() {
+        return new CriteriaElement2()
                 .tableName("T_CLIENT")
                 .tableAlias("CL_DT")
                 .cluster(domainManager.getCluster(ClientDomain.class))
@@ -224,8 +224,8 @@ public class PaymentCriteria$RepositoryImpl implements CriteriaRepository<Paymen
                 .columns(1L << 5);
     }
 
-    private CriteriaElement criteriaElement$accCt() {
-        return new CriteriaElement()
+    private CriteriaElement2 criteriaElement$accCt() {
+        return new CriteriaElement2()
                 .tableName("T_ACCOUNT")
                 .tableAlias("ACC_CT")
                 .cluster(domainManager.getCluster(AccountDomain.class))
@@ -233,7 +233,7 @@ public class PaymentCriteria$RepositoryImpl implements CriteriaRepository<Paymen
                 .columns(1L << 4)
                 .joins(
                         Collections.singletonList(
-                                new CriteriaElementJoin()
+                                new CriteriaElementJoin2()
                                         .joinType(JoinType.INNER)
                                         .linked(true)
                                         .joinColumns(Pair.of(9, 8))
@@ -242,8 +242,8 @@ public class PaymentCriteria$RepositoryImpl implements CriteriaRepository<Paymen
                 );
     }
 
-    private CriteriaElement criteriaElement$clCt() {
-        return new CriteriaElement()
+    private CriteriaElement2 criteriaElement$clCt() {
+        return new CriteriaElement2()
                 .tableName("T_CLIENT")
                 .tableAlias("CL_CT")
                 .cluster(domainManager.getCluster(ClientDomain.class))
@@ -251,7 +251,7 @@ public class PaymentCriteria$RepositoryImpl implements CriteriaRepository<Paymen
                 .columns(1L << 6)
                 .joins(
                         Collections.singletonList(
-                                new CriteriaElementJoin()
+                                new CriteriaElementJoin2()
                                         .joinType(JoinType.INNER)
                                         .linked(false)
                                         .joinColumns(Pair.of(11, 10))
@@ -260,16 +260,16 @@ public class PaymentCriteria$RepositoryImpl implements CriteriaRepository<Paymen
                 );
     }
 
-    private CriteriaElement criteriaElement$clCat() {
-        return new CriteriaElement()
+    private CriteriaElement2 criteriaElement$clCat() {
+        return new CriteriaElement2()
                 .tableName("T_CLIENT_CATEGORY")
                 .tableAlias("CL_CAT")
                 .cluster(domainManager.getCluster(ClientCategoryDomain.class))
                 .shardType(ShardType.REPLICABLE);
     }
 
-    private CriteriaElement criteriaElement$extDoc() {
-        return new CriteriaElement()
+    private CriteriaElement2 criteriaElement$extDoc() {
+        return new CriteriaElement2()
                 .tableName("T_EXTERNAL_PAYMENT")
                 .tableAlias("EXT_DOC")
                 .cluster(domainManager.getCluster(ExternalPaymentDomain.class))

@@ -4,6 +4,7 @@ import com.antalex.db.entity.AttributeStorage;
 import com.antalex.db.entity.abstraction.ShardInstance;
 import com.antalex.db.exception.ShardDataBaseException;
 import com.antalex.db.model.Cluster;
+import com.antalex.db.model.DataBaseInstance;
 import com.antalex.db.model.DataStorage;
 import com.antalex.db.model.StorageContext;
 import com.antalex.db.model.enums.QueryStrategy;
@@ -176,6 +177,14 @@ public class ShardEntityManagerImpl implements ShardEntityManager {
         getEntityRepository(entity.getClass()).generateDependentId(entity);
     }
 
+    private boolean checkEnabledInstance(DataBaseInstance instance) {
+        if (dataBaseManager.isEnabled(instance)) {
+            throw new ShardDataBaseException(
+                    String.format("The shard \"%s\" is unavailable", instance.getName()));
+        }
+        return true;
+    }
+
     @Override
     public <T extends ShardInstance> void setStorage(T entity, ShardInstance parent, boolean force) {
         if (entity == null || entity.isLazy()) {
@@ -183,6 +192,7 @@ public class ShardEntityManagerImpl implements ShardEntityManager {
         }
         Cluster cluster = getCluster(entity);
         ShardType shardType = getShardType(entity);
+
         if (
                 Optional.ofNullable(entity.getStorageContext())
                         .map(entityStorage ->
@@ -193,7 +203,7 @@ public class ShardEntityManagerImpl implements ShardEntityManager {
                                                         shardType != ShardType.REPLICABLE &&
                                                         Objects.nonNull(entityStorage.getShard()) &&
                                                         cluster == it.getCluster() &&
-                                                        dataBaseManager.isEnabled(it.getShard())
+                                                        checkEnabledInstance(it.getShard())
                                         )
                                         .map(storage ->
                                                 Optional.ofNullable(storage.getShard())
@@ -232,7 +242,7 @@ public class ShardEntityManagerImpl implements ShardEntityManager {
                                             .filter(it ->
                                                     cluster == it.getCluster() &&
                                                             shardType != ShardType.REPLICABLE &&
-                                                            dataBaseManager.isEnabled(it.getShard())
+                                                            checkEnabledInstance(it.getShard())
                                             )
                                             .map(storage ->
                                                     Optional.ofNullable(storage.getShard())

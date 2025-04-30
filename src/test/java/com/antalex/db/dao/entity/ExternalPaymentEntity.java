@@ -1,5 +1,6 @@
 package com.antalex.db.dao.entity;
 
+import com.antalex.db.annotation.ParentShard;
 import com.antalex.db.annotation.ShardEntity;
 import com.antalex.db.entity.abstraction.BaseShardEntity;
 import com.antalex.db.model.enums.ShardType;
@@ -22,6 +23,7 @@ import java.util.Date;
 public class ExternalPaymentEntity extends BaseShardEntity {
     private String receiver;
     private Date date;
+    @ParentShard
     @OneToOne(fetch = FetchType.LAZY)
     @JoinColumn
     private PaymentEntity doc;
