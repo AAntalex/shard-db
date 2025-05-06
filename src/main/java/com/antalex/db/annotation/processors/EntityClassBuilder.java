@@ -703,8 +703,7 @@ public class EntityClassBuilder {
     private static String getConstructorCode(EntityClassDto entityClassDto, String className) {
         return "    @Autowired\n" +
                 "    " + className + "(ShardDataBaseManager dataBaseManager) {\n" +
-                "        this.cluster = dataBaseManager.getCluster(String.valueOf(\"" + entityClassDto.getCluster() +
-                "\"));\n" +
+                "        this.cluster = dataBaseManager.getCluster(\"" + entityClassDto.getCluster() + "\");\n" +
                 "        this.dataBaseManager = dataBaseManager;\n" +
                 "    }";
     }
@@ -831,7 +830,7 @@ public class EntityClassBuilder {
                 "                return null;\n" +
                 "            }\n" +
                 "        } catch (Exception err) {\n" +
-                "            throw new RuntimeException(err);\n" +
+                "            throw new ShardDataBaseException(err);\n" +
                 "        }\n" +
                 "        return entity;\n" +
                 "    }";
@@ -866,7 +865,7 @@ public class EntityClassBuilder {
                 "                return null;\n" +
                 "            }\n" +
                 "        } catch (Exception err) {\n" +
-                "            throw new RuntimeException(err);\n" +
+                "            throw new ShardDataBaseException(err);\n" +
                 "        }\n" +
                 "    }";
     }
@@ -1003,7 +1002,7 @@ public class EntityClassBuilder {
                 getProcessLinkedEntityCode(entityClassDto) +
                 "            }\n" +
                 "        } catch (Exception err) {\n" +
-                "            throw new RuntimeException(err);\n" +
+                "            throw new ShardDataBaseException(err);\n" +
                 "        }\n" +
                 "        return entities;\n" +
                 "    }";
@@ -1190,7 +1189,7 @@ public class EntityClassBuilder {
                 "                entityInterceptor.init();\n" +
                 "            }\n" +
                 "        } catch (Exception err) {\n" +
-                "            throw new RuntimeException(err);\n" +
+                "            throw new ShardDataBaseException(err);\n" +
                 "        }\n" +
                 "        return null;\n" +
                 "    }";

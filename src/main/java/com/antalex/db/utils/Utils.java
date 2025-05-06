@@ -26,7 +26,7 @@ public class Utils {
         int curIdx = condition.indexOf("${");
 
         StringBuilder resCondition;
-        for(resCondition = new StringBuilder(); curIdx > -1; curIdx = condition.indexOf("${", startIdx)) {
+        for (resCondition = new StringBuilder(); curIdx > -1; curIdx = condition.indexOf("${", startIdx)) {
             if (curIdx > 0) {
                 resCondition.append(condition, startIdx, curIdx);
             }
@@ -46,7 +46,7 @@ public class Utils {
         String newToken = null;
         if (token.contains(".")) {
             int aliasIdx = token.indexOf('.');
-            alias = token.substring(0, aliasIdx + 1);
+            alias = token.substring(0, aliasIdx + 1).toUpperCase();
             token = token.substring(aliasIdx + 1);
             newToken = tokenMap.get(alias + token);
         }

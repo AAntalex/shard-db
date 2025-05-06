@@ -56,18 +56,18 @@ public class CriteriaClassBuilder {
     private static Element getElement(Criteria criteria) {
         try {
             criteria.from();
+            throw new IllegalArgumentException("Is not element");
         } catch (MirroredTypeException mte) {
             return ((DeclaredType) mte.getTypeMirror()).asElement();
         }
-        return null;
     }
 
     private static Element getElement(Join join) {
         try {
             join.from();
+            throw new IllegalArgumentException("Is not element");
         } catch (MirroredTypeException mte) {
             return ((DeclaredType) mte.getTypeMirror()).asElement();
         }
-        return null;
     }
 }

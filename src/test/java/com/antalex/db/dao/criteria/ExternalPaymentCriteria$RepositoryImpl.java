@@ -1,11 +1,13 @@
 package com.antalex.db.dao.criteria;
 
 import com.antalex.db.dao.domain.*;
+import com.antalex.db.dao.entity.ExternalPaymentEntity;
+import com.antalex.db.dao.entity.PaymentEntity;
 import com.antalex.db.model.criteria.*;
 import com.antalex.db.model.enums.ShardType;
 import com.antalex.db.service.CriteriaRepository;
-import com.antalex.db.service.DomainEntityManager;
 import com.antalex.db.service.ShardDataBaseManager;
+import com.antalex.db.service.ShardEntityManager;
 import org.apache.commons.lang3.tuple.Pair;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Component;
@@ -67,18 +69,18 @@ public class ExternalPaymentCriteria$RepositoryImpl implements CriteriaRepositor
     );
 
     private final ShardDataBaseManager dataBaseManager;
-    private final DomainEntityManager domainManager;
+    private final ShardEntityManager entityManager;
 
 
     private List<CriteriaPart> criteriaRoutes = new ArrayList<>();
 
     @Autowired
-    ExternalPaymentCriteria$RepositoryImpl(DomainEntityManager domainManager, ShardDataBaseManager dataBaseManager) {
+    ExternalPaymentCriteria$RepositoryImpl(ShardEntityManager entityManager, ShardDataBaseManager dataBaseManager) {
         this.dataBaseManager = dataBaseManager;
-        this.domainManager = domainManager;
+        this.entityManager = entityManager;
 
-        ELEMENT_EXT_DOC.cluster(domainManager.getCluster(ExternalPaymentDomain.class));
-        ELEMENT_MD.cluster(domainManager.getCluster(PaymentDomain.class));
+        ELEMENT_EXT_DOC.cluster(entityManager.getCluster(ExternalPaymentEntity.class));
+        ELEMENT_MD.cluster(entityManager.getCluster(PaymentEntity.class));
     }
 
 

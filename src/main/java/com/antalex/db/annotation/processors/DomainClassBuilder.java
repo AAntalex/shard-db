@@ -187,10 +187,10 @@ public class DomainClassBuilder {
     private static Element getElement(DomainEntity domainEntity) {
         try {
             domainEntity.value();
+            throw new IllegalArgumentException("Is not element");
         } catch (MirroredTypeException mte) {
             return ((DeclaredType) mte.getTypeMirror()).asElement();
         }
-        return null;
     }
 
     public static void createInterceptorClass(
@@ -638,7 +638,7 @@ public class DomainClassBuilder {
                         String::concat
                 ) +
                 "\n        } catch (Exception err) {\n" +
-                "            throw new RuntimeException(err);\n" +
+                "            throw new ShardDataBaseException(err);\n" +
                 "        }\n" +
                 "        return storage;\n" +
                 "    }";
@@ -710,7 +710,7 @@ public class DomainClassBuilder {
                 "\n            }\n" +
                 "            setLazy(storageName, false);\n" +
                 "        } catch (Exception err) {\n" +
-                "            throw new RuntimeException(err);\n" +
+                "            throw new ShardDataBaseException(err);\n" +
                 "        }\n" +
                 "    }";
     }
