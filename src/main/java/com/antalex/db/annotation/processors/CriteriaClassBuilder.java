@@ -2,7 +2,6 @@ package com.antalex.db.annotation.processors;
 
 import com.antalex.db.annotation.*;
 import com.antalex.db.model.dto.*;
-import com.antalex.db.model.enums.MappingType;
 import lombok.experimental.Accessors;
 
 import javax.annotation.processing.ProcessingEnvironment;
@@ -57,7 +56,7 @@ public class CriteriaClassBuilder {
                                                                             findSetter(setters, fieldElement, isFluent)
                                                             )
                                                             .element(fieldElement)
-                                                            .entityField(getEntityField(fieldElement, entityClass))
+                                                            .entityField(getCriteriaField(fieldElement, entityClass))
                                                             .build()
                                     )
                                     .toList()
@@ -78,11 +77,11 @@ public class CriteriaClassBuilder {
                 .build();
     }
 
-    private static EntityFieldDto getEntityField(Element element, EntityClassDto entityClass) {
+    private static CriteriaFieldDto getCriteriaField(Element element, EntityClassDto entityClass) {
         return Optional.ofNullable(element.getAnnotation(CriteriaAttribute.class))
                 .map(a ->
                         entityClass.getFieldMap().get(
-                                a.name().isEmpty() ?
+                                a.value().isEmpty() ?
                                         element.getSimpleName().toString() :
                                         a.name()
                         )
