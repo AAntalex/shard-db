@@ -47,10 +47,7 @@ public class DomainClassBuilder {
         }
         if (!domainClasses.containsKey(classElement)) {
             String elementName = classElement.getSimpleName().toString();
-
-            EntityClassDto entityClass = Optional.ofNullable(getElement(domainEntity))
-                    .map(EntityClassBuilder::getClassDtoByElement)
-                    .orElse(null);
+            EntityClassDto entityClass = EntityClassBuilder.getClassDtoByElement(getElement(domainEntity));
 
             boolean isFluent = Optional.ofNullable(classElement.getAnnotation(Accessors.class))
                     .map(Accessors::fluent)
