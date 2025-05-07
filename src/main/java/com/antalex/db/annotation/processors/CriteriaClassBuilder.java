@@ -2,6 +2,7 @@ package com.antalex.db.annotation.processors;
 
 import com.antalex.db.annotation.*;
 import com.antalex.db.model.dto.*;
+import com.antalex.db.model.enums.MappingType;
 import lombok.experimental.Accessors;
 
 import javax.annotation.processing.ProcessingEnvironment;
@@ -13,6 +14,7 @@ import javax.tools.JavaFileObject;
 import java.io.IOException;
 import java.io.PrintWriter;
 import java.util.*;
+import java.util.stream.Collectors;
 
 public class CriteriaClassBuilder {
     private static final Map<Element, CriteriaClassDto> criteriaClasses = new HashMap<>();
@@ -43,25 +45,33 @@ public class CriteriaClassBuilder {
                                     .map(CriteriaClassBuilder::getJoinDto)
                                     .toList()
                     )
-                    .fields(
-                            ElementFilter.fieldsIn(classElement.getEnclosedElements())
-                                    .stream()
-                                    .map(
-                                            fieldElement ->
-                                                    DomainFieldDto
-                                                            .builder()
-                                                            .fieldName(fieldElement.getSimpleName().toString())
-                                                            .setter(
-                                                                    ProcessorUtils.
-                                                                            findSetter(setters, fieldElement, isFluent)
-                                                            )
-                                                            .element(fieldElement)
-                                                            .entityField(getCriteriaField(fieldElement, entityClass))
-                                                            .build()
-                                    )
-                                    .toList()
-                    )
                     .build();
+
+            Map<String, EntityClassDto> entityClasses = criteriaClassDto
+                    .getJoins()
+                    .stream()
+                    .collect(Collectors.toMap(CriteriaJoinDto::getAlias, CriteriaJoinDto::getFrom));
+            entityClasses.put(criteriaClassDto.getAlias(), criteriaClassDto.getFrom());
+            criteriaClassDto.setFields(
+                    ElementFilter.fieldsIn(classElement.getEnclosedElements())
+                            .stream()
+                            .map(
+                                    fieldElement ->
+                                            CriteriaFieldDto
+                                                    .builder()
+                                                    .fieldName(fieldElement.getSimpleName().toString())
+                                                    .setter(
+                                                            ProcessorUtils.
+                                                                    findSetter(setters, fieldElement, isFluent)
+                                                    )
+                                                    .element(fieldElement)
+                                                    .entityField(
+                                                            getColumn(fieldElement, entityClass, entityClasses))
+                                                    .build()
+                            )
+                            .toList()
+            );
+
             criteriaClasses.put(classElement, criteriaClassDto);
         }
         return criteriaClasses.get(classElement);
@@ -77,14 +87,49 @@ public class CriteriaClassBuilder {
                 .build();
     }
 
-    private static CriteriaFieldDto getCriteriaField(Element element, EntityClassDto entityClass) {
-        return Optional.ofNullable(element.getAnnotation(CriteriaAttribute.class))
+    private static String getColumnName(String attribute,
+                                        EntityClassDto entityClass,
+                                        Map<String, EntityClassDto> entityClasses)
+    {
+        int idx = attribute.indexOf(".");
+        String alias = null;
+        if (idx > 0) {
+            alias = attribute.substring(0, idx);
+            attribute = attribute.substring(idx + 1);
+        } else if (entityClasses.containsKey(attribute)) {
+            return
+        }
+
+
+        return Optional.ofNullable(element.getAnnotation(Attribute.class))
+                .filter(a -> a.mappingType() == MappingType.ENTITY)
                 .map(a ->
                         entityClass.getFieldMap().get(
-                                a.value().isEmpty() ?
+                                a.name().isEmpty() ?
                                         element.getSimpleName().toString() :
                                         a.name()
                         )
+                )
+                .orElse(null);
+    }
+
+
+    private static String getColumnName(EntityClassDto entityClass, String fieldName) {
+        return Optional.ofNullable(entityClass.getFieldMap().get(fieldName))
+                .map(EntityFieldDto::getColumnName)
+                .orElseGet(fieldName::toUpperCase);
+    }
+
+    private static String getColumn(
+            Element element,
+            EntityClassDto entityClass,
+            Map<String, EntityClassDto> entityClasses
+    ) {
+        return Optional.ofNullable(element.getAnnotation(CriteriaAttribute.class))
+                .map(a ->
+                        a.value().isEmpty() ?
+                                getColumnName(entityClass, element.getSimpleName().toString()) :
+                                ""
                 )
                 .orElse(null);
     }
