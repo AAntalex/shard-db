@@ -169,7 +169,7 @@ public class DomainClassBuilder {
                     if (Objects.isNull(storage)) {
                         throw new IllegalArgumentException(
                                 String.format(
-                                        "Хнинилище с именем %s отсутсвует в описани @DomainEntity(additionalStorage " +
+                                        "Хранилище с именем %s отсутствует в описании @DomainEntity(additionalStorage " +
                                                 "= ...",
                                         a.storage()
                                 )

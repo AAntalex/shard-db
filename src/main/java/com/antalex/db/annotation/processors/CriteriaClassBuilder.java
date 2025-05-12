@@ -2,7 +2,6 @@ package com.antalex.db.annotation.processors;
 
 import com.antalex.db.annotation.*;
 import com.antalex.db.model.dto.*;
-import com.antalex.db.model.enums.MappingType;
 import lombok.experimental.Accessors;
 
 import javax.annotation.processing.ProcessingEnvironment;
@@ -65,9 +64,13 @@ public class CriteriaClassBuilder {
                                                                     findSetter(setters, fieldElement, isFluent)
                                                     )
                                                     .element(fieldElement)
-                                                    .entityField(
-                                                            getColumn(fieldElement, entityClass, entityClasses))
-                                                    .build()
+                                                    .domainField(getDomainField(fieldElement, entityClasses))
+                                                    .columnName(
+                                                            getColumnName(
+                                                                    fieldElement,
+                                                                    criteriaClassDto.getAlias(),
+                                                                    entityClasses)).
+                                                    build()
                             )
                             .toList()
             );
@@ -87,49 +90,66 @@ public class CriteriaClassBuilder {
                 .build();
     }
 
-    private static String getColumnName(String attribute,
-                                        EntityClassDto entityClass,
-                                        Map<String, EntityClassDto> entityClasses)
-    {
-        int idx = attribute.indexOf(".");
-        String alias = null;
-        if (idx > 0) {
-            alias = attribute.substring(0, idx);
-            attribute = attribute.substring(idx + 1);
-        } else if (entityClasses.containsKey(attribute)) {
-            return
-        }
-
-
-        return Optional.ofNullable(element.getAnnotation(Attribute.class))
-                .filter(a -> a.mappingType() == MappingType.ENTITY)
-                .map(a ->
-                        entityClass.getFieldMap().get(
-                                a.name().isEmpty() ?
-                                        element.getSimpleName().toString() :
-                                        a.name()
-                        )
-                )
+    private static DomainClassDto getDomainField(Element element, Map<String, EntityClassDto> entityClasses) {
+        return Optional.ofNullable(element.getAnnotation(CriteriaAttribute.class))
+                .map(CriteriaAttribute::value)
+                .map(String::toUpperCase)
+                .filter(entityClasses::containsKey)
+                .map(alias -> {
+                    DomainClassDto domainClassDto = DomainClassBuilder.getClassDtoByElement(
+                            ProcessorUtils.getDeclaredType(element).asElement()
+                    );
+                    if (
+                            Optional.ofNullable(domainClassDto)
+                                    .map(DomainClassDto::getEntityClass)
+                                    .filter(it -> it == entityClasses.get(alias))
+                                    .isEmpty()
+                    ) {
+                        throw new RuntimeException(
+                                "Класс домена поля " +
+                                        element.getSimpleName().toString() +
+                                        " не соответствует классу сущности синонима " + alias);
+                    }
+                    return domainClassDto;
+                })
                 .orElse(null);
     }
 
-
-    private static String getColumnName(EntityClassDto entityClass, String fieldName) {
-        return Optional.ofNullable(entityClass.getFieldMap().get(fieldName))
-                .map(EntityFieldDto::getColumnName)
-                .orElseGet(fieldName::toUpperCase);
+    private static String getColumnName(String mainAlias,
+                                        CriteriaAttribute attribute,
+                                        Map<String, EntityClassDto> entityClasses)
+    {
+        String attributeName = attribute.value().toUpperCase();
+        int idx = attributeName.indexOf(".");
+        String alias = null;
+        if (idx > 0) {
+            alias = attributeName.substring(0, idx);
+            attributeName = attributeName.substring(idx + 1);
+        } else if (entityClasses.containsKey(attributeName)) {
+            return attributeName + ".ID";
+        }
+        return getColumnName(alias == null ? mainAlias : alias, attributeName, entityClasses);
     }
 
-    private static String getColumn(
+    private static String getColumnName(String alias, String fieldName, Map<String, EntityClassDto> entityClasses) {
+        return Optional.ofNullable(entityClasses.get(alias))
+                .map(EntityClassDto::getFieldMap)
+                .map(fieldMap -> fieldMap.get(fieldName))
+                .map(EntityFieldDto::getColumnName)
+                .map(columnName -> alias + "." + columnName)
+                .orElse(fieldName);
+    }
+
+    private static String getColumnName(
             Element element,
-            EntityClassDto entityClass,
+            String mainAlias,
             Map<String, EntityClassDto> entityClasses
     ) {
         return Optional.ofNullable(element.getAnnotation(CriteriaAttribute.class))
                 .map(a ->
                         a.value().isEmpty() ?
-                                getColumnName(entityClass, element.getSimpleName().toString()) :
-                                ""
+                                getColumnName(mainAlias, element.getSimpleName().toString(), entityClasses) :
+                                getColumnName(mainAlias, a, entityClasses)
                 )
                 .orElse(null);
     }
