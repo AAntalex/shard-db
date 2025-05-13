@@ -38,14 +38,14 @@ import java.util.*;
 import java.util.stream.Collectors;
 
 public class DomainClassBuilder {
-    private static final Map<Element, DomainClassDto> domainClasses = new HashMap<>();
+    private static final Map<Element, DomainClassDto> DOMAIN_CLASSES = new HashMap<>();
 
     public static DomainClassDto getClassDtoByElement(Element classElement) {
         DomainEntity domainEntity = classElement.getAnnotation(DomainEntity.class);
         if (domainEntity == null) {
             return null;
         }
-        if (!domainClasses.containsKey(classElement)) {
+        if (!DOMAIN_CLASSES.containsKey(classElement)) {
             String elementName = classElement.getSimpleName().toString();
             EntityClassDto entityClass = EntityClassBuilder.getClassDtoByElement(getElement(domainEntity));
 
@@ -112,9 +112,9 @@ public class DomainClassBuilder {
                 }
             }
 
-            domainClasses.put(classElement, domainClassDto);
+            DOMAIN_CLASSES.put(classElement, domainClassDto);
         }
-        return domainClasses.get(classElement);
+        return DOMAIN_CLASSES.get(classElement);
     }
 
     private static StorageDto getStorageDto(Storage storage) {

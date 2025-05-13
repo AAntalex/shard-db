@@ -14,5 +14,6 @@ public class CriteriaClassDto {
     private List<CriteriaFieldDto> fields;
     private String alias;
     private String where;
+    private Long columns;
     private List<CriteriaJoinDto> joins;
 }

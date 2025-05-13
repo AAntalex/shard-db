@@ -12,4 +12,5 @@ public class CriteriaJoinDto {
     private String alias;
     private String on;
     private JoinType joinType;
+    private Long columns;
 }

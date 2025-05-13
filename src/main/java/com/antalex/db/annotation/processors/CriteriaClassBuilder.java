@@ -3,6 +3,7 @@ package com.antalex.db.annotation.processors;
 import com.antalex.db.annotation.*;
 import com.antalex.db.model.dto.*;
 import lombok.experimental.Accessors;
+import org.apache.commons.lang3.StringUtils;
 
 import javax.annotation.processing.ProcessingEnvironment;
 import javax.lang.model.element.Element;
@@ -13,17 +14,18 @@ import javax.tools.JavaFileObject;
 import java.io.IOException;
 import java.io.PrintWriter;
 import java.util.*;
+import java.util.concurrent.atomic.AtomicInteger;
 import java.util.stream.Collectors;
 
 public class CriteriaClassBuilder {
-    private static final Map<Element, CriteriaClassDto> criteriaClasses = new HashMap<>();
+    private static final Map<Element, CriteriaClassDto> CRITERIA_CLASSES = new HashMap<>();
 
     public static CriteriaClassDto getClassDtoByElement(Element classElement) {
         Criteria criteria = classElement.getAnnotation(Criteria.class);
         if (criteria == null) {
             return null;
         }
-        if (!criteriaClasses.containsKey(classElement)) {
+        if (!CRITERIA_CLASSES.containsKey(classElement)) {
             String elementName = classElement.getSimpleName().toString();
             EntityClassDto entityClass = EntityClassBuilder.getClassDtoByElement(getElement(criteria));
 
@@ -74,10 +76,47 @@ public class CriteriaClassBuilder {
                             )
                             .toList()
             );
-
-            criteriaClasses.put(classElement, criteriaClassDto);
+            Set<String> aliases = entityClasses.keySet();
+            Map<String, Long> entityColumns = aliases
+                    .stream()
+                    .collect(Collectors.toMap(item -> item, item -> 0L));
+            AtomicInteger idx = new AtomicInteger();
+            criteriaClassDto
+                    .getFields()
+                    .stream()
+                    .filter(it -> Objects.nonNull(it.getColumnName()))
+                    .forEachOrdered(field -> {
+                        field.setColumnIndex(idx.incrementAndGet());
+                        if (field.getColumnIndex() > Long.SIZE) {
+                            throw new IllegalArgumentException(
+                                    "Количество аттрибутов класса с аннотацией @Criteria ек может превышать " +
+                                            Long.SIZE);
+                        }
+                        String alias = getAliasFromColumn(field.getColumnName(), aliases)
+                                .orElse(criteriaClassDto.getAlias());
+                        entityColumns.put(alias, entityColumns.get(alias) | 1L << (field.getColumnIndex() - 1));
+                    });
+            criteriaClassDto.setColumns(entityColumns.get(criteriaClassDto.getAlias()));
+            criteriaClassDto
+                    .getJoins()
+                    .forEach(join -> join.setColumns(entityColumns.get(join.getAlias())));
+            CRITERIA_CLASSES.put(classElement, criteriaClassDto);
         }
-        return criteriaClasses.get(classElement);
+        return CRITERIA_CLASSES.get(classElement);
+    }
+
+    private static Optional<String> getAliasFromColumn(String columnName, Set<String> aliases) {
+        int idx = columnName.lastIndexOf('.');
+        if (idx > 0) {
+            String alias = columnName.substring(0, idx);
+            if (aliases.contains(alias)) {
+                return Optional.of(alias);
+            }
+        }
+        return aliases
+                .stream()
+                .filter(alias -> columnName.contains(alias + "."))
+                .max(Comparator.comparing(String::length));
     }
 
     private static CriteriaJoinDto getJoinDto(Join join) {
@@ -216,5 +255,19 @@ public class CriteriaClassBuilder {
                 .filter(Objects::nonNull)
                 .forEach(type -> importedTypes.add(type.asElement().toString()));
         return ProcessorUtils.getImportedTypes(importedTypes);
+    }
+
+    private static String getColumnListCode(CriteriaClassDto criteriaClassDto) {
+        return criteriaClassDto.getFields()
+                .stream()
+                .filter(it -> Objects.nonNull(it.getColumnName()))
+                .map(field ->
+                        (field.getColumnIndex() == 1 ? StringUtils.EMPTY : ",") +
+                                "\n            \"" + field.getColumnName() + "\""
+                )
+                .reduce(
+                        "    private static final List<String> COLUMNS = Arrays.asList(",
+                        String::concat
+                ) + "\n    );";
     }
 }
