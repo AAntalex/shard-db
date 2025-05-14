@@ -89,7 +89,7 @@ public class CriteriaClassBuilder {
                         field.setColumnIndex(idx.incrementAndGet());
                         if (field.getColumnIndex() > Long.SIZE) {
                             throw new IllegalArgumentException(
-                                    "Количество аттрибутов класса с аннотацией @Criteria ек может превышать " +
+                                    "Количество аттрибутов класса с аннотацией @Criteria не может превышать " +
                                             Long.SIZE);
                         }
                         String alias = getAliasFromColumn(field.getColumnName(), aliases)
