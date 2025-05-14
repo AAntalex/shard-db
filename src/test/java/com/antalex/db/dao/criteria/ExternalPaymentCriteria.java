@@ -19,12 +19,12 @@ import java.util.Date;
         from = ExternalPaymentEntity.class,
         alias = "ext_doc",
         joins = {
-                @Join(from = PaymentEntity.class, alias = "md", on = "${ext_doc.doc} = ${md.id}"),
-                @Join(from = AccountEntity.class, alias = "acc_dt", on = "${acc_dt} = ${md.accDt}"),
-                @Join(from = AccountEntity.class, alias = "acc_ct", on = "${id} = ${md.accCt}"),
-                @Join(from = ClientEntity.class, alias = "cl_ct", on = "${id} = ${acc_ct.client}"),
-                @Join(from = ClientEntity.class, alias = "cl_dt", on = "${id} = ${acc_dt.client}"),
-                @Join(from = ClientCategoryEntity.class, alias = "cl_cat", on = "${id} = ${cl_ct.category}"),
+                @Join(from = PaymentEntity.class, alias = "md", on = "ext_doc.doc = md"),
+                @Join(from = AccountEntity.class, alias = "acc_dt", on = "acc_dt = md.accDt"),
+                @Join(from = AccountEntity.class, alias = "acc_ct", on = "acc_ct = md.accCt"),
+                @Join(from = ClientEntity.class, alias = "cl_ct", on = "md = acc_ct.client"),
+                @Join(from = ClientEntity.class, alias = "cl_dt", on = "md = client"),
+                @Join(from = ClientCategoryEntity.class, alias = "cl_cat", on = "cl_cat = cl_ct.category"),
         },
         where = "${ext_doc.date} >= ? and ({md.dateProv} >= ? and ${cl_cat.code} = 'VIP' or {acc_dt.code} like '40702810%3')",
         cachePolicy = @CachePolicy(

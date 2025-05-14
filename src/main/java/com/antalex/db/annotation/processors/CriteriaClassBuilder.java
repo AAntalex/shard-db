@@ -106,7 +106,7 @@ public class CriteriaClassBuilder {
     }
 
     private static void parseOn(CriteriaJoinDto joinDto) {
-        String on = joinDto.getOn().toUpperCase().replaceAll("(\\r|\\n|\\t)", " ");
+        String on = joinDto.getOn().toUpperCase().replaceAll("(\\r|\\n|\\t|\\s)", "");
         if (on.contains(" OR ")) {
             throw new IllegalArgumentException("");
         }
