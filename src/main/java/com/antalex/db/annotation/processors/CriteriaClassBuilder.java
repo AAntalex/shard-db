@@ -105,6 +105,10 @@ public class CriteriaClassBuilder {
         return CRITERIA_CLASSES.get(classElement);
     }
 
+    private static void parseOn(String on) {
+        on.toUpperCase().replaceAll("(\\r|\\n|\\t)", " ");
+    }
+
     private static Optional<String> getAliasFromColumn(String columnName, Set<String> aliases) {
         int idx = columnName.lastIndexOf('.');
         if (idx > 0) {
