@@ -105,8 +105,11 @@ public class CriteriaClassBuilder {
         return CRITERIA_CLASSES.get(classElement);
     }
 
-    private static void parseOn(String on) {
-        on.toUpperCase().replaceAll("(\\r|\\n|\\t)", " ");
+    private static void parseOn(CriteriaJoinDto joinDto) {
+        String on = joinDto.getOn().toUpperCase().replaceAll("(\\r|\\n|\\t)", " ");
+        if (on.contains(" OR ")) {
+            throw new IllegalArgumentException("");
+        }
     }
 
     private static Optional<String> getAliasFromColumn(String columnName, Set<String> aliases) {
