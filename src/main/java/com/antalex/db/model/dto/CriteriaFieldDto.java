@@ -12,6 +12,6 @@ public class CriteriaFieldDto {
     private Element element;
     private String setter;
     private int columnIndex;
-    private DomainClassDto domainField;
+    private DomainClassDto domainClass;
     private String columnName;
 }

@@ -15,12 +15,12 @@ import java.io.IOException;
 import java.io.PrintWriter;
 import java.util.*;
 import java.util.concurrent.atomic.AtomicInteger;
-import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 import java.util.stream.Collectors;
 
 public class CriteriaClassBuilder {
     private static final Map<Element, CriteriaClassDto> CRITERIA_CLASSES = new HashMap<>();
+    private static final String PATTERN_JOIN_ON = "^(\\w+\\.)?\\w+=(\\w+\\.)?\\w+$";
 
     public static CriteriaClassDto getClassDtoByElement(Element classElement) {
         Criteria criteria = classElement.getAnnotation(Criteria.class);
@@ -68,7 +68,7 @@ public class CriteriaClassBuilder {
                                                                     findSetter(setters, fieldElement, isFluent)
                                                     )
                                                     .element(fieldElement)
-                                                    .domainField(getDomainField(fieldElement, entityClasses))
+                                                    .domainClass(getDomainClass(fieldElement, entityClasses))
                                                     .columnName(
                                                             getColumnName(
                                                                     fieldElement,
@@ -107,20 +107,13 @@ public class CriteriaClassBuilder {
         return CRITERIA_CLASSES.get(classElement);
     }
 
-    private static void parseOn(CriteriaJoinDto joinDto) {
+    private static void parseOn(CriteriaJoinDto joinDto, Map<String, EntityClassDto> entityClasses) {
         String on = joinDto.getOn().toUpperCase().replaceAll("(\\r|\\n|\\t|\\s)", "");
-
-
-        Pattern pattern = Pattern.compile("^(\\w+\\.)?\\w+=(\\w+\\.)?\\w+$");
-        Matcher matcher = pattern.matcher("a_1.c_col=_C_COL.a_");
-        System.out.println("Start RegExp " + matcher.matches());
-        while (matcher.find()) {
-            System.out.println(matcher.group());
+        if (!Pattern.compile(PATTERN_JOIN_ON).matcher(on).matches()) {
+            throw new IllegalArgumentException(
+                    "Условие соединения '" + joinDto.getOn() + "' не соответствует шаблону: " + PATTERN_JOIN_ON);
         }
 
-        if (on.contains(" OR ")) {
-            throw new IllegalArgumentException("");
-        }
     }
 
     private static Optional<String> getAliasFromColumn(String columnName, Set<String> aliases) {
@@ -147,7 +140,7 @@ public class CriteriaClassBuilder {
                 .build();
     }
 
-    private static DomainClassDto getDomainField(Element element, Map<String, EntityClassDto> entityClasses) {
+    private static DomainClassDto getDomainClass(Element element, Map<String, EntityClassDto> entityClasses) {
         return Optional.ofNullable(element.getAnnotation(CriteriaAttribute.class))
                 .map(CriteriaAttribute::value)
                 .map(String::toUpperCase)
