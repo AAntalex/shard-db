@@ -15,6 +15,8 @@ import java.io.IOException;
 import java.io.PrintWriter;
 import java.util.*;
 import java.util.concurrent.atomic.AtomicInteger;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
 import java.util.stream.Collectors;
 
 public class CriteriaClassBuilder {
@@ -107,6 +109,15 @@ public class CriteriaClassBuilder {
 
     private static void parseOn(CriteriaJoinDto joinDto) {
         String on = joinDto.getOn().toUpperCase().replaceAll("(\\r|\\n|\\t|\\s)", "");
+
+
+        Pattern pattern = Pattern.compile("^(\\w+\\.)?\\w+=(\\w+\\.)?\\w+$");
+        Matcher matcher = pattern.matcher("a_1.c_col=_C_COL.a_");
+        System.out.println("Start RegExp " + matcher.matches());
+        while (matcher.find()) {
+            System.out.println(matcher.group());
+        }
+
         if (on.contains(" OR ")) {
             throw new IllegalArgumentException("");
         }
