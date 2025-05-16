@@ -178,16 +178,32 @@ public class CriteriaClassBuilder {
         } else if (entityClasses.containsKey(attributeName)) {
             return attributeName + ".ID";
         }
-        return getColumnName(alias == null ? mainAlias : alias, attributeName, entityClasses);
+        return Optional
+                .ofNullable(getColumnName(alias == null ? mainAlias : alias, attributeName, entityClasses))
+                .orElse(attribute.value());
     }
 
-    private static String getColumnName(String alias, String fieldName, Map<String, EntityClassDto> entityClasses) {
+    private static EntityFieldDto getEntityField(
+            String alias,
+            String fieldName,
+            Map<String, EntityClassDto> entityClasses)
+    {
         return Optional.ofNullable(entityClasses.get(alias))
                 .map(EntityClassDto::getFieldMap)
                 .map(fieldMap -> fieldMap.get(fieldName))
-                .map(EntityFieldDto::getColumnName)
-                .map(columnName -> alias + "." + columnName)
-                .orElse(fieldName);
+                .orElse(null);
+    }
+
+    private static String getColumnName(String alias, String fieldName, Map<String, EntityClassDto> entityClasses) {
+        EntityFieldDto entityField = getEntityField(alias, fieldName, entityClasses);
+        if (entityField == null) {
+            return null;
+        } else if (entityField.getColumnName() == null) {
+            throw new IllegalArgumentException("Для поля " + alias + "." + fieldName +
+                    " отсутсвует соответствующая колонка в таблице.");
+        } else {
+            return alias + "." + entityField.getColumnName();
+        }
     }
 
     private static String getColumnName(
