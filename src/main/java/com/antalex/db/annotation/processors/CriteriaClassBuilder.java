@@ -2,6 +2,7 @@ package com.antalex.db.annotation.processors;
 
 import com.antalex.db.annotation.*;
 import com.antalex.db.model.dto.*;
+import lombok.Data;
 import lombok.experimental.Accessors;
 import org.apache.commons.lang3.StringUtils;
 
@@ -114,6 +115,64 @@ public class CriteriaClassBuilder {
                     "Условие соединения '" + joinDto.getOn() + "' не соответствует шаблону: " + PATTERN_JOIN_ON);
         }
 
+
+        int idx = on.indexOf("=");
+        EntityAttribute entityAttribute = getEntityAttribute(on.substring(0, idx), joinDto.getAlias(), entityClasses);
+        checkEntityAttribute(entityAttribute);
+        EntityAttribute entityAttribute2 = getEntityAttribute(
+                on.substring(idx + 1), joinDto.getAlias(), entityClasses);
+        checkEntityAttribute(entityAttribute2);
+
+    }
+
+    private static EntityAttribute getEntityAttribute(
+            String attributeName,
+            String defaultAlias,
+            Map<String, EntityClassDto> entityClasses)
+    {
+        int idx = attributeName.indexOf(".");
+        EntityAttribute entityAttribute = new EntityAttribute();
+        if (idx > 0) {
+            entityAttribute.setAlias(attributeName.substring(0, idx));
+            entityAttribute.setFieldName(attributeName.substring(idx + 1));
+        } else if (entityClasses.containsKey(attributeName)) {
+            entityAttribute.setAlias(attributeName);
+        } else {
+            entityAttribute.setAlias(defaultAlias);
+            entityAttribute.setFieldName(attributeName);
+        }
+        entityAttribute.setEntityClass(entityClasses.get(entityAttribute.getAlias()));
+        if (
+                Optional
+                        .ofNullable(entityAttribute.getFieldName())
+                        .map(fieldName -> !"ID".equals(fieldName))
+                        .orElse(false)
+        ) {
+            entityAttribute.setEntityField(
+                    Optional.ofNullable(entityAttribute.getEntityClass())
+                            .map(EntityClassDto::getFieldMap)
+                            .map(fieldMap -> fieldMap.get(entityAttribute.getFieldName()))
+                            .orElse(null)
+            );
+        }
+        return entityAttribute;
+    }
+
+    private static void checkEntityAttribute(EntityAttribute entityAttribute) {
+        if (entityAttribute.getEntityClass() == null) {
+            throw new IllegalArgumentException("Не известный синоним " + entityAttribute.getAlias());
+        }
+        if (
+                entityAttribute.getEntityField() == null &&
+                        Optional
+                                .ofNullable(entityAttribute.getFieldName())
+                                .map(fieldName -> !"ID".equals(entityAttribute.getFieldName()))
+                                .orElse(false)
+        ) {
+            throw new IllegalArgumentException(
+                    "Отсутствует поле " + entityAttribute.getFieldName() +
+                            " в классе " + entityAttribute.getEntityClass().getTargetClassName());
+        }
     }
 
     private static Optional<String> getAliasFromColumn(String columnName, Set<String> aliases) {
@@ -296,5 +355,13 @@ public class CriteriaClassBuilder {
                         "    private static final List<String> COLUMNS = Arrays.asList(",
                         String::concat
                 ) + "\n    );";
+    }
+
+    @Data
+    private static class EntityAttribute {
+        private String alias;
+        private String fieldName;
+        private EntityClassDto entityClass;
+        private EntityFieldDto entityField;
     }
 }
