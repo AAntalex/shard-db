@@ -1,11 +1,9 @@
 package com.antalex.db.dao.criteria;
 
-import com.antalex.db.dao.domain.*;
 import com.antalex.db.dao.entity.ExternalPaymentEntity;
 import com.antalex.db.dao.entity.PaymentEntity;
 import com.antalex.db.model.criteria.*;
 import com.antalex.db.model.enums.ShardType;
-import com.antalex.db.service.CriteriaRepository;
 import com.antalex.db.service.ShardDataBaseManager;
 import com.antalex.db.service.ShardEntityManager;
 import org.apache.commons.lang3.tuple.Pair;
@@ -17,7 +15,7 @@ import java.util.*;
 import java.util.stream.Stream;
 
 @Component
-public class ExternalPaymentCriteria$RepositoryImpl implements CriteriaRepository<PaymentCriteria> {
+public class ExternalPaymentCriteria$RepositoryImpl2 {
     private static final List<String> COLUMNS = Arrays.asList(
             "MD.C_NUM",
             "MD.C_SUM",
@@ -75,7 +73,7 @@ public class ExternalPaymentCriteria$RepositoryImpl implements CriteriaRepositor
     private List<CriteriaPart> criteriaRoutes = new ArrayList<>();
 
     @Autowired
-    ExternalPaymentCriteria$RepositoryImpl(ShardEntityManager entityManager, ShardDataBaseManager dataBaseManager) {
+    ExternalPaymentCriteria$RepositoryImpl2(ShardEntityManager entityManager, ShardDataBaseManager dataBaseManager) {
         this.dataBaseManager = dataBaseManager;
         this.entityManager = entityManager;
 
@@ -107,7 +105,7 @@ public class ExternalPaymentCriteria$RepositoryImpl implements CriteriaRepositor
             case RIGHT -> " RIGHT JOIN ";
         };
     }
-
+/*
     private CriteriaElement criteriaElement$extDoc() {
         return new CriteriaElement()
                 .tableName("T_EXTERNAL_PAYMENT")
@@ -204,7 +202,7 @@ public class ExternalPaymentCriteria$RepositoryImpl implements CriteriaRepositor
                 .shardType(ShardType.REPLICABLE);
     }
 
-
+*/
     @Override
     public Stream<PaymentCriteria> get(Object... binds) {
         return null;

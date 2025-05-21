@@ -15,6 +15,7 @@ import java.util.Date;
 
 @Data
 
+/*
 @Criteria(
         from = PaymentEntity.class,
         alias = "md",
@@ -39,6 +40,7 @@ import java.util.Date;
                 retentionTime = 60
         )
 )
+*/
 public class PaymentCriteria {
     @CriteriaAttribute("${md.num}")
     private Integer num;

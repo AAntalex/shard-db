@@ -9,7 +9,6 @@ import javax.annotation.processing.*;
 import javax.lang.model.SourceVersion;
 import javax.lang.model.element.Element;
 import javax.lang.model.element.TypeElement;
-import java.io.IOException;
 import java.util.*;
 
 @SupportedAnnotationTypes({
@@ -33,10 +32,12 @@ public class CommonProcessor extends AbstractProcessor {
                         DomainClassBuilder.createMapperClass(annotatedElement, processingEnv);
                     }
                     if (annotatedElement.getAnnotation(Criteria.class) != null) {
-
+                        CriteriaClassBuilder.createRepositoryClass(annotatedElement, processingEnv);
                     }
-                } catch (IOException err) {
-                    throw new RuntimeException(err);
+                } catch (Exception err) {
+                    throw new IllegalArgumentException("Ошибка обработки аннотаций класса " +
+                            annotatedElement.getSimpleName().toString() + ":  " +
+                            err.getMessage());
                 }
             }
         }

@@ -95,7 +95,7 @@ public class PaymentCriteria$RepositoryImpl implements CriteriaRepository<Paymen
                         );
                 joinElement(criteriaPart, join);
 
-                toCriteriaPart(join.element(), criteriaPart)
+//                toCriteriaPart(join.element(), criteriaPart)
             } else {
                 criteriaPart
                         .joins()

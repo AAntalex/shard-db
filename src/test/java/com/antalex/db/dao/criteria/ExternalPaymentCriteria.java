@@ -22,8 +22,8 @@ import java.util.Date;
                 @Join(from = PaymentEntity.class, alias = "md", on = "ext_doc.doc = md"),
                 @Join(from = AccountEntity.class, alias = "acc_dt", on = "acc_dt = md.accDt"),
                 @Join(from = AccountEntity.class, alias = "acc_ct", on = "acc_ct = md.accCt"),
-                @Join(from = ClientEntity.class, alias = "cl_ct", on = "md = acc_ct.client"),
-                @Join(from = ClientEntity.class, alias = "cl_dt", on = "md = client"),
+                @Join(from = ClientEntity.class, alias = "cl_ct", on = "cl_ct = acc_ct.client"),
+                @Join(from = ClientEntity.class, alias = "cl_dt", on = "id = acc_dt.client"),
                 @Join(from = ClientCategoryEntity.class, alias = "cl_cat", on = "cl_cat = cl_ct.category"),
         },
         where = "${ext_doc.date} >= ? and ({md.dateProv} >= ? and ${cl_cat.code} = 'VIP' or {acc_dt.code} like '40702810%3')",
@@ -35,11 +35,11 @@ import java.util.Date;
         )
 )
 public class ExternalPaymentCriteria {
-    @CriteriaAttribute("${md.num}")
+    @CriteriaAttribute("md.num")
     private Integer num;
-    @CriteriaAttribute("${md.sum}")
+    @CriteriaAttribute("md.sum")
     private BigDecimal sum;
-    @CriteriaAttribute("${md.date}")
+    @CriteriaAttribute("md.date")
     private Date date;
     @CriteriaAttribute("acc_dt.code")
     private String dtNum;
