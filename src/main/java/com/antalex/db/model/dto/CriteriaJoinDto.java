@@ -11,6 +11,7 @@ import javax.persistence.criteria.JoinType;
 public class CriteriaJoinDto {
     private EntityClassDto from;
     private String alias;
+    private String joinAlias;
     private String on;
     private JoinType joinType;
     private Long columns;

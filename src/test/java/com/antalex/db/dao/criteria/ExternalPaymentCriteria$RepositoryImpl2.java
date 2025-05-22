@@ -56,8 +56,8 @@ public class ExternalPaymentCriteria$RepositoryImpl2 {
             .join(
                     new CriteriaElementJoin()
                             .joinType(JoinType.INNER)
-                            .linked(true)
-                            .joinColumns(Pair.of(5, 4))
+                            .linkedShard(true)
+                            .joinColumns(Pair.of("MD.ID", "EXT_DOC.C_DOC"))
                             .element(ELEMENT_EXT_DOC)
             );
 

@@ -12,6 +12,6 @@ public class CriteriaElementJoin {
     private CriteriaElement element;
     private String on;
     private JoinType joinType;
-    private Pair<Integer, Integer> joinColumns;
-    private boolean linked;
+    private Pair<String, String> joinColumns;
+    private boolean linkedShard;
 }

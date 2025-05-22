@@ -1,5 +1,6 @@
 package com.antalex.db.annotation.processors;
 
+import com.antalex.db.exception.ShardDataBaseException;
 import com.antalex.db.service.api.QueryQueue;
 import com.antalex.db.service.api.TransactionalQuery;
 import com.google.common.collect.ImmutableMap;
@@ -394,7 +395,8 @@ public class EntityClassBuilder {
                                             Lists.class.getCanonicalName(),
                                             QueryQueue.class.getCanonicalName(),
                                             TransactionalQuery.class.getCanonicalName(),
-                                            Collections.class.getCanonicalName()
+                                            Collections.class.getCanonicalName(),
+                                            ShardDataBaseException.class.getCanonicalName()
                                     )
                             )
                     )

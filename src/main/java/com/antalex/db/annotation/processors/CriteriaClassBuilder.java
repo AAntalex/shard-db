@@ -3,10 +3,13 @@ package com.antalex.db.annotation.processors;
 import com.antalex.db.annotation.*;
 import com.antalex.db.model.dto.*;
 import com.antalex.db.service.CriteriaRepository;
+import com.antalex.db.service.ShardDataBaseManager;
+import com.antalex.db.service.ShardEntityManager;
 import lombok.Data;
 import lombok.experimental.Accessors;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.commons.lang3.tuple.Pair;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Component;
 
 import javax.annotation.processing.ProcessingEnvironment;
@@ -146,6 +149,7 @@ public class CriteriaClassBuilder {
                             getColumnName(entityAttribute2, entityAttribute)
                     )
             );
+            joinDto.setJoinAlias(entityAttribute2.getAlias());
         } else if (joinDto.getAlias().equals(entityAttribute2.getAlias())) {
             joinDto.setJoinColumns(
                     Pair.of(
@@ -153,6 +157,7 @@ public class CriteriaClassBuilder {
                             getColumnName(entityAttribute, entityAttribute2)
                     )
             );
+            joinDto.setJoinAlias(entityAttribute.getAlias());
         } else {
             throw new IllegalArgumentException("Условие соединения " + joinDto.getOn() +
                     " не соответсвует синониму " + joinDto.getAlias());
@@ -343,7 +348,10 @@ public class CriteriaClassBuilder {
                                             Component.class.getCanonicalName(),
                                             CriteriaRepository.class.getCanonicalName(),
                                             List.class.getCanonicalName(),
-                                            Arrays.class.getCanonicalName()
+                                            Arrays.class.getCanonicalName(),
+                                            Autowired.class.getCanonicalName(),
+                                            ShardEntityManager.class.getCanonicalName(),
+                                            ShardDataBaseManager.class.getCanonicalName()
                                     )
                             )
                     )
