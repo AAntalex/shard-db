@@ -203,8 +203,4 @@ public class ExternalPaymentCriteria$RepositoryImpl2 {
     }
 
 */
-    @Override
-    public Stream<PaymentCriteria> get(Object... binds) {
-        return null;
-    }
 }

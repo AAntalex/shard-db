@@ -216,7 +216,8 @@ public class DomainClassBuilder {
                                             Map.class.getCanonicalName(),
                                             AttributeStorage.class.getCanonicalName(),
                                             DataWrapper.class.getCanonicalName(),
-                                            AttributeHistory.class.getCanonicalName()
+                                            AttributeHistory.class.getCanonicalName(),
+                                            ShardDataBaseException.class.getCanonicalName()
                                     )
                             )
                     )

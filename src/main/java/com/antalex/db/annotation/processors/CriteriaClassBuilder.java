@@ -1,7 +1,10 @@
 package com.antalex.db.annotation.processors;
 
 import com.antalex.db.annotation.*;
+import com.antalex.db.model.criteria.CriteriaElement;
+import com.antalex.db.model.criteria.CriteriaElementJoin;
 import com.antalex.db.model.dto.*;
+import com.antalex.db.model.enums.ShardType;
 import com.antalex.db.service.CriteriaRepository;
 import com.antalex.db.service.ShardDataBaseManager;
 import com.antalex.db.service.ShardEntityManager;
@@ -17,6 +20,7 @@ import javax.lang.model.element.Element;
 import javax.lang.model.type.DeclaredType;
 import javax.lang.model.type.MirroredTypeException;
 import javax.lang.model.util.ElementFilter;
+import javax.persistence.criteria.JoinType;
 import javax.tools.JavaFileObject;
 import java.io.IOException;
 import java.io.PrintWriter;
@@ -24,6 +28,7 @@ import java.util.*;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.regex.Pattern;
 import java.util.stream.Collectors;
+import java.util.stream.Stream;
 
 public class CriteriaClassBuilder {
     private static final Map<Element, CriteriaClassDto> CRITERIA_CLASSES = new HashMap<>();
@@ -351,7 +356,13 @@ public class CriteriaClassBuilder {
                                             Arrays.class.getCanonicalName(),
                                             Autowired.class.getCanonicalName(),
                                             ShardEntityManager.class.getCanonicalName(),
-                                            ShardDataBaseManager.class.getCanonicalName()
+                                            ShardDataBaseManager.class.getCanonicalName(),
+                                            CriteriaElement.class.getCanonicalName(),
+                                            CriteriaElementJoin.class.getCanonicalName(),
+                                            ShardType.class.getCanonicalName(),
+                                            JoinType.class.getCanonicalName(),
+                                            Pair.class.getCanonicalName(),
+                                            Stream.class.getCanonicalName()
                                     )
                             )
                     )
@@ -361,9 +372,51 @@ public class CriteriaClassBuilder {
                     className + " implements CriteriaRepository<" + criteriaClassDto.getTargetClassName() + "> {");
             out.println(getColumnListCode(criteriaClassDto));
             out.println();
+            out.println(getElementsCode(criteriaClassDto));
+            out.println("    private final ShardDataBaseManager dataBaseManager;");
+            out.println("    private final ShardEntityManager entityManager;");
+            out.println();
             out.println(getConstructorCode(criteriaClassDto, className));
+            out.println();
+            out.println(getCode(criteriaClassDto));
             out.println("}");
         }
+    }
+
+    private static String getElementsCode(CriteriaClassDto criteriaClassDto) {
+        return criteriaClassDto
+                        .getJoins()
+                        .stream()
+                        .map(CriteriaClassBuilder::getElementsCode)
+                        .reduce(
+                                "    private static final CriteriaElement ELEMENT_" +
+                                        criteriaClassDto.getAlias() +
+                                        " = new CriteriaElement()\n" +
+                                        "            .tableName(\""+ criteriaClassDto.getFrom().getTableName() +
+                                        "\")\n" +
+                                        "            .tableAlias(\"" + criteriaClassDto.getAlias() + "\")\n" +
+                                        "            .shardType(ShardType." +
+                                        criteriaClassDto.getFrom().getShardType().name() + ")\n" +
+                                        "            .columns(" + criteriaClassDto.getColumns() + "L);\n\n",
+                                String::concat
+                        );
+    }
+
+    private static String getElementsCode(CriteriaJoinDto criteriaJoinDto) {
+        return "    private static final CriteriaElement ELEMENT_" + criteriaJoinDto.getAlias() +
+                " = new CriteriaElement()\n" +
+                "            .tableName(\""+ criteriaJoinDto.getFrom().getTableName() + "\")\n" +
+                "            .tableAlias(\"" + criteriaJoinDto.getAlias() + "\")\n" +
+                "            .shardType(ShardType." + criteriaJoinDto.getFrom().getShardType().name() + ")\n" +
+                "            .columns(" + criteriaJoinDto.getColumns() + "L)\n" +
+                "            .join(\n" +
+                "                    new CriteriaElementJoin()\n" +
+                "                            .joinType(JoinType." + criteriaJoinDto.getJoinType().name() + ")\n" +
+                "                            .linkedShard(" + criteriaJoinDto.getLinkedShard() + ")\n" +
+                "                            .joinColumns(Pair.of(\"" + criteriaJoinDto.getJoinColumns().getLeft()
+                + "\", \"" + criteriaJoinDto.getJoinColumns().getRight() + "\"))\n" +
+                "                            .element(ELEMENT_" + criteriaJoinDto.getJoinAlias() + ")\n\n" +
+                "            );\n\n";
     }
 
     private static String getImportedTypes(CriteriaClassDto criteriaClassDto, List<String> importedTypes) {
@@ -392,10 +445,28 @@ public class CriteriaClassBuilder {
     }
 
     private static String getConstructorCode(CriteriaClassDto criteriaClassDto, String className) {
-        return "    @Autowired\n" +
-                "    " + className + "(ShardEntityManager entityManager, ShardDataBaseManager dataBaseManager) {\n" +
-                "        this.dataBaseManager = dataBaseManager;\n" +
-                "        this.entityManager = entityManager;\n" +
+        return criteriaClassDto
+                .getJoins()
+                .stream()
+                .map(join ->
+                        "        ELEMENT_" + join.getAlias() + ".cluster(dataBaseManager.getCluster(\"" +
+                                join.getFrom().getCluster() + "\"));\n")
+                .reduce(
+                        "    @Autowired\n" +
+                                "    " + className + "(ShardEntityManager entityManager, ShardDataBaseManager dataBaseManager) {\n" +
+                                "        this.dataBaseManager = dataBaseManager;\n" +
+                                "        this.entityManager = entityManager;\n\n" +
+                                "        ELEMENT_" + criteriaClassDto.getAlias() +
+                                ".cluster(dataBaseManager.getCluster(\"" +
+                                criteriaClassDto.getFrom().getCluster() + "\"));\n",
+                        String::concat
+                ) + "    }";
+    }
+
+    private static String getCode(CriteriaClassDto criteriaClassDto) {
+        return "    @Override\n" +
+                "    public Stream<" + criteriaClassDto.getTargetClassName() + "> get(Object... binds) {\n" +
+                "        return null;\n" +
                 "    }";
     }
 
