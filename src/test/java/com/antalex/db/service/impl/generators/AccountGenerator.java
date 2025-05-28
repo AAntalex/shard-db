@@ -22,16 +22,17 @@ public class AccountGenerator implements DataGeneratorService<AccountDomain> {
     @Autowired
     private ClientGenerator clientGenerator;
 
+    private static final int ADD_COUNT = 10;
     private static final String ACCOUNT_PREFIX = "40702810X";
 
     @Override
     public List<AccountDomain> generate(int count) {
         List<ClientDomain> clients =
-                clientGenerator.generate(count / 10)
+                clientGenerator.generate(count / 10 + ADD_COUNT)
                         .stream()
                         .sorted(Comparator.comparing(ClientDomain::name))
                         .toList();
-        int clientCount = clients.size();
+        int clientCount = clients.size() - ADD_COUNT;
         List<AccountDomain> accounts = domainManager.findAll(AccountDomain.class);
         accounts.addAll(
                 IntStream.rangeClosed(accounts.size() + 1, count)

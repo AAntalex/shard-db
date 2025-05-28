@@ -24,16 +24,16 @@ public class PaymentGenerator implements DataGeneratorService<PaymentDomain> {
     @Autowired
     private AccountGenerator accountGenerator;
 
-    private static final String ACCOUNT_PREFIX = "40702810X";
+    private static final int ADD_COUNT = 10;
 
     @Override
     public List<PaymentDomain> generate(int count) {
         List<AccountDomain> accounts =
-                accountGenerator.generate(count / 10)
+                accountGenerator.generate(count / 10 + ADD_COUNT)
                         .stream()
                         .sorted(Comparator.comparing(AccountDomain::code))
                         .toList();
-        int cntAccount = accounts.size();
+        int cntAccount = accounts.size() - ADD_COUNT;
         List<PaymentDomain> payments = domainManager.findAll(PaymentDomain.class);
         payments.addAll(
                 IntStream.rangeClosed(payments.size() + 1, count)

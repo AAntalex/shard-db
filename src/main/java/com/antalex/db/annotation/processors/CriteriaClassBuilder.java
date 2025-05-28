@@ -373,6 +373,9 @@ public class CriteriaClassBuilder {
             out.println(getColumnListCode(criteriaClassDto));
             out.println();
             out.println(getElementsCode(criteriaClassDto));
+            out.println();
+            out.println(getElementListCode(criteriaClassDto));
+            out.println();
             out.println("    private final ShardDataBaseManager dataBaseManager;");
             out.println("    private final ShardEntityManager entityManager;");
             out.println();
@@ -397,13 +400,13 @@ public class CriteriaClassBuilder {
                                         "            .tableAlias(\"" + criteriaClassDto.getAlias() + "\")\n" +
                                         "            .shardType(ShardType." +
                                         criteriaClassDto.getFrom().getShardType().name() + ")\n" +
-                                        "            .columns(" + criteriaClassDto.getColumns() + "L);\n\n",
+                                        "            .columns(" + criteriaClassDto.getColumns() + "L);",
                                 String::concat
                         );
     }
 
     private static String getElementsCode(CriteriaJoinDto criteriaJoinDto) {
-        return "    private static final CriteriaElement ELEMENT_" + criteriaJoinDto.getAlias() +
+        return "\n\n    private static final CriteriaElement ELEMENT_" + criteriaJoinDto.getAlias() +
                 " = new CriteriaElement()\n" +
                 "            .tableName(\""+ criteriaJoinDto.getFrom().getTableName() + "\")\n" +
                 "            .tableAlias(\"" + criteriaJoinDto.getAlias() + "\")\n" +
@@ -415,8 +418,8 @@ public class CriteriaClassBuilder {
                 "                            .linkedShard(" + criteriaJoinDto.getLinkedShard() + ")\n" +
                 "                            .joinColumns(Pair.of(\"" + criteriaJoinDto.getJoinColumns().getLeft()
                 + "\", \"" + criteriaJoinDto.getJoinColumns().getRight() + "\"))\n" +
-                "                            .element(ELEMENT_" + criteriaJoinDto.getJoinAlias() + ")\n\n" +
-                "            );\n\n";
+                "                            .element(ELEMENT_" + criteriaJoinDto.getJoinAlias() + ")\n" +
+                "            );";
     }
 
     private static String getImportedTypes(CriteriaClassDto criteriaClassDto, List<String> importedTypes) {
@@ -461,6 +464,18 @@ public class CriteriaClassBuilder {
                                 criteriaClassDto.getFrom().getCluster() + "\"));\n",
                         String::concat
                 ) + "    }";
+    }
+
+    private static String getElementListCode(CriteriaClassDto criteriaClassDto) {
+        return criteriaClassDto.getJoins()
+                .stream()
+                .map(join -> ",\n" + "            ELEMENT_" + join.getAlias()
+                )
+                .reduce(
+                        "    private static final List<CriteriaElement> ELEMENTS = Arrays.asList(\n" +
+                                "            ELEMENT_" + criteriaClassDto.getAlias(),
+                        String::concat
+                ) + "\n    );";
     }
 
     private static String getCode(CriteriaClassDto criteriaClassDto) {

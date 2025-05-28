@@ -178,7 +178,7 @@ public class ShardEntityManagerImpl implements ShardEntityManager {
     }
 
     private boolean checkEnabledInstance(DataBaseInstance instance) {
-        if (dataBaseManager.isEnabled(instance)) {
+        if (!dataBaseManager.isEnabled(instance)) {
             throw new ShardDataBaseException(
                     String.format("The shard \"%s\" is unavailable", instance.getName()));
         }
