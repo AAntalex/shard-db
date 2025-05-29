@@ -32,6 +32,8 @@ import java.util.stream.Stream;
 
 public class CriteriaClassBuilder {
     private static final Map<Element, CriteriaClassDto> CRITERIA_CLASSES = new HashMap<>();
+    private static final Map<String, CriteriaJoinDto> JOINS = new HashMap<>();
+
     private static final String PATTERN_JOIN_ON = "^(\\w+\\.)?\\w+=(\\w+\\.)?\\w+$";
 
     public static CriteriaClassDto getClassDtoByElement(Element classElement) {
@@ -115,14 +117,19 @@ public class CriteriaClassBuilder {
                     .getJoins()
                     .forEach(join -> {
                         join.setColumns(entityColumns.get(join.getAlias()));
-                        parseOn(join, entityClasses);
+                        parseJoin(join, entityClasses);
                     });
             CRITERIA_CLASSES.put(classElement, criteriaClassDto);
         }
         return CRITERIA_CLASSES.get(classElement);
     }
 
-    private static void parseOn(CriteriaJoinDto joinDto, Map<String, EntityClassDto> entityClasses) {
+    private static void parseJoin(CriteriaJoinDto joinDto, Map<String, EntityClassDto> entityClasses) {
+        if (joinDto.getJoinType() == JoinType.RIGHT) {
+            throw new IllegalArgumentException(
+                    "Соединение типа RIGHT JOIN не поддерживается в распределенных запросах.");
+        }
+        JOINS.put(joinDto.getAlias(), joinDto);
         String on = joinDto.getOn().replaceAll("(\\r|\\n|\\t|\\s)", "");
         if (!Pattern.compile(PATTERN_JOIN_ON).matcher(on).matches()) {
             throw new IllegalArgumentException(
@@ -165,7 +172,20 @@ public class CriteriaClassBuilder {
             joinDto.setJoinAlias(entityAttribute.getAlias());
         } else {
             throw new IllegalArgumentException("Условие соединения " + joinDto.getOn() +
-                    " не соответсвует синониму " + joinDto.getAlias());
+                    " не соответствует синониму " + joinDto.getAlias());
+        }
+        if (joinDto.getJoinType() == JoinType.INNER) {
+            CriteriaJoinDto parentJoin = JOINS.get(joinDto.getJoinAlias());
+            while (
+                    Optional
+                            .ofNullable(parentJoin)
+                            .map(CriteriaJoinDto::getJoinType)
+                            .map(joinType -> joinType == JoinType.LEFT)
+                            .orElse(false)
+            ) {
+                parentJoin.setJoinType(JoinType.INNER);
+                parentJoin = JOINS.get(parentJoin.getJoinAlias());
+            }
         }
     }
 
