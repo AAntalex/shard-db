@@ -4,6 +4,7 @@ import com.antalex.db.annotation.CachePolicy;
 import com.antalex.db.annotation.Criteria;
 import com.antalex.db.annotation.CriteriaAttribute;
 import com.antalex.db.annotation.Join;
+import com.antalex.db.dao.domain.ClientCategoryDomain;
 import com.antalex.db.dao.entity.*;
 import com.antalex.db.service.impl.managers.TransactionalCacheManager;
 import lombok.Data;
@@ -40,7 +41,7 @@ import java.util.Date;
                         on = "cl_cat = cl_ct.category"
                 ),
         },
-        where = "${ext_doc.date} >= ? and ({md.dateProv} >= ? and ${cl_cat.code} = 'VIP' or {acc_dt.code} like '40702810%3')",
+        where = "${ext_doc.date} >= ? and (${md.dateProv} >= ? and ${cl_cat.code} = 'VIP' or ${acc_dt.code} like '40702810%3')",
         cachePolicy = @CachePolicy(
                 fetch = FetchType.EAGER,
                 implement = TransactionalCacheManager.class,
@@ -61,8 +62,12 @@ public class ExternalPaymentCriteria {
     private String ctNum;
     @CriteriaAttribute("cl_dt.name")
     private String dtClientName;
+    @CriteriaAttribute("replace(cl_dt.c_name, ' ')")
+    private String normName;
     @CriteriaAttribute("cl_ct.name")
     private String ctClientName;
-    @CriteriaAttribute("ext_doc.receiver")
+    @CriteriaAttribute("receiver")
     private String receiver;
+    @CriteriaAttribute("cl_cat")
+    private ClientCategoryDomain clientCategory;
 }

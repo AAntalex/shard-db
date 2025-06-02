@@ -234,7 +234,7 @@ public class CriteriaClassBuilder {
             );
             if (entityAttribute.getEntityField() != null && entityAttribute.getEntityField().getColumnName() == null) {
                 throw new IllegalArgumentException("Для поля " + entityAttribute.getAlias() + "." +
-                        entityAttribute.getFieldName() + " отсутсвует соответствующая колонка в таблице.");
+                        entityAttribute.getFieldName() + " отсутствует соответствующая колонка в таблице.");
             }
         }
         return entityAttribute;
@@ -267,7 +267,7 @@ public class CriteriaClassBuilder {
         }
         return aliases
                 .stream()
-                .filter(alias -> columnName.contains(alias + "."))
+                .filter(alias -> columnName.toUpperCase().contains(alias + "."))
                 .max(Comparator.comparing(String::length));
     }
 
@@ -315,7 +315,13 @@ public class CriteriaClassBuilder {
                 .ofNullable(entityAttribute.getEntityField())
                 .map(EntityFieldDto::getColumnName)
                 .map(columnName -> entityAttribute.getAlias() + "." + columnName)
-                .orElse(attributeName);
+                .orElseGet(() ->
+                        Optional
+                                .ofNullable(entityAttribute.getEntityClass())
+                                .filter(it -> entityAttribute.getAlias().equals(attributeName.toUpperCase()))
+                                .map(it -> entityAttribute.getAlias() + ".ID")
+                                .orElse(attributeName)
+                );
     }
 
     private static String getColumnName(
