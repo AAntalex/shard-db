@@ -16,5 +16,6 @@ public class CriteriaJoinDto {
     private JoinType joinType;
     private Long columns;
     private Boolean linkedShard;
+    private Integer index;
     private Pair<String, String> joinColumns;
 }

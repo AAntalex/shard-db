@@ -1,6 +1,8 @@
 package com.antalex.db.annotation.processors;
 
 import com.antalex.db.annotation.*;
+import com.antalex.db.model.BooleanExpression;
+import com.antalex.db.model.PredicateGroup;
 import com.antalex.db.model.criteria.CriteriaElement;
 import com.antalex.db.model.criteria.CriteriaElementJoin;
 import com.antalex.db.model.dto.*;
@@ -8,6 +10,7 @@ import com.antalex.db.model.enums.ShardType;
 import com.antalex.db.service.CriteriaRepository;
 import com.antalex.db.service.ShardDataBaseManager;
 import com.antalex.db.service.ShardEntityManager;
+import com.antalex.db.service.impl.parser.SQLConditionParser;
 import lombok.Data;
 import lombok.experimental.Accessors;
 import org.apache.commons.lang3.StringUtils;
@@ -28,6 +31,7 @@ import java.util.*;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.regex.Pattern;
 import java.util.stream.Collectors;
+import java.util.stream.IntStream;
 import java.util.stream.Stream;
 
 public class CriteriaClassBuilder {
@@ -113,6 +117,32 @@ public class CriteriaClassBuilder {
                         entityColumns.put(alias, entityColumns.get(alias) | 1L << (field.getColumnIndex() - 1));
                     });
             criteriaClassDto.setColumns(entityColumns.get(criteriaClassDto.getAlias()));
+            IntStream
+                    .range(0, criteriaClassDto.getJoins().size())
+                    .forEach(index -> criteriaClassDto.getJoins().get(index).setIndex(index + 1));
+            if (!criteria.where().isBlank()) {
+                SQLConditionParser parser = new SQLConditionParser();
+                criteriaClassDto.setPredicateGroups(
+                        parser.getPredicateGroupsWithSimplifying(parser.parse(criteria.where())));
+                if (
+                        criteriaClassDto.getPredicateGroups().size() == 1 &&
+                                Objects.nonNull(criteriaClassDto.getPredicateGroups().get(0).getValue())
+                ) {
+                    throw new IllegalArgumentException("Условие \"" + criteria.where() +
+                            "\" всегда соответствует значению \"" +
+                            criteriaClassDto.getPredicateGroups().get(0).getValue() + "\"");
+                }
+                if (!criteriaClassDto.getPredicateGroups().isEmpty()) {
+                    Map<String, Integer> aliases =
+                            criteriaClassDto.getJoins()
+                                    .stream()
+                                    .collect(Collectors.toMap(CriteriaJoinDto::getAlias, CriteriaJoinDto::getIndex));
+                    criteriaClassDto.getAliases().put(criteriaClassDto.getAlias(), 0);
+
+                }
+            }
+
+
             criteriaClassDto
                     .getJoins()
                     .forEach(join -> {
@@ -174,6 +204,14 @@ public class CriteriaClassBuilder {
             throw new IllegalArgumentException("Условие соединения " + joinDto.getOn() +
                     " не соответствует синониму " + joinDto.getAlias());
         }
+
+
+
+
+
+
+
+
         if (joinDto.getJoinType() == JoinType.INNER) {
             CriteriaJoinDto parentJoin = JOINS.get(joinDto.getJoinAlias());
             while (
@@ -426,6 +464,7 @@ public class CriteriaClassBuilder {
                                         "            .tableAlias(\"" + criteriaClassDto.getAlias() + "\")\n" +
                                         "            .shardType(ShardType." +
                                         criteriaClassDto.getFrom().getShardType().name() + ")\n" +
+                                        "            .index(0)" +
                                         "            .columns(" + criteriaClassDto.getColumns() + "L);",
                                 String::concat
                         );
@@ -437,6 +476,7 @@ public class CriteriaClassBuilder {
                 "            .tableName(\""+ criteriaJoinDto.getFrom().getTableName() + "\")\n" +
                 "            .tableAlias(\"" + criteriaJoinDto.getAlias() + "\")\n" +
                 "            .shardType(ShardType." + criteriaJoinDto.getFrom().getShardType().name() + ")\n" +
+                "            .index(" + criteriaJoinDto.getIndex() + ")" +
                 "            .columns(" + criteriaJoinDto.getColumns() + "L)\n" +
                 "            .join(\n" +
                 "                    new CriteriaElementJoin()\n" +

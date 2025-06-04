@@ -1,6 +1,7 @@
 package com.antalex.db.service.impl.parser;
 
 import com.antalex.db.model.BooleanExpression;
+import com.antalex.db.model.PredicateGroup;
 import com.antalex.db.service.abstractive.AbstractBooleanExpressionParser;
 
 import java.util.*;

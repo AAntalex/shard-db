@@ -34,15 +34,45 @@ public class AbstractBooleanExpressionParser implements BooleanExpressionParser 
 
     @Override
     public BooleanExpression simplifying(BooleanExpression booleanExpression) {
-        return expressionAssembly(
-                absorption(
-                        reduction(
-                                absorption(
-                                        getPredicateGroup(booleanExpression)
-                                )
+        return assemblyExpression(getPredicateGroupsWithSimplifying(booleanExpression));
+    }
+
+    @Override
+    public List<PredicateGroup> getPredicateGroupsWithSimplifying(BooleanExpression booleanExpression) {
+        return absorption(
+                reduction(
+                        absorption(
+                                getPredicateGroup(booleanExpression)
                         )
                 )
         );
+    }
+
+    @Override
+    public BooleanExpression assemblyExpression(List<PredicateGroup> predicateGroups) {
+        return assemblyExpression(
+                predicateGroups
+                        .stream()
+                        .map(this::getPredicateExpressions)
+                        .map(booleanExpressions -> assemblyExpression(booleanExpressions, true))
+                        .toList(),
+                false
+        );
+    }
+
+    @Override
+    public String toString(BooleanExpression booleanExpression) {
+        if (booleanExpression.expressions().isEmpty()) {
+            return (booleanExpression.isNot() ? notToken() : "") + booleanExpression.expression();
+        }
+        return
+                (!booleanExpression.isAnd() ? "(" : "") +
+                        booleanExpression
+                                .expressions()
+                                .stream()
+                                .map(this::toString)
+                                .collect(Collectors.joining(booleanExpression.isAnd() ? andToken() : orToken())) +
+                        (!booleanExpression.isAnd() ? ")" : "");
     }
 
     private List<PredicateGroup> getPredicateGroup(BooleanExpression booleanExpression) {
@@ -205,38 +235,12 @@ public class AbstractBooleanExpressionParser implements BooleanExpressionParser 
         }
     }
 
-    private BooleanExpression expressionAssembly(List<PredicateGroup> predicateGroups) {
-        return expressionAssembly(
-                predicateGroups
-                        .stream()
-                        .map(this::getPredicateExpressions)
-                        .map(booleanExpressions -> expressionAssembly(booleanExpressions, true))
-                        .toList(),
-                false
-        );
-    }
-
-    private BooleanExpression expressionAssembly(List<BooleanExpression> booleanExpressions, boolean isAnd) {
+    private BooleanExpression assemblyExpression(List<BooleanExpression> booleanExpressions, boolean isAnd) {
         return booleanExpressions.size() == 1 ?
                 booleanExpressions.get(0) :
                 new BooleanExpression()
                         .isAnd(isAnd)
                         .expressions(booleanExpressions);
-    }
-
-    @Override
-    public String toString(BooleanExpression booleanExpression) {
-        if (booleanExpression.expressions().isEmpty()) {
-            return (booleanExpression.isNot() ? notToken() : "") + booleanExpression.expression();
-        }
-        return
-                (!booleanExpression.isAnd() ? "(" : "") +
-                        booleanExpression
-                                .expressions()
-                                .stream()
-                                .map(this::toString)
-                                .collect(Collectors.joining(booleanExpression.isAnd() ? andToken() : orToken())) +
-                        (!booleanExpression.isAnd() ? ")" : "");
     }
 
     private void parseCondition(String condition, BooleanExpression expression, boolean recurse) {
