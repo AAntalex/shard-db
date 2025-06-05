@@ -1,16 +1,17 @@
 package com.antalex.db.annotation.processors;
 
 import com.antalex.db.annotation.*;
-import com.antalex.db.model.BooleanExpression;
 import com.antalex.db.model.PredicateGroup;
 import com.antalex.db.model.criteria.CriteriaElement;
 import com.antalex.db.model.criteria.CriteriaElementJoin;
+import com.antalex.db.model.criteria.CriteriaPredicate;
 import com.antalex.db.model.dto.*;
 import com.antalex.db.model.enums.ShardType;
 import com.antalex.db.service.CriteriaRepository;
 import com.antalex.db.service.ShardDataBaseManager;
 import com.antalex.db.service.ShardEntityManager;
 import com.antalex.db.service.impl.parser.SQLConditionParser;
+import com.antalex.db.utils.Utils;
 import lombok.Data;
 import lombok.experimental.Accessors;
 import org.apache.commons.lang3.StringUtils;
@@ -121,9 +122,34 @@ public class CriteriaClassBuilder {
                     .range(0, criteriaClassDto.getJoins().size())
                     .forEach(index -> criteriaClassDto.getJoins().get(index).setIndex(index + 1));
             if (!criteria.where().isBlank()) {
+                Map<String, String> tokenMap = new HashMap<>();
+                criteriaClassDto
+                        .getFrom()
+                        .getFields()
+                        .forEach(it ->
+                                tokenMap.put(
+                                        it.getFieldName(),
+                                        criteriaClassDto.getAlias() + "." + it.getColumnName()
+                                ));
+                entityClasses
+                        .forEach((key, value) ->
+                                value
+                                        .getFields()
+                                        .forEach(it ->
+                                                tokenMap.put(
+                                                        key + "." + it.getFieldName(),
+                                                        key + "." + it.getColumnName()
+                                                )
+                                        )
+                        );
                 SQLConditionParser parser = new SQLConditionParser();
                 criteriaClassDto.setPredicateGroups(
-                        parser.getPredicateGroupsWithSimplifying(parser.parse(criteria.where())));
+                        parser.getPredicateGroupsWithSimplifying(
+                                parser.parse(
+                                        Utils.transformCondition(criteria.where(), tokenMap)
+                                )
+                        )
+                );
                 if (
                         criteriaClassDto.getPredicateGroups().size() == 1 &&
                                 Objects.nonNull(criteriaClassDto.getPredicateGroups().get(0).getValue())
@@ -133,16 +159,34 @@ public class CriteriaClassBuilder {
                             criteriaClassDto.getPredicateGroups().get(0).getValue() + "\"");
                 }
                 if (!criteriaClassDto.getPredicateGroups().isEmpty()) {
-                    Map<String, Integer> aliases =
+                    Map<String, Integer> aliasIndexes =
                             criteriaClassDto.getJoins()
                                     .stream()
                                     .collect(Collectors.toMap(CriteriaJoinDto::getAlias, CriteriaJoinDto::getIndex));
-                    criteriaClassDto.getAliases().put(criteriaClassDto.getAlias(), 0);
+                    aliasIndexes.put(criteriaClassDto.getAlias(), 0);
 
+                    List<Set<String>> aliasSets = parser.getAliases();
+                    criteriaClassDto.setPredicates(
+                            parser.getPredicates()
+                                    .entrySet()
+                                    .stream()
+                                    .sorted(Map.Entry.comparingByValue())
+                                    .map(it ->
+                                            new CriteriaPredicate()
+                                                    .value(it.getKey())
+                                                    .aliasMask(
+                                                            aliasSets.get(it.getValue())
+                                                                    .stream()
+                                                                    .map(alias ->
+                                                                            1L << getAliasIndexWithCheck(
+                                                                                    alias,
+                                                                                    aliasIndexes)
+                                                                    )
+                                                                    .reduce(0L, (a, b) -> a | b))
+                                    ).toList()
+                    );
                 }
             }
-
-
             criteriaClassDto
                     .getJoins()
                     .forEach(join -> {
@@ -152,6 +196,12 @@ public class CriteriaClassBuilder {
             CRITERIA_CLASSES.put(classElement, criteriaClassDto);
         }
         return CRITERIA_CLASSES.get(classElement);
+    }
+
+    private static int getAliasIndexWithCheck(String alias, Map<String, Integer> aliasIndexes) {
+        return Optional
+                .ofNullable(aliasIndexes.get(alias))
+                .orElseThrow(() -> new IllegalArgumentException("Неизвестный псевдоним " + alias));
     }
 
     private static void parseJoin(CriteriaJoinDto joinDto, Map<String, EntityClassDto> entityClasses) {
@@ -202,7 +252,7 @@ public class CriteriaClassBuilder {
             joinDto.setJoinAlias(entityAttribute.getAlias());
         } else {
             throw new IllegalArgumentException("Условие соединения " + joinDto.getOn() +
-                    " не соответствует синониму " + joinDto.getAlias());
+                    " не соответствует псевдониму " + joinDto.getAlias());
         }
 
 
@@ -280,7 +330,7 @@ public class CriteriaClassBuilder {
 
     private static void checkJoinAttribute(EntityAttribute entityAttribute) {
         if (entityAttribute.getEntityClass() == null) {
-            throw new IllegalArgumentException("Не известный синоним " + entityAttribute.getAlias());
+            throw new IllegalArgumentException("Неизвестный псевдоним " + entityAttribute.getAlias());
         }
         if (
                 entityAttribute.getEntityField() == null &&
@@ -337,7 +387,7 @@ public class CriteriaClassBuilder {
                         throw new RuntimeException(
                                 "Класс домена поля " +
                                         element.getSimpleName().toString() +
-                                        " не соответствует классу сущности синонима " + alias);
+                                        " не соответствует классу сущности псевдонима " + alias);
                     }
                     return domainClassDto;
                 })
@@ -426,7 +476,9 @@ public class CriteriaClassBuilder {
                                             ShardType.class.getCanonicalName(),
                                             JoinType.class.getCanonicalName(),
                                             Pair.class.getCanonicalName(),
-                                            Stream.class.getCanonicalName()
+                                            Stream.class.getCanonicalName(),
+                                            PredicateGroup.class.getCanonicalName(),
+                                            CriteriaPredicate.class.getCanonicalName()
                                     )
                             )
                     )
@@ -439,6 +491,10 @@ public class CriteriaClassBuilder {
             out.println(getElementsCode(criteriaClassDto));
             out.println();
             out.println(getElementListCode(criteriaClassDto));
+            out.println();
+            out.println(getPredicateGroupsCode(criteriaClassDto));
+            out.println();
+            out.println(getPredicateListCode(criteriaClassDto));
             out.println();
             out.println("    private final ShardDataBaseManager dataBaseManager;");
             out.println("    private final ShardEntityManager entityManager;");
@@ -509,6 +565,36 @@ public class CriteriaClassBuilder {
                 )
                 .reduce(
                         "    private static final List<String> COLUMNS = Arrays.asList(",
+                        String::concat
+                ) + "\n    );";
+    }
+
+    private static String getPredicateGroupsCode(CriteriaClassDto criteriaClassDto) {
+        return IntStream.range(0, criteriaClassDto.getPredicateGroups().size())
+                .mapToObj(idx ->
+                        (idx == 0 ? StringUtils.EMPTY : ",") +
+                                "\n            new PredicateGroup(" +
+                                criteriaClassDto.getPredicateGroups().get(idx).getPredicateMask() + "L, " +
+                                criteriaClassDto.getPredicateGroups().get(idx).getSignMask() + "L)"
+                )
+                .reduce(
+                        "    private static final List<PredicateGroup> PREDICATE_GROUPS = Arrays.asList(",
+                        String::concat
+                ) + "\n    );";
+    }
+
+    private static String getPredicateListCode(CriteriaClassDto criteriaClassDto) {
+        return IntStream.range(0, criteriaClassDto.getPredicates().size())
+                .mapToObj(idx ->
+                        (idx == 0 ? StringUtils.EMPTY : ",") +
+                                "\n            new CriteriaPredicate()" +
+                                "\n                    .value(\"" +
+                                criteriaClassDto.getPredicates().get(idx).value() + "\")" +
+                                "\n                    .aliasMask(" +
+                                criteriaClassDto.getPredicates().get(idx).aliasMask() + "L)"
+                )
+                .reduce(
+                        "    private static final List<CriteriaPredicate> PREDICATES = Arrays.asList(",
                         String::concat
                 ) + "\n    );";
     }

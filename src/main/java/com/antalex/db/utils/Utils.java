@@ -63,6 +63,6 @@ public class Utils {
                             "\": Для поля \"" + token + "\" не однозначно определено соответствие колонки в таблице!"
             );
         }
-        return alias + newToken;
+        return (newToken.contains(".") ? StringUtils.EMPTY : alias) + newToken;
     }
 }

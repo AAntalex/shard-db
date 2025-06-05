@@ -1,12 +1,11 @@
 package com.antalex.db.model.dto;
 
 import com.antalex.db.model.PredicateGroup;
+import com.antalex.db.model.criteria.CriteriaPredicate;
 import lombok.Builder;
 import lombok.Data;
 
-import java.util.HashMap;
 import java.util.List;
-import java.util.Map;
 
 @Data
 @Builder
@@ -20,4 +19,5 @@ public class CriteriaClassDto {
     private Long columns;
     private List<CriteriaJoinDto> joins;
     private List<PredicateGroup> predicateGroups;
+    private List<CriteriaPredicate> predicates;
 }

@@ -22,7 +22,7 @@ public class AbstractBooleanExpressionParser implements BooleanExpressionParser 
             .build();
     private static final String TRUE = "TRUE";
     private static final String FALSE = "FALSE";
-    protected final Map<String, Integer> predicates = new HashMap<>();
+    protected Map<String, Integer> predicates = new HashMap<>();
 
     @Override
     public BooleanExpression parse(String expression) {

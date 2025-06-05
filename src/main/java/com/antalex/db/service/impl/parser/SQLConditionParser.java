@@ -1,7 +1,6 @@
 package com.antalex.db.service.impl.parser;
 
 import com.antalex.db.model.BooleanExpression;
-import com.antalex.db.model.PredicateGroup;
 import com.antalex.db.service.abstractive.AbstractBooleanExpressionParser;
 
 import java.util.*;
@@ -82,5 +81,17 @@ public class SQLConditionParser extends AbstractBooleanExpressionParser {
         }
         currentAliases.clear();
         return false;
+    }
+
+    public Map<String, Integer> getPredicates() {
+        return predicates;
+    }
+
+    public void setPredicates(Map<String, Integer> predicates) {
+        this.predicates = predicates;
+    }
+
+    public List<Set<String>> getAliases() {
+        return aliases;
     }
 }
