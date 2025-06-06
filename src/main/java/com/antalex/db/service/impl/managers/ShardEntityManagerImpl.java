@@ -672,7 +672,7 @@ public class ShardEntityManagerImpl implements ShardEntityManager {
                 repository.persist(entity, delete, onlyChanged);
                 entity.getStorageContext().persist(delete);
                 entity.getAttributeStorage().forEach(it -> persist(it, onlyChanged, force, delete));
-//                entity.getAttributeHistory().forEach(it -> persist(it, onlyChanged, force, delete));
+                entity.getAttributeHistory().forEach(it -> persist(it, onlyChanged, force, delete));
                 if (!delete) {
                     addEntity(
                             (SharedEntityTransaction) transaction,
