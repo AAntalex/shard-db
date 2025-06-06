@@ -116,16 +116,6 @@ public abstract class BaseShardEntity implements ShardInstance {
     }
 
     @Override
-    public boolean hasDomain() {
-        return hasDomain;
-    }
-
-    @Override
-    public void setHasDomain(boolean hasDomain) {
-        this.hasDomain = hasDomain;
-    }
-
-    @Override
     public Cluster getCluster() {
         return cluster;
     }

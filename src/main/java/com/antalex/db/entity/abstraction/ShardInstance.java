@@ -25,8 +25,6 @@ public interface ShardInstance {
     void setAttributeStorage(List<AttributeStorage> attributeStorage);
     List<AttributeHistoryEntity> getAttributeHistory();
     void setAttributeHistory(List<AttributeHistoryEntity> attributeHistory);
-    boolean hasDomain();
-    void setHasDomain(boolean hasDomain);
     Cluster getCluster();
     void setCluster(Cluster cluster);
 }

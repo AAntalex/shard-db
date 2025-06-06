@@ -34,6 +34,7 @@ import javax.persistence.FetchType;
 import javax.tools.JavaFileObject;
 import java.io.IOException;
 import java.io.PrintWriter;
+import java.time.OffsetDateTime;
 import java.util.*;
 import java.util.stream.Collectors;
 
@@ -217,6 +218,7 @@ public class DomainClassBuilder {
                                             AttributeStorage.class.getCanonicalName(),
                                             DataWrapper.class.getCanonicalName(),
                                             AttributeHistory.class.getCanonicalName(),
+                                            OffsetDateTime.class.getCanonicalName(),
                                             ShardDataBaseException.class.getCanonicalName()
                                     )
                             )
@@ -568,8 +570,8 @@ public class DomainClassBuilder {
                         "        entity.getAttributeStorage()\n" +
                         "                .forEach(attributeStorage -> storage.put(attributeStorage.getStorageName()," +
                         " attributeStorage));\n" +
+                        "        entity.getAttributeStorage().clear();" +
                         "        domain.setLazy(true);\n" +
-                        "        entity.setHasDomain(true);\n" +
                         "        return domain;\n" +
                         "    }";
     }
@@ -614,10 +616,17 @@ public class DomainClassBuilder {
                                 " entity = domain.getEntity();",
                         String::concat
                 ) +
-                "\n        entity.setAttributeStorage(mapStorage(domain));\n" +
-                "        entity.setAttributeHistory(mapAttributeHistory(domain));\n" +
+                "\n        List<AttributeStorage> attributeStorageList = mapStorage(domain);\n" +
+                "        if (!attributeStorageList.isEmpty()) {\n" +
+                "            if (entity.getAttributeStorage().isEmpty()) {\n" +
+                "                entity.setAttributeStorage(attributeStorageList);\n" +
+                "            } else {\n" +
+                "                entity.getAttributeStorage().addAll(attributeStorageList);\n" +
+                "                entity.setAttributeStorage(entity.getAttributeStorage().stream().distinct().toList());\n" +
+                "            }\n" +
+                "        }\n" +
+                "        entity.getAttributeHistory().addAll(mapAttributeHistory(domain));\n" +
                 "        domain.dropChanges();\n" +
-                "        entity.setHasDomain(true);\n" +
                 "        return entity;\n" +
                 "    }";
     }

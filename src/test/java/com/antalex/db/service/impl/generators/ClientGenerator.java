@@ -2,11 +2,14 @@ package com.antalex.db.service.impl.generators;
 
 import com.antalex.db.dao.domain.ClientCategoryDomain;
 import com.antalex.db.dao.domain.ClientDomain;
+import com.antalex.db.dao.domain.Contract;
 import com.antalex.db.service.DataGeneratorService;
 import com.antalex.db.service.DomainEntityManager;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Component;
 
+import java.time.LocalDate;
+import java.time.LocalDateTime;
 import java.util.List;
 import java.util.stream.IntStream;
 
@@ -27,6 +30,13 @@ public class ClientGenerator implements DataGeneratorService<ClientDomain> {
                                 domainManager.newDomain(ClientDomain.class)
                                         .name("CLIENT" + idx)
                                         .category(idx % 100 == 1 ? categories.get(0) : null)
+                                        .createDate(LocalDateTime.now())
+                                        .fullName("FULL NAME" + idx)
+                                        .contract(
+                                                new Contract()
+                                                        .description("CONTRACT" + idx)
+                                                        .date(LocalDate.now())
+                                        )
                         )
                         .toList()
         );
