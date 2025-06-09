@@ -38,7 +38,8 @@ import java.util.Date;
                 @Join(
                         from = ClientCategoryEntity.class,
                         alias = "cl_cat",
-                        on = "cl_cat = cl_ct.category"
+                        on = "cl_cat = cl_ct.category",
+                        joinType = JoinType.LEFT
                 ),
         },
         where = "${ext_doc.date} >= ? and not ${receiver} is NULL and (${md.dateProv} >= ? and " +
