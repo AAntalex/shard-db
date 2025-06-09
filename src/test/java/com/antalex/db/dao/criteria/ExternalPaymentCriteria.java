@@ -41,12 +41,14 @@ import java.util.Date;
                         on = "cl_cat = cl_ct.category"
                 ),
         },
-        where = "${ext_doc.date} >= ? and not ${receiver} is NULL and (${md.dateProv} >= ? and ${cl_cat.code} = 'VIP' or ${acc_dt.code} like '40702810%3')",
+        where = "${ext_doc.date} >= ? and not ${receiver} is NULL and (${md.dateProv} >= ? and " +
+                "${cl_cat.code} = 'VIP' or ${acc_dt.code} like '40702810%3')",
         cachePolicy = @CachePolicy(
                 fetch = FetchType.EAGER,
                 implement = TransactionalCacheManager.class,
                 key = {"md.num", "md.date"},
-                retentionTime = 60
+                retentionTime = 60,
+                refreshTime = 10
         )
 )
 public class ExternalPaymentCriteria {

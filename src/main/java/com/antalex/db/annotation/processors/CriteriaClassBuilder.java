@@ -520,7 +520,7 @@ public class CriteriaClassBuilder {
                                         "            .tableAlias(\"" + criteriaClassDto.getAlias() + "\")\n" +
                                         "            .shardType(ShardType." +
                                         criteriaClassDto.getFrom().getShardType().name() + ")\n" +
-                                        "            .index(0)" +
+                                        "            .index(0)\n" +
                                         "            .columns(" + criteriaClassDto.getColumns() + "L);",
                                 String::concat
                         );
@@ -532,7 +532,7 @@ public class CriteriaClassBuilder {
                 "            .tableName(\""+ criteriaJoinDto.getFrom().getTableName() + "\")\n" +
                 "            .tableAlias(\"" + criteriaJoinDto.getAlias() + "\")\n" +
                 "            .shardType(ShardType." + criteriaJoinDto.getFrom().getShardType().name() + ")\n" +
-                "            .index(" + criteriaJoinDto.getIndex() + ")" +
+                "            .index(" + criteriaJoinDto.getIndex() + ")\n" +
                 "            .columns(" + criteriaJoinDto.getColumns() + "L)\n" +
                 "            .join(\n" +
                 "                    new CriteriaElementJoin()\n" +

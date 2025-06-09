@@ -17,4 +17,5 @@ public @interface CachePolicy {
     FetchType fetch() default FetchType.LAZY;
     String[] key() default {};
     int retentionTime() default 0;
+    int refreshTime() default 0;
 }
