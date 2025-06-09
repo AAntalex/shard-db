@@ -491,9 +491,16 @@ public class DomainClassBuilder {
                                                                     this.getAttributeHistory().add(
                                                                             new AttributeHistory()
                                                                                     .time(OffsetDateTime.now())
-                                                                                    .value(value)
-                                                                                    .attributeName("\
-                                                        """ + field.getFieldName() + "\"));\n" :
+                                                                                    .value(\
+                                                        """
+                                                        + "value" +
+                                                        (ProcessorUtils.isAnnotationPresentByType(
+                                                                field.getElement(), DomainEntity.class) ?
+                                                                ".getId()" :
+                                                                StringUtils.EMPTY
+                                                        ) +
+                                                        ")\n                            .attributeName(\""
+                                                        + field.getFieldName() + "\"));\n" :
                                                 StringUtils.EMPTY
                                         ) +
                                 "        }\n" +
@@ -835,17 +842,24 @@ public class DomainClassBuilder {
                         String::concat) +
                 classDto.getFields()
                         .stream()
-                        .filter(it -> it.getHistorical() && !it.getHistoryCluster().isEmpty())
+                        .filter(it -> it.getHistorical())
                         .map(field ->
-                                "\n        historyCluster.put(\"" +
-                                        field.getFieldName() +
-                                        "\", dataBaseManager.getCluster(\"" +
-                                        field.getHistoryCluster()
-                                        + "\"));\n" +
-                                        "        historyObjectTypes.put(\"" +
+                                (field.getHistoryCluster().isEmpty() ?
+                                        StringUtils.EMPTY :
+                                        "\n        historyCluster.put(\"" +
+                                                field.getFieldName() +
+                                                "\", dataBaseManager.getCluster(\"" +
+                                                field.getHistoryCluster()
+                                                + "\"));\n"
+                                ) +
+                                        "\n        historyObjectTypes.put(\"" +
                                         field.getFieldName() +
                                         "\", " +
-                                        ProcessorUtils.getTypeField(field.getElement()) +
+                                        (ProcessorUtils.isAnnotationPresentByType(
+                                                field.getElement(), DomainEntity.class) ?
+                                                "Long" :
+                                                ProcessorUtils.getTypeField(field.getElement())
+                                        ) +
                                         ".class);")
                         .reduce(StringUtils.EMPTY, String::concat) +
                 "\n        this.objectMapper = objectMapper;" +

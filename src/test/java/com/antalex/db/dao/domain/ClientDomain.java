@@ -26,6 +26,7 @@ public class ClientDomain extends BaseDomain {
     @Historical
     private String name;
     @Attribute
+    @Historical
     private ClientCategoryDomain category;
     @Attribute(mappingType = MappingType.STORAGE)
     @Historical
