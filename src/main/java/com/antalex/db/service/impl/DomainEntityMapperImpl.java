@@ -54,4 +54,9 @@ public class DomainEntityMapperImpl<T extends Domain, M extends ShardInstance> i
     public List<AttributeHistory> mapAttributeHistory(List<AttributeHistoryEntity> attributeHistoryEntities) {
         return List.of();
     }
+
+    @Override
+    public List<AttributeHistory> getAttributeHistoryFromControlledObjects(T domain) {
+        return List.of();
+    }
 }

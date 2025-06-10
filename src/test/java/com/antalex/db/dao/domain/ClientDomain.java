@@ -5,6 +5,7 @@ import com.antalex.db.annotation.DomainEntity;
 import com.antalex.db.annotation.Historical;
 import com.antalex.db.annotation.Storage;
 import com.antalex.db.dao.entity.ClientEntity;
+import com.antalex.db.dao.model.Contract;
 import com.antalex.db.domain.abstraction.BaseDomain;
 import com.antalex.db.model.enums.MappingType;
 import lombok.Data;

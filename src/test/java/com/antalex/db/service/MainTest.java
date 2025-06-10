@@ -2,7 +2,11 @@ package com.antalex.db.service;
 
 import com.antalex.db.BaseIntegrationTest;
 import com.antalex.db.dao.domain.ClientCategoryDomain;
+import com.antalex.db.dao.domain.ClientDomain;
 import com.antalex.db.dao.domain.PaymentDomain;
+import com.antalex.db.dao.model.Contract;
+import com.antalex.db.model.dto.AttributeHistory;
+import com.antalex.db.service.impl.generators.ClientGenerator;
 import com.antalex.db.service.impl.generators.PaymentGenerator;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
@@ -19,18 +23,61 @@ class MainTest extends BaseIntegrationTest {
     private DomainEntityManager domainManager;
 
     @Autowired
-    private PaymentGenerator generator;
+    private PaymentGenerator paymentGenerator;
+
+    @Autowired
+    private ClientGenerator clientGenerator;
 
     @Test
     @DisplayName("Проверка создания данных")
-    void generateDataTest() {
-        List<PaymentDomain> payments = generator.generate(10000);
+    void createDataTest() {
+        List<PaymentDomain> payments = paymentGenerator.generate(10000);
         assertThat(payments)
                 .isNotNull()
                 .hasSize(10000);
 
+        payments = domainManager.findAll(PaymentDomain.class);
+        assertThat(payments.size()).isEqualTo(10000);
+    }
+
+    @Test
+    @DisplayName("Проверка чтения данных")
+    void findDataTest() {
+        clientGenerator.generate(1);
         ClientCategoryDomain category =
                 domainManager.find(ClientCategoryDomain.class, "${categoryCode}=?", "VIP");
         assertThat(category.description()).isEqualTo("VIP-клиент");
     }
+
+    @Test
+    @DisplayName("Проверка работы с историей изменений реквизитов")
+    void historyAttributeTest() {
+        clientGenerator.generate(1);
+        ClientDomain client =
+                domainManager.find(ClientDomain.class, "${name}=?", "CLIENT1");
+        client
+                .category(client.category())
+                .contract()
+                .description("newContract")
+                .additions()
+                .add("Addition4");
+
+        List<AttributeHistory> history = domainManager.getAttributeHistory(client, "category");
+        assertThat(history.size()).isEqualTo(2);
+        assertThat(history.get(1).value() instanceof Long).isTrue();
+
+        history = domainManager.getAttributeHistory(client, "contract");
+        assertThat(history.size()).isEqualTo(2);
+        assertThat(history.get(0).value() instanceof Contract).isTrue();
+        assertThat(((Contract) history.get(0).value()).additions().size()).isEqualTo(3);
+        assertThat(((Contract) history.get(1).value()).additions().size()).isEqualTo(4);
+
+        domainManager.update(client);
+        history = domainManager.getAttributeHistory(client, "contract");
+        assertThat(history.size()).isEqualTo(2);
+        assertThat(history.get(0).value() instanceof Contract).isTrue();
+        assertThat(((Contract) history.get(0).value()).additions().size()).isEqualTo(3);
+        assertThat(((Contract) history.get(1).value()).additions().size()).isEqualTo(4);
+    }
+
 }

@@ -219,6 +219,7 @@ public class DomainClassBuilder {
                                             DataWrapper.class.getCanonicalName(),
                                             AttributeHistory.class.getCanonicalName(),
                                             OffsetDateTime.class.getCanonicalName(),
+                                            Domain.class.getCanonicalName(),
                                             ShardDataBaseException.class.getCanonicalName()
                                     )
                             )
@@ -287,6 +288,7 @@ public class DomainClassBuilder {
                                             ShardDataBaseException.class.getCanonicalName(),
                                             AttributeHistory.class.getCanonicalName(),
                                             Collectors.class.getCanonicalName(),
+                                            OffsetDateTime.class.getCanonicalName(),
                                             SharedEntityTransaction.class.getCanonicalName()
                                     )
                             )
@@ -335,6 +337,8 @@ public class DomainClassBuilder {
             out.println(getMapToEntityCode(domainClassDto));
             out.println();
             out.println(getMapToDomainCode(domainClassDto));
+            out.println();
+            out.println(getAttributeHistoryFromControlledObjectsCode(domainClassDto));
             out.println();
             out.println(getMapAttributeHistoryCode());
             out.println();
@@ -493,11 +497,12 @@ public class DomainClassBuilder {
                                                                                     .time(OffsetDateTime.now())
                                                                                     .value(\
                                                         """
-                                                        + "value" +
+                                                        +
                                                         (ProcessorUtils.isAnnotationPresentByType(
                                                                 field.getElement(), DomainEntity.class) ?
-                                                                ".getId()" :
-                                                                StringUtils.EMPTY
+                                                                "Optional.ofNullable(value).map(Domain::getId)" +
+                                                                        ".orElse(null)" :
+                                                                "value"
                                                         ) +
                                                         ")\n                            .attributeName(\""
                                                         + field.getFieldName() + "\"));\n" :
@@ -623,7 +628,8 @@ public class DomainClassBuilder {
                                 " entity = domain.getEntity();",
                         String::concat
                 ) +
-                "\n        List<AttributeStorage> attributeStorageList = mapStorage(domain);\n" +
+                "\n        domain.getAttributeHistory().addAll(getAttributeHistoryFromControlledObjects(domain));\n" +
+                "        List<AttributeStorage> attributeStorageList = mapStorage(domain);\n" +
                 "        if (!attributeStorageList.isEmpty()) {\n" +
                 "            if (entity.getAttributeStorage().isEmpty()) {\n" +
                 "                entity.setAttributeStorage(attributeStorageList);\n" +
@@ -678,6 +684,37 @@ public class DomainClassBuilder {
                     }
                 """;
 
+    }
+
+    private static String getAttributeHistoryFromControlledObjectsCode(DomainClassDto classDto) {
+        return classDto.getFields()
+                .stream()
+                .filter(field ->
+                        Objects.nonNull(field.getStorage()) &&
+                                field.getHistorical() &&
+                                Objects.nonNull(field.getGetter()) &
+                                !ProcessorUtils.hasFinalType(field.getElement())
+                )
+                .map(field ->
+                        "         if (domain.isChanged(\"" + field.getStorage().getName() + "\", \"" +
+                                field.getFieldName() + "\")) {\n" +
+                                "             attributeHistoryList.add(\n" +
+                                "                     new AttributeHistory()\n" +
+                                "                             .time(OffsetDateTime.now())\n" +
+                                "                             .value(domain." + field.getGetter() + "())\n" +
+                                "                             .attributeName(\"" + field.getFieldName() + "\")\n" +
+                                "             );\n" +
+                                "         }\n"
+                )
+                .reduce(
+                        "     @Override\n" +
+                                "     public List<AttributeHistory> getAttributeHistoryFromControlledObjects(" +
+                                classDto.getTargetClassName() + " domain) {\n" +
+                                "         List<AttributeHistory> attributeHistoryList = new ArrayList<>();\n",
+                        String::concat
+                ) +
+                "         return attributeHistoryList;\n" +
+                "     }";
     }
 
     private static String getMapStorageCode(DomainClassDto classDto, String storageName) {
@@ -842,7 +879,7 @@ public class DomainClassBuilder {
                         String::concat) +
                 classDto.getFields()
                         .stream()
-                        .filter(it -> it.getHistorical())
+                        .filter(DomainFieldDto::getHistorical)
                         .map(field ->
                                 (field.getHistoryCluster().isEmpty() ?
                                         StringUtils.EMPTY :

@@ -316,7 +316,22 @@ public class DomainEntityManagerImpl implements DomainEntityManager {
                         AttributeHistoryEntity.class,
                         "x0.C_ENTITY_ID=? and x0.C_ATTRIBUTE_NAME=?",
                         domain.getId(), attributeName));
-        attributeHistoryList.addAll(domain.getAttributeHistory());
+        attributeHistoryList.addAll(
+                domain.getAttributeHistory()
+                        .stream()
+                        .filter(it -> it.attributeName().equals(attributeName))
+                        .toList()
+        );
+        attributeHistoryList.addAll(
+                (
+                        (List<AttributeHistory>) mapper
+                                .domainEntityMapper
+                                .getAttributeHistoryFromControlledObjects(domain)
+                )
+                        .stream()
+                        .filter(it -> it.attributeName().equals(attributeName))
+                        .toList()
+        );
         return attributeHistoryList;
     }
 

@@ -180,6 +180,6 @@ public class ExternalPaymentCriteria$RepositoryImpl3 implements CriteriaReposito
     }
 
     public List<CriteriaRoute> getCriteriaRoutes(PredicateGroup predicateGroup) {
-        
+        return null;
     }
 }

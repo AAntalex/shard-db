@@ -117,6 +117,13 @@ public abstract class BaseDomain implements Domain {
                         .orElse(false);
     }
 
+    public Boolean isChanged(String storageName, String attribute) {
+        return Optional.ofNullable(controlledObjects.get(storageName))
+                        .map(it -> it.get(attribute))
+                        .map(o -> o.getHashCode() != o.getObject().hashCode())
+                        .orElse(false);
+    }
+
     public Boolean isChanged() {
         return Objects.nonNull(this.changes);
     }
