@@ -1,10 +1,7 @@
 package com.antalex.db.dao.criteria;
 
 import com.antalex.db.model.PredicateGroup;
-import com.antalex.db.model.criteria.CriteriaElement;
-import com.antalex.db.model.criteria.CriteriaElementJoin;
-import com.antalex.db.model.criteria.CriteriaPredicate;
-import com.antalex.db.model.criteria.CriteriaRoute;
+import com.antalex.db.model.criteria.*;
 import com.antalex.db.model.enums.ShardType;
 import com.antalex.db.service.CriteriaRepository;
 import com.antalex.db.service.ShardDataBaseManager;
@@ -14,8 +11,10 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Component;
 
 import javax.persistence.criteria.JoinType;
+import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
+import java.util.Optional;
 import java.util.stream.Stream;
 
 @Component
@@ -180,6 +179,21 @@ public class ExternalPaymentCriteria$RepositoryImpl3 implements CriteriaReposito
     }
 
     public List<CriteriaRoute> getCriteriaRoutes(PredicateGroup predicateGroup) {
-        return null;
+        List<CriteriaRoute> criteriaRoutes = new ArrayList<>();
+
+
+        return criteriaRoutes;
+    }
+
+    private CriteriaRoute getCriteriaRoute(CriteriaElement element) {
+        CriteriaRoute route = new CriteriaRoute();
+
+        return route;
+    }
+
+    private CriteriaPartRelation getRelation(CriteriaElement element, CriteriaRoute route) {
+        Optional
+                .ofNullable(route.relations().get(element.index()))
+                .orElseGet(() -> Optional.ofNullable())
     }
 }
