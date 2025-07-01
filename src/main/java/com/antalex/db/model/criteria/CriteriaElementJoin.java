@@ -10,7 +10,6 @@ import javax.persistence.criteria.JoinType;
 @Accessors(chain = true, fluent = true)
 public class CriteriaElementJoin {
     private CriteriaElement element;
-    private String on;
     private JoinType joinType;
     private Pair<String, String> joinColumns;
     private boolean linkedShard;

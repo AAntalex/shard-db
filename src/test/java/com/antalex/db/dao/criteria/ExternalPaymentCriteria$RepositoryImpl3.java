@@ -7,6 +7,8 @@ import com.antalex.db.service.CriteriaRepository;
 import com.antalex.db.service.ShardDataBaseManager;
 import com.antalex.db.service.ShardEntityManager;
 import org.apache.commons.lang3.tuple.Pair;
+import org.jetbrains.annotations.NotNull;
+import org.jetbrains.annotations.Nullable;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Component;
 
@@ -191,9 +193,85 @@ public class ExternalPaymentCriteria$RepositoryImpl3 implements CriteriaReposito
         return route;
     }
 
-    private CriteriaPartRelation getRelation(CriteriaElement element, CriteriaRoute route) {
-        Optional
+    private static @NotNull CriteriaPartRelation getRelation(CriteriaElement element, CriteriaRoute route) {
+        return Optional
                 .ofNullable(route.relations().get(element.index()))
-                .orElseGet(() -> Optional.ofNullable())
+                .orElseGet(() -> {
+                    CriteriaPartRelation relation =
+                            new CriteriaPartRelation()
+                                    .part(getCriteriaPart(element, route))
+                                    .joinColumn(
+                                            Optional
+                                                    .ofNullable(element.join())
+                                                    .map(CriteriaElementJoin::joinColumns)
+                                                    .map(Pair::getLeft)
+                                                    .orElse(null)
+                                    );
+                    route.relations().put(element.index(), relation);
+                    return relation;
+                });
     }
+
+    private static @NotNull CriteriaPart getCriteriaPart(CriteriaElement element, CriteriaRoute route) {
+        return Optional
+                .ofNullable(element.join())
+                .filter(join -> join.linkedShard() ||
+                        join.element().cluster() == element.cluster() &&
+                                element.cluster().getShards().size() == 1
+                )
+                .map(join -> {
+                    CriteriaPartRelation parentRelation = getRelation(join.element(), route);
+                    if (parentRelation.joinColumn() == null) {
+                        parentRelation.joinColumn(join.joinColumns().getRight());
+                    }
+
+
+                    return getCriteriaPart(element, join, parentRelation);
+                })
+                .orElseGet(() ->
+                        new CriteriaPart()
+                                .aliasMask(1L << element.index())
+                                .columns(element.columns())
+                                .from(getTableName(element))
+
+
+
+                );
+    }
+
+    private static @Nullable CriteriaPart getCriteriaPart(
+            CriteriaElement element,
+            CriteriaElementJoin join,
+            CriteriaPartRelation parentRelation)
+    {
+        CriteriaPart criteriaPart = null;
+        if (
+                join.element().shardType() == ShardType.SHARDABLE ||
+                        element.shardType() == ShardType.REPLICABLE ||
+                        parentRelation.joinColumn().equals(join.joinColumns().getRight())
+        ) {
+            criteriaPart = parentRelation.part();
+            criteriaPart
+                    .aliasMask(criteriaPart.aliasMask() | 1L << element.index())
+                    .columns(criteriaPart.columns() | element.columns())
+                    .from(criteriaPart.from() + getJoinText(join.joinType()) + getTableName(element) + getOn(join));
+        }
+        return criteriaPart;
+    }
+
+    private static String getTableName(CriteriaElement element) {
+        return element.tableName() + " " + element.tableAlias();
+    }
+
+    private static String getOn(CriteriaElementJoin join) {
+        return " ON " + join.joinColumns().getLeft() + "=" + join.joinColumns().getRight();
+    }
+    private static String getJoinText(JoinType joinType) {
+        return switch (joinType) {
+            case INNER -> " JOIN ";
+            case LEFT -> " LEFT JOIN ";
+            case RIGHT -> " RIGHT JOIN ";
+        };
+    }
+
 }
