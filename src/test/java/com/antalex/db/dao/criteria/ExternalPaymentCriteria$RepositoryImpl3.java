@@ -215,47 +215,53 @@ public class ExternalPaymentCriteria$RepositoryImpl3 implements CriteriaReposito
     private static @NotNull CriteriaPart getCriteriaPart(CriteriaElement element, CriteriaRoute route) {
         return Optional
                 .ofNullable(element.join())
-                .filter(join -> join.linkedShard() ||
-                        join.element().cluster() == element.cluster() &&
-                                element.cluster().getShards().size() == 1
-                )
                 .map(join -> {
                     CriteriaPartRelation parentRelation = getRelation(join.element(), route);
-                    if (parentRelation.joinColumn() == null) {
-                        parentRelation.joinColumn(join.joinColumns().getRight());
+                    CriteriaPart criteriaPart = parentRelation.part();
+                    if (join.linkedShard() &&
+                            (
+                                    join.element().shardType() == ShardType.SHARDABLE ||
+                                            element.shardType() == ShardType.REPLICABLE ||
+                                            Optional
+                                                    .ofNullable(parentRelation.joinColumn())
+                                                    .map(column -> column.equals(join.joinColumns().getRight()))
+                                                    .orElse(true)
+                            ) ||
+                            join.element().cluster() == element.cluster() && element.cluster().getShards().size() == 1
+                    ) {
+                        if (parentRelation.joinColumn() == null) {
+                            parentRelation.joinColumn(join.joinColumns().getRight());
+                        }
+                        return criteriaPart
+                                .aliasMask(criteriaPart.aliasMask() | 1L << element.index())
+                                .columns(criteriaPart.columns() | element.columns())
+                                .from(criteriaPart.from() + getJoinText(join.joinType()) + getTableName(element) + getOn(join));
                     }
+                    return new CriteriaPart()
+                            .aliasMask(1L << element.index())
+                            .columns(element.columns())
+                            .from(getTableName(element))
+                            .join(
+                                    new CriteriaPartJoin()
+                                            .part(criteriaPart)
+                                            .joinType(join.joinType())
+                                            .joinColumns(join.joinColumns())
+                            );
 
 
-                    return getCriteriaPart(element, join, parentRelation);
+
+
+
                 })
-                .orElseGet(() ->
-                        new CriteriaPart()
-                                .aliasMask(1L << element.index())
-                                .columns(element.columns())
-                                .from(getTableName(element))
-
-
-
-                );
+                .orElseGet(() -> createCriteriaPart(element, route));
     }
 
-    private static @Nullable CriteriaPart getCriteriaPart(
-            CriteriaElement element,
-            CriteriaElementJoin join,
-            CriteriaPartRelation parentRelation)
-    {
-        CriteriaPart criteriaPart = null;
-        if (
-                join.element().shardType() == ShardType.SHARDABLE ||
-                        element.shardType() == ShardType.REPLICABLE ||
-                        parentRelation.joinColumn().equals(join.joinColumns().getRight())
-        ) {
-            criteriaPart = parentRelation.part();
-            criteriaPart
-                    .aliasMask(criteriaPart.aliasMask() | 1L << element.index())
-                    .columns(criteriaPart.columns() | element.columns())
-                    .from(criteriaPart.from() + getJoinText(join.joinType()) + getTableName(element) + getOn(join));
-        }
+    private static CriteriaPart createCriteriaPart(CriteriaElement element, CriteriaRoute route) {
+        CriteriaPart criteriaPart = new CriteriaPart()
+                .aliasMask(1L << element.index())
+                .columns(element.columns())
+                .from(getTableName(element));
+        route.parts().add(criteriaPart);
         return criteriaPart;
     }
 

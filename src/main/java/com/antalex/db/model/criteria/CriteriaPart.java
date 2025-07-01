@@ -11,4 +11,5 @@ public class CriteriaPart {
     private Long columns;
     private Cluster cluster;
     private Long aliasMask;
+    private CriteriaPartJoin join;
 }
