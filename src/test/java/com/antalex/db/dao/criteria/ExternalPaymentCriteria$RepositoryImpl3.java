@@ -190,6 +190,8 @@ public class ExternalPaymentCriteria$RepositoryImpl3 implements CriteriaReposito
     private CriteriaRoute getCriteriaRoute(CriteriaElement element) {
         CriteriaRoute route = new CriteriaRoute();
 
+        getRelation(element, route);
+
         return route;
     }
 
@@ -237,32 +239,29 @@ public class ExternalPaymentCriteria$RepositoryImpl3 implements CriteriaReposito
                                 .columns(criteriaPart.columns() | element.columns())
                                 .from(criteriaPart.from() + getJoinText(join.joinType()) + getTableName(element) + getOn(join));
                     }
-                    return new CriteriaPart()
-                            .aliasMask(1L << element.index())
-                            .columns(element.columns())
-                            .from(getTableName(element))
-                            .join(
+                    CriteriaPart childPart = createCriteriaPart(element);
+                    criteriaPart
+                            .joins()
+                            .add(
                                     new CriteriaPartJoin()
-                                            .part(criteriaPart)
+                                            .part(childPart)
                                             .joinType(join.joinType())
                                             .joinColumns(join.joinColumns())
                             );
-
-
-
-
-
+                    return childPart;
                 })
-                .orElseGet(() -> createCriteriaPart(element, route));
+                .orElseGet(() -> {
+                    CriteriaPart criteriaPart = createCriteriaPart(element);
+                    route.mainPart(criteriaPart);
+                    return criteriaPart;
+                });
     }
 
-    private static CriteriaPart createCriteriaPart(CriteriaElement element, CriteriaRoute route) {
-        CriteriaPart criteriaPart = new CriteriaPart()
+    private static CriteriaPart createCriteriaPart(CriteriaElement element) {
+        return new CriteriaPart()
                 .aliasMask(1L << element.index())
                 .columns(element.columns())
                 .from(getTableName(element));
-        route.parts().add(criteriaPart);
-        return criteriaPart;
     }
 
     private static String getTableName(CriteriaElement element) {
