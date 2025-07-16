@@ -8,15 +8,11 @@ import com.antalex.db.service.ShardDataBaseManager;
 import com.antalex.db.service.ShardEntityManager;
 import org.apache.commons.lang3.tuple.Pair;
 import org.jetbrains.annotations.NotNull;
-import org.jetbrains.annotations.Nullable;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Component;
 
 import javax.persistence.criteria.JoinType;
-import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.List;
-import java.util.Optional;
+import java.util.*;
 import java.util.stream.Stream;
 
 @Component
@@ -187,21 +183,29 @@ public class ExternalPaymentCriteria$RepositoryImpl3 implements CriteriaReposito
         return criteriaRoutes;
     }
 
-    private CriteriaRoute getCriteriaRoute(CriteriaElement element) {
-        CriteriaRoute route = new CriteriaRoute();
-
-        getRelation(element, route);
-
-        return route;
+    private static void fillCriteriaParts(Map<Long, CriteriaPart> criteriaParts, CriteriaElement element) {
+        Map<Integer, CriteriaPartRelation> relations = new HashMap<>();
+        if (element != null) {
+            getRelation(element, relations);
+        }
+        ELEMENTS.forEach(el -> getRelation(el, relations));
+        relations
+                .values()
+                .stream()
+                .map(CriteriaPartRelation::part)
+                .forEach(part -> criteriaParts.putIfAbsent(part.aliasMask(), part));
     }
 
-    private static @NotNull CriteriaPartRelation getRelation(CriteriaElement element, CriteriaRoute route) {
+    private static @NotNull CriteriaPartRelation getRelation(
+            CriteriaElement element,
+            Map<Integer, CriteriaPartRelation> relations)
+    {
         return Optional
-                .ofNullable(route.relations().get(element.index()))
+                .ofNullable(relations.get(element.index()))
                 .orElseGet(() -> {
                     CriteriaPartRelation relation =
                             new CriteriaPartRelation()
-                                    .part(getCriteriaPart(element, route))
+                                    .part(getCriteriaPart(element, relations))
                                     .joinColumn(
                                             Optional
                                                     .ofNullable(element.join())
@@ -209,26 +213,32 @@ public class ExternalPaymentCriteria$RepositoryImpl3 implements CriteriaReposito
                                                     .map(Pair::getLeft)
                                                     .orElse(null)
                                     );
-                    route.relations().put(element.index(), relation);
+                    relations.put(element.index(), relation);
                     return relation;
                 });
     }
 
-    private static @NotNull CriteriaPart getCriteriaPart(CriteriaElement element, CriteriaRoute route) {
+    private static boolean alienPart(CriteriaElement element, CriteriaElementJoin join, CriteriaPartRelation relation) {
+        return join.linkedShard() &&
+                (join.element().shardType() != ShardType.SHARDABLE ||
+                        element.shardType() != ShardType.SHARDABLE) &&
+                Optional
+                        .ofNullable(relation.joinColumn())
+                        .map(column -> !column.equals(join.joinColumns().getRight()))
+                        .orElse(false);
+    }
+
+    private static @NotNull CriteriaPart getCriteriaPart(
+            CriteriaElement element,
+            Map<Integer, CriteriaPartRelation> relations)
+    {
         return Optional
                 .ofNullable(element.join())
                 .map(join -> {
-                    CriteriaPartRelation parentRelation = getRelation(join.element(), route);
+                    CriteriaPartRelation parentRelation = getRelation(join.element(), relations);
                     CriteriaPart criteriaPart = parentRelation.part();
-                    if (join.linkedShard() &&
-                            (
-                                    join.element().shardType() == ShardType.SHARDABLE ||
-                                            element.shardType() == ShardType.REPLICABLE ||
-                                            Optional
-                                                    .ofNullable(parentRelation.joinColumn())
-                                                    .map(column -> column.equals(join.joinColumns().getRight()))
-                                                    .orElse(true)
-                            ) ||
+                    boolean isAlienPart = alienPart(element, join, parentRelation);
+                    if (join.linkedShard() && !isAlienPart ||
                             join.element().cluster() == element.cluster() && element.cluster().getShards().size() == 1
                     ) {
                         if (parentRelation.joinColumn() == null) {
@@ -238,6 +248,9 @@ public class ExternalPaymentCriteria$RepositoryImpl3 implements CriteriaReposito
                                 .aliasMask(criteriaPart.aliasMask() | 1L << element.index())
                                 .columns(criteriaPart.columns() | element.columns())
                                 .from(criteriaPart.from() + getJoinText(join.joinType()) + getTableName(element) + getOn(join));
+                    }
+                    if (isAlienPart) {
+
                     }
                     CriteriaPart childPart = createCriteriaPart(element);
                     criteriaPart
@@ -250,11 +263,7 @@ public class ExternalPaymentCriteria$RepositoryImpl3 implements CriteriaReposito
                             );
                     return childPart;
                 })
-                .orElseGet(() -> {
-                    CriteriaPart criteriaPart = createCriteriaPart(element);
-                    route.mainPart(criteriaPart);
-                    return criteriaPart;
-                });
+                .orElseGet(() -> createCriteriaPart(element));
     }
 
     private static CriteriaPart createCriteriaPart(CriteriaElement element) {

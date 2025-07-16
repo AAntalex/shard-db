@@ -76,7 +76,7 @@ public class ProcessorUtils {
             return element.asType().toString();
         }
         DeclaredType type = getDeclaredType(element);
-        return type.getTypeArguments().size() > 0 ?
+        return !type.getTypeArguments().isEmpty() ?
                 ((DeclaredType) type.getTypeArguments().get(0)).asElement().getSimpleName().toString() :
                 type.asElement().getSimpleName().toString();
     }
@@ -105,7 +105,7 @@ public class ProcessorUtils {
     public static <A extends Annotation> boolean isAnnotationPresentInArgument(Element element, Class<A> annotation) {
         return Optional.ofNullable(getDeclaredType(element))
                 .filter(it ->
-                        it.getTypeArguments().size() > 0 &&
+                        !it.getTypeArguments().isEmpty() &&
                                 Objects.nonNull(
                                         ((DeclaredType) it.getTypeArguments().get(0))
                                                 .asElement()
