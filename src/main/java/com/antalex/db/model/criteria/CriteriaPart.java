@@ -3,6 +3,7 @@ package com.antalex.db.model.criteria;
 import com.antalex.db.model.Cluster;
 import lombok.Data;
 import lombok.experimental.Accessors;
+import org.apache.commons.lang3.tuple.Pair;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -14,5 +15,6 @@ public class CriteriaPart {
     private Long columns;
     private Cluster cluster;
     private Long aliasMask;
-    private List<CriteriaPartJoin> joins = new ArrayList<>();
+    private Boolean dependent;
+    private List<Pair<String, String>> joinColumns = new ArrayList<>();
 }

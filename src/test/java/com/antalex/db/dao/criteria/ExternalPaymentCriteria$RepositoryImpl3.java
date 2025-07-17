@@ -3,9 +3,9 @@ package com.antalex.db.dao.criteria;
 import com.antalex.db.model.PredicateGroup;
 import com.antalex.db.model.criteria.*;
 import com.antalex.db.model.enums.ShardType;
-import com.antalex.db.service.CriteriaRepository;
 import com.antalex.db.service.ShardDataBaseManager;
 import com.antalex.db.service.ShardEntityManager;
+import lombok.Data;
 import org.apache.commons.lang3.tuple.Pair;
 import org.jetbrains.annotations.NotNull;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -13,10 +13,9 @@ import org.springframework.stereotype.Component;
 
 import javax.persistence.criteria.JoinType;
 import java.util.*;
-import java.util.stream.Stream;
 
 @Component
-public class ExternalPaymentCriteria$RepositoryImpl3 implements CriteriaRepository<ExternalPaymentCriteria> {
+public class ExternalPaymentCriteria$RepositoryImpl3 {
     private static final List<String> COLUMNS = Arrays.asList(
             "MD.C_NUM",
             "MD.C_SUM",
@@ -169,35 +168,50 @@ public class ExternalPaymentCriteria$RepositoryImpl3 implements CriteriaReposito
         ELEMENT_CL_CT.cluster(dataBaseManager.getCluster("DEFAULT"));
         ELEMENT_CL_DT.cluster(dataBaseManager.getCluster("DEFAULT"));
         ELEMENT_CL_CAT.cluster(dataBaseManager.getCluster("DEFAULT"));
+
+        Map<Long, CriteriaPart> criteriaPartMap = getCriteriaParts(null);
     }
 
-    @Override
-    public Stream<ExternalPaymentCriteria> get(Object... binds) {
-        return null;
+    @Data
+    private static class RawCriteria {
+        private Map<Long, CriteriaPart> criteriaParts = new HashMap<>();
+        private List<CriteriaElement> elementList;
+        private List<CriteriaPredicate> predicateList;
+        private PredicateGroup predicateGroup;
+        private long processedElements;
     }
 
-    public List<CriteriaRoute> getCriteriaRoutes(PredicateGroup predicateGroup) {
-        List<CriteriaRoute> criteriaRoutes = new ArrayList<>();
+    public Map<Long, CriteriaPart> getCriteriaParts(PredicateGroup predicateGroup) {
+        RawCriteria rawCriteria = new RawCriteria();
+        rawCriteria.setPredicateList(PREDICATES);
+        if (predicateGroup == null) {
+            rawCriteria.setElementList(ELEMENTS);
+        } else {
+            rawCriteria.setPredicateGroup(predicateGroup);
 
-
-        return criteriaRoutes;
+        }
+        processRawCriteria(rawCriteria, null);
+        return rawCriteria.getCriteriaParts();
     }
 
-    private static void fillCriteriaParts(Map<Long, CriteriaPart> criteriaParts, CriteriaElement element) {
+    private static void processRawCriteria(
+            RawCriteria rawCriteria,
+            CriteriaElement element) {
         Map<Integer, CriteriaPartRelation> relations = new HashMap<>();
         if (element != null) {
-            getRelation(element, relations);
+            getRelation(element, rawCriteria, relations);
         }
-        ELEMENTS.forEach(el -> getRelation(el, relations));
+        rawCriteria.getElementList().forEach(el -> getRelation(el, rawCriteria, relations));
         relations
                 .values()
                 .stream()
                 .map(CriteriaPartRelation::part)
-                .forEach(part -> criteriaParts.putIfAbsent(part.aliasMask(), part));
+                .forEach(part -> rawCriteria.getCriteriaParts().putIfAbsent(part.aliasMask(), part));
     }
 
     private static @NotNull CriteriaPartRelation getRelation(
             CriteriaElement element,
+            RawCriteria rawCriteria,
             Map<Integer, CriteriaPartRelation> relations)
     {
         return Optional
@@ -205,7 +219,7 @@ public class ExternalPaymentCriteria$RepositoryImpl3 implements CriteriaReposito
                 .orElseGet(() -> {
                     CriteriaPartRelation relation =
                             new CriteriaPartRelation()
-                                    .part(getCriteriaPart(element, relations))
+                                    .part(getCriteriaPart(element, rawCriteria, relations))
                                     .joinColumn(
                                             Optional
                                                     .ofNullable(element.join())
@@ -218,7 +232,7 @@ public class ExternalPaymentCriteria$RepositoryImpl3 implements CriteriaReposito
                 });
     }
 
-    private static boolean alienPart(CriteriaElement element, CriteriaElementJoin join, CriteriaPartRelation relation) {
+    private static boolean isAlienPart(CriteriaElement element, CriteriaElementJoin join, CriteriaPartRelation relation) {
         return join.linkedShard() &&
                 (join.element().shardType() != ShardType.SHARDABLE ||
                         element.shardType() != ShardType.SHARDABLE) &&
@@ -230,47 +244,64 @@ public class ExternalPaymentCriteria$RepositoryImpl3 implements CriteriaReposito
 
     private static @NotNull CriteriaPart getCriteriaPart(
             CriteriaElement element,
+            RawCriteria rawCriteria,
             Map<Integer, CriteriaPartRelation> relations)
     {
         return Optional
                 .ofNullable(element.join())
                 .map(join -> {
-                    CriteriaPartRelation parentRelation = getRelation(join.element(), relations);
+                    CriteriaPartRelation parentRelation = getRelation(join.element(), rawCriteria, relations);
                     CriteriaPart criteriaPart = parentRelation.part();
-                    boolean isAlienPart = alienPart(element, join, parentRelation);
+                    boolean isAlienPart = isAlienPart(element, join, parentRelation);
                     if (join.linkedShard() && !isAlienPart ||
                             join.element().cluster() == element.cluster() && element.cluster().getShards().size() == 1
                     ) {
                         if (parentRelation.joinColumn() == null) {
                             parentRelation.joinColumn(join.joinColumns().getRight());
                         }
-                        return criteriaPart
-                                .aliasMask(criteriaPart.aliasMask() | 1L << element.index())
-                                .columns(criteriaPart.columns() | element.columns())
-                                .from(criteriaPart.from() + getJoinText(join.joinType()) + getTableName(element) + getOn(join));
+                        return addToCriteriaPart(element, criteriaPart, rawCriteria);
                     }
-                    if (isAlienPart) {
-
+                    if (isAlienPart && (rawCriteria.getProcessedElements() & 1L << element.index()) == 0) {
+                        processRawCriteria(rawCriteria, element);
                     }
-                    CriteriaPart childPart = createCriteriaPart(element);
+                    CriteriaPart childPart = createCriteriaPart(element, rawCriteria);
                     criteriaPart
-                            .joins()
+                            .joinColumns()
                             .add(
-                                    new CriteriaPartJoin()
-                                            .part(childPart)
-                                            .joinType(join.joinType())
-                                            .joinColumns(join.joinColumns())
+                                    Pair.of(
+                                            element.join().joinColumns().getRight(),
+                                            element.join().joinColumns().getLeft()
+                                    )
                             );
                     return childPart;
                 })
-                .orElseGet(() -> createCriteriaPart(element));
+                .orElseGet(() -> createCriteriaPart(element, rawCriteria));
     }
 
-    private static CriteriaPart createCriteriaPart(CriteriaElement element) {
-        return new CriteriaPart()
+    private static CriteriaPart addToCriteriaPart(CriteriaElement element, CriteriaPart criteriaPart, RawCriteria rawCriteria) {
+        rawCriteria.setProcessedElements(rawCriteria.getProcessedElements() | 1L << element.index());
+        return criteriaPart
+                .aliasMask(criteriaPart.aliasMask() | 1L << element.index())
+                .columns(criteriaPart.columns() | element.columns())
+                .from(
+                        criteriaPart.from() +
+                                getJoinText(element.join().joinType()) +
+                                getTableName(element) + getOn(element.join())
+                );
+    }
+
+    private static CriteriaPart createCriteriaPart(CriteriaElement element, RawCriteria rawCriteria) {
+        rawCriteria.setProcessedElements(rawCriteria.getProcessedElements() | 1L << element.index());
+        CriteriaPart criteriaPart = new CriteriaPart()
                 .aliasMask(1L << element.index())
                 .columns(element.columns())
-                .from(getTableName(element));
+                .from(getTableName(element))
+                .cluster(element.cluster());
+        if (element.join() != null) {
+            criteriaPart.dependent(element.join().joinType() != JoinType.INNER);
+            criteriaPart.joinColumns().add(element.join().joinColumns());
+        }
+        return criteriaPart;
     }
 
     private static String getTableName(CriteriaElement element) {
