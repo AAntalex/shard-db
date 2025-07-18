@@ -6,6 +6,7 @@ import com.antalex.db.model.enums.ShardType;
 import com.antalex.db.service.ShardDataBaseManager;
 import com.antalex.db.service.ShardEntityManager;
 import lombok.Data;
+import lombok.Getter;
 import org.apache.commons.lang3.tuple.Pair;
 import org.jetbrains.annotations.NotNull;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -16,7 +17,7 @@ import java.util.*;
 import java.util.stream.IntStream;
 
 @Component
-public class ExternalPaymentCriteria$RepositoryImpl3 {
+public class ExternalPaymentCriteria$RepositoryImpl3  {
     private static final List<String> COLUMNS = Arrays.asList(
             "MD.C_NUM",
             "MD.C_SUM",
@@ -157,8 +158,11 @@ public class ExternalPaymentCriteria$RepositoryImpl3 {
     private final ShardDataBaseManager dataBaseManager;
     private final ShardEntityManager entityManager;
 
-    @Autowired
-    ExternalPaymentCriteria$RepositoryImpl3(ShardEntityManager entityManager, ShardDataBaseManager dataBaseManager) {
+    @Getter
+    private final Map<Long, CriteriaPart> criteriaPartMap;
+
+
+    public ExternalPaymentCriteria$RepositoryImpl3(ShardEntityManager entityManager, ShardDataBaseManager dataBaseManager) {
         this.dataBaseManager = dataBaseManager;
         this.entityManager = entityManager;
 
@@ -170,7 +174,7 @@ public class ExternalPaymentCriteria$RepositoryImpl3 {
         ELEMENT_CL_DT.cluster(dataBaseManager.getCluster("DEFAULT"));
         ELEMENT_CL_CAT.cluster(dataBaseManager.getCluster("DEFAULT"));
 
-        Map<Long, CriteriaPart> criteriaPartMap = getCriteriaParts(null);
+        this.criteriaPartMap = getCriteriaParts(null);
     }
 
     @Data
