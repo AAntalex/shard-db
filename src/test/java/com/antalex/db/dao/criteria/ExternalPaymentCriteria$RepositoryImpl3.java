@@ -13,6 +13,7 @@ import org.springframework.stereotype.Component;
 
 import javax.persistence.criteria.JoinType;
 import java.util.*;
+import java.util.stream.IntStream;
 
 @Component
 public class ExternalPaymentCriteria$RepositoryImpl3 {
@@ -206,7 +207,45 @@ public class ExternalPaymentCriteria$RepositoryImpl3 {
                 .values()
                 .stream()
                 .map(CriteriaPartRelation::part)
-                .forEach(part -> rawCriteria.getCriteriaParts().putIfAbsent(part.aliasMask(), part));
+                .forEach(part -> processCriteriaPart(rawCriteria, part));
+    }
+
+    private static boolean checkPredicateInPart(
+            CriteriaPredicate predicate,
+            Integer predicateIndex,
+            CriteriaPart part,
+            Long predicateMask)
+    {
+        return (predicateMask & 1L << predicateIndex) > 0L &&
+                (predicate.aliasMask() == 0L || (predicate.aliasMask() & part.aliasMask()) > 0L);
+    }
+
+    private static void processCriteriaPart(RawCriteria rawCriteria, CriteriaPart part) {
+        if (!rawCriteria.getCriteriaParts().containsKey(part.aliasMask())) {
+            part.predicateGroup(
+                    new PredicateGroup(
+                            Optional.ofNullable(rawCriteria.getPredicateGroup())
+                                    .map(PredicateGroup::getPredicateMask)
+                                    .map(mask ->
+                                            IntStream.range(0, rawCriteria.predicateList.size())
+                                                    .filter(idx ->
+                                                            checkPredicateInPart(rawCriteria.predicateList.get(idx),
+                                                                    idx,
+                                                                    part,
+                                                                    mask
+                                                            )
+                                                    )
+                                                    .mapToObj(idx -> 1L << idx)
+                                                    .reduce(0L, (a, b) -> a | b)
+                                    )
+                                    .orElse(0L),
+                            Optional.ofNullable(rawCriteria.predicateGroup)
+                                    .map(PredicateGroup::getSignMask)
+                                    .orElse(0L)
+                    )
+            );
+            rawCriteria.getCriteriaParts().put(part.aliasMask(), part);
+        }
     }
 
     private static @NotNull CriteriaPartRelation getRelation(

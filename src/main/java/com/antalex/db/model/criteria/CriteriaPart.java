@@ -1,6 +1,7 @@
 package com.antalex.db.model.criteria;
 
 import com.antalex.db.model.Cluster;
+import com.antalex.db.model.PredicateGroup;
 import lombok.Data;
 import lombok.experimental.Accessors;
 import org.apache.commons.lang3.tuple.Pair;
@@ -16,5 +17,6 @@ public class CriteriaPart {
     private Cluster cluster;
     private Long aliasMask;
     private Boolean dependent;
+    private PredicateGroup predicateGroup;
     private List<Pair<String, String>> joinColumns = new ArrayList<>();
 }
