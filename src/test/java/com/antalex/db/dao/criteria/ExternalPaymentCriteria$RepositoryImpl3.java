@@ -9,7 +9,6 @@ import lombok.Data;
 import lombok.Getter;
 import org.apache.commons.lang3.tuple.Pair;
 import org.jetbrains.annotations.NotNull;
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Component;
 
 import javax.persistence.criteria.JoinType;
@@ -260,12 +259,15 @@ public class ExternalPaymentCriteria$RepositoryImpl3  {
         return Optional
                 .ofNullable(relations.get(element.index()))
                 .orElseGet(() -> {
+                    CriteriaPart criteriaPart = getCriteriaPart(element, rawCriteria, relations);
                     CriteriaPartRelation relation =
                             new CriteriaPartRelation()
-                                    .part(getCriteriaPart(element, rawCriteria, relations))
+                                    .part(criteriaPart)
                                     .joinColumn(
                                             Optional
                                                     .ofNullable(element.join())
+                                                    .filter(it ->
+                                                            (criteriaPart.aliasMask() & 1L << it.element().index()) > 0)
                                                     .map(CriteriaElementJoin::joinColumns)
                                                     .map(Pair::getLeft)
                                                     .orElse(null)
@@ -275,14 +277,36 @@ public class ExternalPaymentCriteria$RepositoryImpl3  {
                 });
     }
 
-    private static boolean isAlienPart(CriteriaElement element, CriteriaElementJoin join, CriteriaPartRelation relation) {
-        return join.linkedShard() &&
-                (join.element().shardType() != ShardType.SHARDABLE ||
-                        element.shardType() != ShardType.SHARDABLE) &&
-                Optional
-                        .ofNullable(relation.joinColumn())
-                        .map(column -> !column.equals(join.joinColumns().getRight()))
-                        .orElse(false);
+    private static boolean needJoinToCriteriaPart(
+            CriteriaElement element,
+            CriteriaElementJoin join,
+            RawCriteria rawCriteria,
+            CriteriaPartRelation relation) {
+        return join.element().cluster() == element.cluster() &&
+                (element.cluster().getShards().size() == 1 ||
+                        join.linkedShard() &&
+                                (
+                                        join.element().shardType() == ShardType.SHARDABLE &&
+                                                element.shardType() == ShardType.SHARDABLE ||
+                                                (rawCriteria.getProcessedElements() & 1L << element.index()) == 0 &&
+                                                        Optional
+                                                                .ofNullable(relation.joinColumn())
+                                                                .map(column ->
+                                                                        column.equals(join.joinColumns().getRight()))
+                                                                .orElse(true)
+                                )
+                );
+    }
+
+    private static boolean needProcessRawCriteria(
+            CriteriaElement element,
+            CriteriaElementJoin join,
+            RawCriteria rawCriteria
+    ) {
+        return join.element().cluster() == element.cluster() &&
+                join.linkedShard() &&
+                (join.element().shardType() != ShardType.SHARDABLE || element.shardType() != ShardType.SHARDABLE) &&
+                (rawCriteria.getProcessedElements() & 1L << element.index()) == 0;
     }
 
     private static @NotNull CriteriaPart getCriteriaPart(
@@ -295,16 +319,13 @@ public class ExternalPaymentCriteria$RepositoryImpl3  {
                 .map(join -> {
                     CriteriaPartRelation parentRelation = getRelation(join.element(), rawCriteria, relations);
                     CriteriaPart criteriaPart = parentRelation.part();
-                    boolean isAlienPart = isAlienPart(element, join, parentRelation);
-                    if (join.linkedShard() && !isAlienPart ||
-                            join.element().cluster() == element.cluster() && element.cluster().getShards().size() == 1
-                    ) {
+                    if (needJoinToCriteriaPart(element, join, rawCriteria, parentRelation)) {
                         if (parentRelation.joinColumn() == null) {
                             parentRelation.joinColumn(join.joinColumns().getRight());
                         }
                         return addToCriteriaPart(element, criteriaPart, rawCriteria);
                     }
-                    if (isAlienPart && (rawCriteria.getProcessedElements() & 1L << element.index()) == 0) {
+                    if (needProcessRawCriteria(element, join, rawCriteria)) {
                         processRawCriteria(rawCriteria, element);
                     }
                     CriteriaPart childPart = createCriteriaPart(element, rawCriteria);
