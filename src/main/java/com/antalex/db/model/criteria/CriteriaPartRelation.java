@@ -7,5 +7,5 @@ import lombok.experimental.Accessors;
 @Accessors(chain = true, fluent = true)
 public class CriteriaPartRelation {
     private CriteriaPart part;
-    private String joinColumn;
+    private String linkedColumn;
 }

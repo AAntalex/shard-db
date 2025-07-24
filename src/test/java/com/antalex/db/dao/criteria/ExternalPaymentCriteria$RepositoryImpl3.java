@@ -263,13 +263,16 @@ public class ExternalPaymentCriteria$RepositoryImpl3  {
                     CriteriaPartRelation relation =
                             new CriteriaPartRelation()
                                     .part(criteriaPart)
-                                    .joinColumn(
+                                    .linkedColumn(
                                             Optional
                                                     .ofNullable(element.join())
                                                     .filter(it ->
                                                             (criteriaPart.aliasMask() & 1L << it.element().index()) > 0)
-                                                    .map(CriteriaElementJoin::joinColumns)
-                                                    .map(Pair::getLeft)
+                                                    .map(join ->
+                                                            join.linkedShard()
+                                                                    ? join.joinColumns().getLeft()
+                                                                    : "NOT_LINKED"
+                                                    )
                                                     .orElse(null)
                                     );
                     relations.put(element.index(), relation);
@@ -280,20 +283,18 @@ public class ExternalPaymentCriteria$RepositoryImpl3  {
     private static boolean needJoinToCriteriaPart(
             CriteriaElement element,
             CriteriaElementJoin join,
-            RawCriteria rawCriteria,
             CriteriaPartRelation relation) {
         return join.element().cluster() == element.cluster() &&
-                (element.cluster().getShards().size() == 1 ||
+                (element.shardType() == ShardType.REPLICABLE ||
+                        element.cluster().getShards().size() == 1 ||
                         join.linkedShard() &&
                                 (
-                                        join.element().shardType() == ShardType.SHARDABLE &&
-                                                element.shardType() == ShardType.SHARDABLE ||
-                                                (rawCriteria.getProcessedElements() & 1L << element.index()) == 0 &&
-                                                        Optional
-                                                                .ofNullable(relation.joinColumn())
-                                                                .map(column ->
-                                                                        column.equals(join.joinColumns().getRight()))
-                                                                .orElse(true)
+                                        join.element().shardType() == ShardType.SHARDABLE ||
+                                                Optional
+                                                        .ofNullable(relation.linkedColumn())
+                                                        .map(column ->
+                                                                column.equals(join.joinColumns().getRight()))
+                                                        .orElse(true)
                                 )
                 );
     }
@@ -305,7 +306,6 @@ public class ExternalPaymentCriteria$RepositoryImpl3  {
     ) {
         return join.element().cluster() == element.cluster() &&
                 join.linkedShard() &&
-                (join.element().shardType() != ShardType.SHARDABLE || element.shardType() != ShardType.SHARDABLE) &&
                 (rawCriteria.getProcessedElements() & 1L << element.index()) == 0;
     }
 
@@ -316,12 +316,14 @@ public class ExternalPaymentCriteria$RepositoryImpl3  {
     {
         return Optional
                 .ofNullable(element.join())
+                .filter(join ->
+                        element.shardType() == ShardType.SHARDABLE || relations.containsKey(join.element().index()))
                 .map(join -> {
                     CriteriaPartRelation parentRelation = getRelation(join.element(), rawCriteria, relations);
                     CriteriaPart criteriaPart = parentRelation.part();
-                    if (needJoinToCriteriaPart(element, join, rawCriteria, parentRelation)) {
-                        if (parentRelation.joinColumn() == null) {
-                            parentRelation.joinColumn(join.joinColumns().getRight());
+                    if (needJoinToCriteriaPart(element, join, parentRelation)) {
+                        if (parentRelation.linkedColumn() == null) {
+                            parentRelation.linkedColumn(join.joinColumns().getRight());
                         }
                         return addToCriteriaPart(element, criteriaPart, rawCriteria);
                     }
