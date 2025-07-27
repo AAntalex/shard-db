@@ -230,9 +230,9 @@ public class ExternalPaymentCriteria$RepositoryImpl3  {
                             Optional.ofNullable(rawCriteria.getPredicateGroup())
                                     .map(PredicateGroup::getPredicateMask)
                                     .map(mask ->
-                                            IntStream.range(0, rawCriteria.predicateList.size())
+                                            IntStream.range(0, rawCriteria.getPredicateList().size())
                                                     .filter(idx ->
-                                                            checkPredicateInPart(rawCriteria.predicateList.get(idx),
+                                                            checkPredicateInPart(rawCriteria.getPredicateList().get(idx),
                                                                     idx,
                                                                     part,
                                                                     mask
@@ -242,7 +242,7 @@ public class ExternalPaymentCriteria$RepositoryImpl3  {
                                                     .reduce(0L, (a, b) -> a | b)
                                     )
                                     .orElse(0L),
-                            Optional.ofNullable(rawCriteria.predicateGroup)
+                            Optional.ofNullable(rawCriteria.getPredicateGroup())
                                     .map(PredicateGroup::getSignMask)
                                     .orElse(0L)
                     )
