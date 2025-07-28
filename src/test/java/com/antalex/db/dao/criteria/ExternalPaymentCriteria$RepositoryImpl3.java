@@ -73,7 +73,7 @@ public class ExternalPaymentCriteria$RepositoryImpl3  {
             .columns(16L)
             .join(
                     new CriteriaElementJoin()
-                            .joinType(JoinType.INNER)
+                            .joinType(JoinType.LEFT)
                             .linkedShard(true)
                             .joinColumns(Pair.of("ACC_CT.ID", "MD.C_ACC_CT"))
                             .element(ELEMENT_MD)
@@ -87,7 +87,7 @@ public class ExternalPaymentCriteria$RepositoryImpl3  {
             .columns(128L)
             .join(
                     new CriteriaElementJoin()
-                            .joinType(JoinType.INNER)
+                            .joinType(JoinType.LEFT)
                             .linkedShard(true)
                             .joinColumns(Pair.of("CL_CT.ID", "ACC_CT.C_CLIENT"))
                             .element(ELEMENT_ACC_CT)
@@ -115,7 +115,7 @@ public class ExternalPaymentCriteria$RepositoryImpl3  {
             .columns(512L)
             .join(
                     new CriteriaElementJoin()
-                            .joinType(JoinType.INNER)
+                            .joinType(JoinType.LEFT)
                             .linkedShard(false)
                             .joinColumns(Pair.of("CL_CAT.ID", "CL_CT.C_CATEGORY"))
                             .element(ELEMENT_CL_CT)
@@ -188,14 +188,87 @@ public class ExternalPaymentCriteria$RepositoryImpl3  {
     public Map<Long, CriteriaPart> getCriteriaParts(PredicateGroup predicateGroup) {
         RawCriteria rawCriteria = new RawCriteria();
         rawCriteria.setPredicateList(PREDICATES);
+
+
+
+
         if (predicateGroup == null) {
             rawCriteria.setElementList(ELEMENTS);
         } else {
             rawCriteria.setPredicateGroup(predicateGroup);
+            Long innerJoinAliases =
+                    IntStream.range(0, PREDICATES.size())
+                            .filter(idx ->
+                                    (predicateGroup.getPredicateMask() & 1L << idx) > 0L &&
+                                            !PREDICATES.get(idx).value().endsWith(" IS NULL") ||
+                                            (predicateGroup.getSignMask() & 1L << idx) > 0L
+                            )
+                            .mapToObj(idx -> PREDICATES.get(idx).aliasMask())
+                            .reduce(0L, (a, b) -> a | b);
+
+            Long outerJoinAliases =
+                    IntStream.range(0, ELEMENTS.size())
+                            .filter(idx -> ELEMENTS.get(idx).join().joinType() == JoinType.LEFT)
+                            .mapToObj(idx -> 1L << idx)
+                            .reduce(0L, (a, b) -> a | b);
+
+            rawCriteria.setElementList(ELEMENTS);
+            ELEMENTS
+                    .stream()
+                    .map(el ->
+                            new CriteriaElement()
+                                    .tableName(el.tableName())
+                                    .tableAlias(el.tableAlias())
+                    )
+                    .toList()
+
+
 
         }
         processRawCriteria(rawCriteria, null);
         return rawCriteria.getCriteriaParts();
+    }
+
+    private static List<CriteriaElement> copyElementList(List<CriteriaElement> criteriaElements, Long changedJoinAliases) {
+        return criteriaElements
+                .stream()
+                .map(el ->
+                        new CriteriaElement()
+                                .tableName(el.tableName())
+                                .tableAlias(el.tableAlias())
+                )
+                .toList();
+    }
+
+    private static CriteriaElement toInnerJoinElement(CriteriaElement criteriaElement) {
+        return Optional.of(criteriaElement)
+                .filter(el ->
+                        Optional
+                                .ofNullable(el.join())
+                                .map(join -> join.joinType() == JoinType.INNER)
+                                .orElse(true)
+                )
+                .orElseGet(() ->
+                        new CriteriaElement()
+                                .tableName(criteriaElement.tableName())
+                                .tableAlias(criteriaElement.tableAlias())
+                                .cluster(criteriaElement.cluster())
+                                .columns(criteriaElement.columns())
+                                .shardType(criteriaElement.shardType())
+                                .index(criteriaElement.index())
+                                .join(
+                                        Optional
+                                                .ofNullable(criteriaElement.join())
+                                                .map(join ->
+                                                        new CriteriaElementJoin()
+                                                                .element(toInnerJoinElement(join.element()))
+                                                                .joinType(JoinType.INNER)
+                                                                .joinColumns(join.joinColumns())
+                                                                .linkedShard(join.linkedShard())
+                                                )
+                                                .orElse(null)
+                                )
+                );
     }
 
     private static void processRawCriteria(
