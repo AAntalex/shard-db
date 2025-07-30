@@ -158,7 +158,7 @@ public class ExternalPaymentCriteria$RepositoryImpl3  {
     private final ShardEntityManager entityManager;
 
     @Getter
-    private final Map<Long, CriteriaPart> criteriaPartMap;
+    private final List<Map<Long, CriteriaPart>> criteriaPartList;
 
 
     public ExternalPaymentCriteria$RepositoryImpl3(ShardEntityManager entityManager, ShardDataBaseManager dataBaseManager) {
@@ -173,7 +173,8 @@ public class ExternalPaymentCriteria$RepositoryImpl3  {
         ELEMENT_CL_DT.cluster(dataBaseManager.getCluster("DEFAULT"));
         ELEMENT_CL_CAT.cluster(dataBaseManager.getCluster("DEFAULT"));
 
-        this.criteriaPartMap = getCriteriaParts(null);
+
+        this.criteriaPartList = getCriteriaPartsList(ELEMENTS, PREDICATE_GROUPS, PREDICATES);
     }
 
     @Data
@@ -185,68 +186,80 @@ public class ExternalPaymentCriteria$RepositoryImpl3  {
         private long processedElements;
     }
 
-    public Map<Long, CriteriaPart> getCriteriaParts(PredicateGroup predicateGroup) {
+    public static List<Map<Long, CriteriaPart>> getCriteriaPartsList(
+            List<CriteriaElement> elements,
+            List<PredicateGroup> predicateGroups,
+            List<CriteriaPredicate> predicates
+    ) {
+        Long outerJoinAliases =
+                IntStream.range(0, elements.size())
+                        .filter(idx ->
+                                elements.get(idx).join() != null &&
+                                        elements.get(idx).join().joinType() == JoinType.LEFT
+                        )
+                        .mapToObj(idx -> 1L << idx)
+                        .reduce(0L, (a, b) -> a | b);
+
+        return predicateGroups.isEmpty() ?
+                Collections.singletonList(getCriteriaParts(elements, predicates, null, outerJoinAliases)) :
+                predicateGroups
+                .stream()
+                .map(predicateGroup ->
+                        getCriteriaParts(elements, predicates, predicateGroup, outerJoinAliases))
+                .toList();
+    }
+
+    private static Map<Long, CriteriaPart> getCriteriaParts(
+            List<CriteriaElement> elements,
+            List<CriteriaPredicate> predicates,
+            PredicateGroup predicateGroup,
+            Long outerJoinAliases)
+    {
         RawCriteria rawCriteria = new RawCriteria();
-        rawCriteria.setPredicateList(PREDICATES);
-
-
-
-
-        if (predicateGroup == null) {
-            rawCriteria.setElementList(ELEMENTS);
-        } else {
-            rawCriteria.setPredicateGroup(predicateGroup);
-            Long innerJoinAliases =
-                    IntStream.range(0, PREDICATES.size())
-                            .filter(idx ->
-                                    (predicateGroup.getPredicateMask() & 1L << idx) > 0L &&
-                                            !PREDICATES.get(idx).value().endsWith(" IS NULL") ||
-                                            (predicateGroup.getSignMask() & 1L << idx) > 0L
-                            )
-                            .mapToObj(idx -> PREDICATES.get(idx).aliasMask())
-                            .reduce(0L, (a, b) -> a | b);
-
-            Long outerJoinAliases =
-                    IntStream.range(0, ELEMENTS.size())
-                            .filter(idx -> ELEMENTS.get(idx).join().joinType() == JoinType.LEFT)
-                            .mapToObj(idx -> 1L << idx)
-                            .reduce(0L, (a, b) -> a | b);
-
-            rawCriteria.setElementList(ELEMENTS);
-            ELEMENTS
-                    .stream()
-                    .map(el ->
-                            new CriteriaElement()
-                                    .tableName(el.tableName())
-                                    .tableAlias(el.tableAlias())
-                    )
-                    .toList()
-
-
-
+        rawCriteria.setPredicateList(predicates);
+        rawCriteria.setPredicateGroup(predicateGroup);
+        rawCriteria.setElementList(elements);
+        if (predicateGroup != null && outerJoinAliases > 0L) {
+            long changedJoinAliases =
+                    outerJoinAliases &
+                            IntStream.range(0, predicates.size())
+                                    .filter(idx ->
+                                            (predicateGroup.getPredicateMask() & 1L << idx) > 0L &&
+                                                    !predicates.get(idx).value().endsWith(" IS NULL") ||
+                                                    (predicateGroup.getSignMask() & 1L << idx) > 0L
+                                    )
+                                    .mapToObj(idx -> predicates.get(idx).aliasMask())
+                                    .reduce(0L, (a, b) -> a | b);
+            rawCriteria.setElementList(
+                    changedJoinAliases == 0L ?
+                            elements :
+                            copyElementList(elements, changedJoinAliases)
+            );
         }
         processRawCriteria(rawCriteria, null);
         return rawCriteria.getCriteriaParts();
     }
 
-    private static List<CriteriaElement> copyElementList(List<CriteriaElement> criteriaElements, Long changedJoinAliases) {
+    private static List<CriteriaElement> copyElementList(
+            List<CriteriaElement> criteriaElements,
+            Long changedJoinAliases)
+    {
         return criteriaElements
                 .stream()
                 .map(el ->
-                        new CriteriaElement()
-                                .tableName(el.tableName())
-                                .tableAlias(el.tableAlias())
+                        getElement(el, (changedJoinAliases & 1L << el.index()) > 0L)
                 )
                 .toList();
     }
 
-    private static CriteriaElement toInnerJoinElement(CriteriaElement criteriaElement) {
+    private static CriteriaElement getElement(CriteriaElement criteriaElement, boolean toInnerJoin) {
         return Optional.of(criteriaElement)
                 .filter(el ->
-                        Optional
-                                .ofNullable(el.join())
-                                .map(join -> join.joinType() == JoinType.INNER)
-                                .orElse(true)
+                        !toInnerJoin ||
+                                Optional
+                                        .ofNullable(el.join())
+                                        .map(join -> join.joinType() == JoinType.INNER)
+                                        .orElse(true)
                 )
                 .orElseGet(() ->
                         new CriteriaElement()
@@ -261,7 +274,7 @@ public class ExternalPaymentCriteria$RepositoryImpl3  {
                                                 .ofNullable(criteriaElement.join())
                                                 .map(join ->
                                                         new CriteriaElementJoin()
-                                                                .element(toInnerJoinElement(join.element()))
+                                                                .element(getElement(join.element(), true))
                                                                 .joinType(JoinType.INNER)
                                                                 .joinColumns(join.joinColumns())
                                                                 .linkedShard(join.linkedShard())

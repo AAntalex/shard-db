@@ -8,6 +8,7 @@ import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 
+import java.util.List;
 import java.util.Map;
 
 
@@ -31,8 +32,8 @@ class CriteriaTest extends BaseIntegrationTest {
     void criteriaTest() {
         ExternalPaymentCriteria$RepositoryImpl3 criteriaRepository =
                 new ExternalPaymentCriteria$RepositoryImpl3(entityManager, dataBaseManager);
-        Map<Long, CriteriaPart> criteriaPartMap = criteriaRepository.getCriteriaPartMap();
+        List<Map<Long, CriteriaPart>> criteriaPartList = criteriaRepository.getCriteriaPartList();
 
-        System.out.println("SIZE = " + criteriaPartMap.size());
+        System.out.println("SIZE = " + criteriaPartList.size());
     }
 }
