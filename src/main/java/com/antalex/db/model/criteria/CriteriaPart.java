@@ -16,7 +16,7 @@ public class CriteriaPart {
     private Long columns;
     private Cluster cluster;
     private Long aliasMask;
-    private Boolean dependent;
+    private String outerJoinKey;
     private PredicateGroup predicateGroup;
     private List<Pair<String, String>> joinColumns = new ArrayList<>();
 }

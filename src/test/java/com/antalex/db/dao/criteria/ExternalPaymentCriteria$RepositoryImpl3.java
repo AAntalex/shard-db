@@ -7,6 +7,7 @@ import com.antalex.db.service.ShardDataBaseManager;
 import com.antalex.db.service.ShardEntityManager;
 import lombok.Data;
 import lombok.Getter;
+import org.apache.commons.lang3.StringUtils;
 import org.apache.commons.lang3.tuple.Pair;
 import org.jetbrains.annotations.NotNull;
 import org.springframework.stereotype.Component;
@@ -450,7 +451,11 @@ public class ExternalPaymentCriteria$RepositoryImpl3  {
                 .from(getTableName(element))
                 .cluster(element.cluster());
         if (element.join() != null) {
-            criteriaPart.dependent(element.join().joinType() != JoinType.INNER);
+            criteriaPart.outerJoinKey(
+                    element.join().joinType() == JoinType.LEFT ?
+                            element.join().joinColumns().getRight() :
+                            StringUtils.EMPTY
+            );
             criteriaPart.joinColumns().add(element.join().joinColumns());
         }
         return criteriaPart;
@@ -463,6 +468,7 @@ public class ExternalPaymentCriteria$RepositoryImpl3  {
     private static String getOn(CriteriaElementJoin join) {
         return " ON " + join.joinColumns().getLeft() + "=" + join.joinColumns().getRight();
     }
+
     private static String getJoinText(JoinType joinType) {
         return switch (joinType) {
             case INNER -> " JOIN ";
@@ -471,4 +477,12 @@ public class ExternalPaymentCriteria$RepositoryImpl3  {
         };
     }
 
+    private List<ExternalPaymentCriteria> get(
+            CriteriaPart criteriaPart,
+            List<ExternalPaymentCriteria> prevResult,
+            String key,
+            Map<Long, List<ExternalPaymentCriteria>> resultByKey)
+    {
+        return null;
+    }
 }
