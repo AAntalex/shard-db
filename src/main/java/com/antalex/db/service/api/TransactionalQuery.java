@@ -18,7 +18,6 @@ public interface TransactionalQuery {
     TransactionalQuery fetchLimit(Integer fetchLimit);
     void addBatchOriginal() throws Exception;
     void addRelatedQuery(TransactionalQuery query);
-    void addQueryPart(TransactionalQuery query);
     String getQuery();
     ResultQuery getResult();
     QueryType getQueryType();
@@ -37,6 +36,7 @@ public interface TransactionalQuery {
     int[] getResultUpdateBatch();
     long getDuration();
     void setBindIndexes(List<Integer> bindIndexes);
+    void cancel() throws Exception;
 
     default TransactionalQuery bind(Object o) {
         return bind(o, false);

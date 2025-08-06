@@ -2,6 +2,7 @@ package com.antalex.db.service.impl.transaction;
 
 import com.antalex.db.model.DataBaseInstance;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import org.apache.commons.lang3.NotImplementedException;
 import org.springframework.http.HttpStatusCode;
 import org.springframework.http.MediaType;
 import com.antalex.db.exception.ShardDataBaseException;
@@ -116,6 +117,11 @@ public class TransactionalRemoteQuery extends AbstractTransactionalQuery {
                 queryResult.result(),
                 this.fetchLimit
         );
+    }
+
+    @Override
+    public void cancel() throws Exception {
+        throw new NotImplementedException();
     }
 
     private <R> R getResponseResult(Class<R> clazz, String uri) throws Exception {

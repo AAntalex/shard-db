@@ -26,7 +26,6 @@ public abstract class AbstractTransactionalQuery implements TransactionalQuery, 
     protected Integer fetchLimit;
     protected DataBaseInstance shard;
     protected final List<TransactionalQuery> relatedQueries = new ArrayList<>();
-    protected final List<TransactionalQuery> queryParts = new ArrayList<>();
     protected List<Integer> bindIndexes = new ArrayList<>();
 
     private long duration;
@@ -50,11 +49,6 @@ public abstract class AbstractTransactionalQuery implements TransactionalQuery, 
     @Override
     public void addRelatedQuery(TransactionalQuery query) {
         relatedQueries.add(query);
-    }
-
-    @Override
-    public void addQueryPart(TransactionalQuery query) {
-        queryParts.add(query);
     }
 
     @Override
@@ -170,12 +164,9 @@ public abstract class AbstractTransactionalQuery implements TransactionalQuery, 
         if (Objects.isNull(result)) {
             execute();
         }
-        if (!queryParts.isEmpty() || !relatedQueries.isEmpty()) {
+        if (!relatedQueries.isEmpty()) {
             ResultParallelQuery parallelResult = new ResultParallelQuery();
             parallelResult.add(result);
-            queryParts.stream()
-                    .map(TransactionalQuery::getResult)
-                    .forEach(parallelResult::add);
             relatedQueries.stream()
                     .map(TransactionalQuery::getResult)
                     .forEach(parallelResult::add);
@@ -208,13 +199,6 @@ public abstract class AbstractTransactionalQuery implements TransactionalQuery, 
             } else {
                 this.increment();
                 this.result = executeQuery();
-                queryParts.forEach(queryPart -> {
-                    try {
-                        queryPart.executeQuery();
-                    } catch (Exception err) {
-                        throw new ShardDataBaseException(err, this.shard);
-                    }
-                });
             }
             this.duration = System.currentTimeMillis() - this.duration;
         } catch (Exception err) {
@@ -257,7 +241,6 @@ public abstract class AbstractTransactionalQuery implements TransactionalQuery, 
         this.error = null;
         this.fetchLimit = null;
         this.relatedQueries.clear();
-        this.queryParts.clear();
     }
 
     @Override
@@ -274,7 +257,6 @@ public abstract class AbstractTransactionalQuery implements TransactionalQuery, 
     @Override
     public TransactionalQuery fetchLimit(Integer fetchLimit) {
         this.fetchLimit = fetchLimit;
-        queryParts.forEach(queryPart -> queryPart.fetchLimit(fetchLimit));
         relatedQueries.forEach(relatedQuery -> relatedQuery.fetchLimit(fetchLimit));
         return this;
     }
@@ -303,6 +285,17 @@ public abstract class AbstractTransactionalQuery implements TransactionalQuery, 
     @Override
     public void setBindIndexes(List<Integer> bindIndexes) {
         this.bindIndexes = bindIndexes;
+    }
+
+    @Override
+    public void cancel() throws Exception {
+        this.relatedQueries.forEach(query -> {
+            try {
+                query.cancel();
+            } catch (Exception e) {
+                throw new ShardDataBaseException(e);
+            }
+        });
     }
 
     protected void bindOriginal(int idx, String o, Class<?> clazz) throws Exception {

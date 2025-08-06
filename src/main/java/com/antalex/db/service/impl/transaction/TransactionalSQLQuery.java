@@ -201,10 +201,12 @@ public class TransactionalSQLQuery extends AbstractTransactionalQuery {
         }
     }
 
+    @Override
     public void cancel() throws ShardDataBaseException {
         try {
+            super.cancel();
             this.preparedStatement.cancel();
-        } catch (SQLException e) {
+        } catch (Exception e) {
             throw new ShardDataBaseException(e, this.shard);
         }
     }

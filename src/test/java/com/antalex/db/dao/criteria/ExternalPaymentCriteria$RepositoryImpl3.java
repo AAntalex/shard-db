@@ -1,10 +1,19 @@
 package com.antalex.db.dao.criteria;
 
+import com.antalex.db.dao.entity.ExternalPaymentEntity;
+import com.antalex.db.dao.entity.ExternalPaymentEntity$Interceptor;
+import com.antalex.db.dao.entity.PaymentEntity;
+import com.antalex.db.exception.ShardDataBaseException;
+import com.antalex.db.model.Cluster;
 import com.antalex.db.model.PredicateGroup;
 import com.antalex.db.model.criteria.*;
+import com.antalex.db.model.enums.QueryType;
 import com.antalex.db.model.enums.ShardType;
 import com.antalex.db.service.ShardDataBaseManager;
 import com.antalex.db.service.ShardEntityManager;
+import com.antalex.db.service.api.ResultQuery;
+import com.antalex.db.service.api.TransactionalQuery;
+import com.antalex.db.utils.Utils;
 import lombok.Data;
 import lombok.Getter;
 import org.apache.commons.lang3.StringUtils;
@@ -14,7 +23,11 @@ import org.springframework.stereotype.Component;
 
 import javax.persistence.criteria.JoinType;
 import java.util.*;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
+import java.util.concurrent.Future;
 import java.util.stream.IntStream;
+import java.util.stream.Stream;
 
 @Component
 public class ExternalPaymentCriteria$RepositoryImpl3  {
@@ -477,12 +490,65 @@ public class ExternalPaymentCriteria$RepositoryImpl3  {
         };
     }
 
+    private Long getId(ResultQuery result, Integer index) {
+        try {
+            return result.getLong(index);
+        } catch (Exception err) {
+            throw new ShardDataBaseException(err);
+        }
+    }
+
     private List<ExternalPaymentCriteria> get(
             CriteriaPart criteriaPart,
             List<ExternalPaymentCriteria> prevResult,
             String key,
-            Map<Long, List<ExternalPaymentCriteria>> resultByKey)
+            Map<Long, List<ExternalPaymentCriteria>> resultByKey,
+            Object... binds)
     {
-        return null;
+        ExecutorService executorService = Executors.newCachedThreadPool();
+        String sql = "";
+        Future<ExternalPaymentCriteria> future = executorService.submit(() -> {
+            ResultQuery result = entityManager
+                    .createQuery(ExternalPaymentEntity.class, sql, QueryType.SELECT)
+                    .bindAll(binds)
+                    .getResult();
+            try {
+                Map<Object[], ExternalPaymentCriteria> criteriaEntities = new HashMap<>();
+                while (result.next()) {
+                    int index = Long.bitCount(criteriaPart.aliasMask());
+                    Object[] ids = IntStream
+                            .rangeClosed(1, index)
+                            .mapToObj(idx -> getId(result, idx))
+                            .toArray();
+                    if (!criteriaEntities.containsKey(ids)) {
+                        ExternalPaymentCriteria entity = new ExternalPaymentCriteria();
+                        criteriaEntities.put(ids, entity);
+                        if ((criteriaPart.columns() & 1L) > 0) {
+                            entity.setNum(result.getInteger(++index));
+                        }
+                        if ((criteriaPart.columns() & 1L << 1) > 0) {
+                            entity.setSum(result.getBigDecimal(++index));
+                        }
+                    }
+
+
+
+
+                }
+            } catch (Exception err) {
+                throw new ShardDataBaseException(err);
+            }
+
+        });
+    }
+
+    private class CriteriaQueryThread {
+        private TransactionalQuery query;
+        private Future future;
+        private Stream cluster;
+        private Long aliasMask;
+        private String outerJoinKey;
+        private PredicateGroup predicateGroup;
+        private List<Pair<String, String>> joinColumns = new ArrayList<>();
     }
 }
