@@ -26,6 +26,7 @@ import java.util.*;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.Future;
+import java.util.stream.Collectors;
 import java.util.stream.IntStream;
 import java.util.stream.Stream;
 
@@ -506,7 +507,26 @@ public class ExternalPaymentCriteria$RepositoryImpl3  {
             Object... binds)
     {
         ExecutorService executorService = Executors.newCachedThreadPool();
-        String sql = "";
+
+        String sql = "SELECT " +
+                IntStream.range(0, ELEMENTS.size())
+                        .filter(idx -> (criteriaPart.aliasMask() & 1L << idx) > 0)
+                        .mapToObj(idx -> ELEMENTS.get(idx).tableAlias() + ".ID")
+                        .collect(Collectors.joining(",")) +
+                "," +
+                IntStream.range(0, COLUMNS.size())
+                        .filter(idx -> (criteriaPart.columns() & 1L << idx) > 0)
+                        .mapToObj(COLUMNS::get)
+                        .collect(Collectors.joining(",")) +
+                "," +
+
+
+                criteriaPart.joinColumns().stream()
+
+
+
+                ;
+
         Future<ExternalPaymentCriteria> future = executorService.submit(() -> {
             ResultQuery result = entityManager
                     .createQuery(ExternalPaymentEntity.class, sql, QueryType.SELECT)
