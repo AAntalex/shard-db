@@ -5,6 +5,7 @@ import com.antalex.db.dao.domain.ClientCategoryDomain;
 import com.antalex.db.dao.domain.ClientDomain;
 import com.antalex.db.dao.domain.PaymentDomain;
 import com.antalex.db.dao.model.Contract;
+import com.antalex.db.domain.abstraction.Domain;
 import com.antalex.db.model.dto.AttributeHistory;
 import com.antalex.db.service.impl.generators.ClientGenerator;
 import com.antalex.db.service.impl.generators.PaymentGenerator;
@@ -43,10 +44,27 @@ class MainTest extends BaseIntegrationTest {
     @Test
     @DisplayName("Проверка чтения данных")
     void findDataTest() {
-        clientGenerator.generate(1);
+        // Генерируем и сохраняем в БД сущности Оплат с полями домена
+        List<PaymentDomain> payments = paymentGenerator.generate(10000);
+        // Поиск домена Категории клиента в БД по условию
         ClientCategoryDomain category =
                 domainManager.find(ClientCategoryDomain.class, "${categoryCode}=?", "VIP");
         assertThat(category.description()).isEqualTo("VIP-клиент");
+        // Поиск всех доменов Оплат в БД по списку идентификаторов
+        List<Long> ids = payments.stream().map(Domain::getId).toList();
+        List<PaymentDomain> filteredPayments =
+                domainManager.findAllByIds(PaymentDomain.class, ids);
+        assertThat(filteredPayments.size()).isEqualTo(payments.size());
+        // Поиск всех доменов Оплат в БД по списку идентификаторов и условию
+        filteredPayments =
+                domainManager.findAllByIds(PaymentDomain.class, "${num} < ?", ids, 100);
+        assertThat(filteredPayments.size())
+                .isEqualTo(
+                        payments
+                                .stream()
+                                .filter(it -> it.num() < 100)
+                                .count()
+                );
     }
 
     @Test

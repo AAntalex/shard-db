@@ -504,6 +504,7 @@ public class ExternalPaymentCriteria$RepositoryImpl3  {
             List<ExternalPaymentCriteria> prevResult,
             String key,
             Map<Long, List<ExternalPaymentCriteria>> resultByKey,
+            List<Long> ids,
             Object... binds)
     {
         ExecutorService executorService = Executors.newCachedThreadPool();

@@ -277,7 +277,8 @@ public class AttributeHistoryRepository implements ShardEntityRepository<Attribu
     public List<AttributeHistoryEntity> findAll(
             Map<String, DataStorage> storageMap,
             List<Long> ids,
-            String condition)
+            String condition,
+            Object... binds)
     {
         List<AttributeHistoryEntity> result = new ArrayList<>();
         QueryQueue queue = dataBaseManager
@@ -286,7 +287,8 @@ public class AttributeHistoryRepository implements ShardEntityRepository<Attribu
                             " and " +
                             Optional.ofNullable(Utils.transformCondition(condition, FIELD_MAP))
                                     .orElse("x0.ID in (<IDS>)"),
-                    ids
+                    ids,
+                    binds
             );
         while (true) {
             if (

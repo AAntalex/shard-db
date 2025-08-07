@@ -9,3 +9,5 @@ databaseChangeLog:
       file: db/changelog/clusters/DEFAULT/app/classes/Payment/create.yml
   - include:
       file: db/changelog/clusters/DEFAULT/app/classes/ExternalPayment/create.yml
+  - include:
+      file: db/changelog/clusters/DEFAULT/app/classes/AccountStatement/create.yml

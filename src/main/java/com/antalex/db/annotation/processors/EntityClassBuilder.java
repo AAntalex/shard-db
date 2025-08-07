@@ -903,7 +903,8 @@ public class EntityClassBuilder {
                 "    public List<" + entityClassDto.getTargetClassName() + "> findAll(\n" +
                 "            Map<String, DataStorage> storageMap,\n" +
                 "            List<Long> ids,\n" +
-                "            String condition)\n" +
+                "            String condition,\n" +
+                "            Object... binds)\n" +
                 "    {\n" +
                 "        List<" + entityClassDto.getTargetClassName() + "> result = new ArrayList<>();\n" +
                 "        QueryQueue queue = dataBaseManager\n" +
@@ -912,7 +913,8 @@ public class EntityClassBuilder {
                 "                                \" and \" +\n" +
                 "                                Optional.ofNullable(Utils.transformCondition(condition, FIELD_MAP))\n" +
                 "                                        .orElse(\"x0.ID in (<IDS>)\"),\n" +
-                "                        ids\n" +
+                "                    ids,\n" +
+                "                    binds\n" +
                 "                );\n" +
                 "        while (true) {\n" +
                 "            if (\n" +

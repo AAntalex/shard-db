@@ -16,7 +16,7 @@ import java.util.Date;
 @EqualsAndHashCode(callSuper = true)
 @Table(name = "T_PAYMENT",
        indexes = {
-               @Index(columnList = "date,num,sum"),
+               @Index(columnList = "date,num,sum", unique = true),
                @Index(columnList = "dateProv")
         })
 @Data

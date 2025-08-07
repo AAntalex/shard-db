@@ -400,19 +400,26 @@ public class ShardDatabaseManagerImpl implements ShardDataBaseManager {
     }
 
     @Override
-    public QueryQueue createQueryQueueByIds(String query, List<Long> ids) {
+    public QueryQueue createQueryQueueByIds(String query, List<Long> ids, Object... binds) {
         if (!query.contains("<IDS>")) {
             throw new ShardDataBaseException("В запросе отсутствует обязательный параметр <IDS>!");
         }
-        return new TransactionalQueryQueue(query, ids);
+        String endQuery = query.substring(query.indexOf("<IDS>") + 5);
+        if (endQuery.contains("?") || endQuery.contains("{:")) {
+            throw new ShardDataBaseException(
+                    "Условия использующие связанные переменные в запросе должны предшествовать условиям с <IDS>");
+        }
+        return new TransactionalQueryQueue(query, ids, binds);
     }
 
     private class TransactionalQueryQueue implements QueryQueue {
         private Map<Integer, List<List<Long>>> chunkIds;
         private final String query;
+        private final Object[] binds;
 
-        TransactionalQueryQueue(String query, List<Long> ids) {
+        TransactionalQueryQueue(String query, List<Long> ids, Object... binds) {
             this.query = query;
+            this.binds = binds;
             this.chunkIds = groupIds(ids)
                     .entrySet()
                     .stream()
@@ -456,6 +463,7 @@ public class ShardDatabaseManagerImpl implements ShardDataBaseManager {
                                                 QueryType.SELECT,
                                                 null
                                         )
+                                        .bindAll(binds)
                                         .bindAll(idLists.toArray());
                         currentTaskQueries.add(task.getTaskUuid());
                         if (mainQuery == null) {

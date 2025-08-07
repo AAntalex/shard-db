@@ -88,7 +88,8 @@ public interface ShardEntityManager {
             Class<T> clazz,
             Map<String, DataStorage> storageMap,
             String condition,
-            List<Long> ids);
+            List<Long> ids,
+            Object... binds);
     <T extends ShardInstance> List<T> skipLocked(
             Class<T> clazz,
             Integer limit,
@@ -150,8 +151,13 @@ public interface ShardEntityManager {
         return findAllLimit(clazz, (Map<String, DataStorage>) null, null, null);
     }
 
-    default  <T extends ShardInstance> List<T> findAllByIds(Class<T> clazz, String condition, List<Long> ids) {
-        return findAllByIds(clazz, null, condition, ids);
+    default  <T extends ShardInstance> List<T> findAllByIds(
+            Class<T> clazz,
+            String condition,
+            List<Long> ids,
+            Object... binds
+    ) {
+        return findAllByIds(clazz, null, condition, ids, binds);
     }
 
     default  <T extends ShardInstance> List<T> findAllByIds(Class<T> clazz,
@@ -162,7 +168,7 @@ public interface ShardEntityManager {
     }
 
     default  <T extends ShardInstance> List<T> findAllByIds(Class<T> clazz, List<Long> ids) {
-        return findAllByIds(clazz, null, null, ids);
+        return findAllByIds(clazz, null, (String) null, ids);
     }
 
     default <T extends ShardInstance> List<T> skipLocked(

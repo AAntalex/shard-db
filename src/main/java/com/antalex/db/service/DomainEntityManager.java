@@ -20,7 +20,7 @@ public interface DomainEntityManager {
     <T extends Domain> T find(Class<T> clazz, Long id);
     <T extends Domain> T find(Class<T> clazz, String condition, Object... binds);
     <T extends Domain> List<T> findAllLimit(Class<T> clazz, Integer limit, String condition, Object... binds);
-    <T extends Domain> List<T> findAllByIds(Class<T> clazz, String condition, List<Long> ids);
+    <T extends Domain> List<T> findAllByIds(Class<T> clazz, String condition, List<Long> ids, Object... binds);
     <T extends Domain> List<T> skipLocked(Class<T> clazz, Integer limit, String condition, Object... binds);
     <T extends Domain> Map<String, String> getFieldMap(Class<T> clazz);
     <T extends Domain> Cluster getCluster(Class<T> clazz);

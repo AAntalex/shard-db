@@ -41,5 +41,5 @@ public interface ShardDataBaseManager {
     void saveTransactionInfo();
     TransactionalQuery createQuery(DataBaseInstance shard, String query, QueryType queryType);
     DataBaseInstance getNextShard(Cluster cluster);
-    QueryQueue createQueryQueueByIds(String query, List<Long> ids);
+    QueryQueue createQueryQueueByIds(String query, List<Long> ids, Object... binds);
 }

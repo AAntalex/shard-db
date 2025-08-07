@@ -105,7 +105,7 @@ public class DomainEntityManagerImpl implements DomainEntityManager {
     }
 
     @Override
-    public <T extends Domain> List<T> findAllByIds(Class<T> clazz, String condition, List<Long> ids) {
+    public <T extends Domain> List<T> findAllByIds(Class<T> clazz, String condition, List<Long> ids, Object... binds) {
         Mapper mapper = getMapper(clazz);
         return sharedTransactionManager.runInTransaction(() -> mapAllToDomains(
                 clazz,
@@ -113,7 +113,8 @@ public class DomainEntityManagerImpl implements DomainEntityManager {
                         mapper.entityClass,
                         mapper.domainEntityMapper.getDataStorage(),
                         Utils.transformCondition(condition, mapper.domainEntityMapper.getFieldMap()),
-                        ids
+                        ids,
+                        binds
                 )
         ));
     }

@@ -83,27 +83,33 @@ public abstract class AbstractTransactionalQuery implements TransactionalQuery, 
 
     @Override
     public TransactionalQuery bindAll(Object... objects) {
-        if (!bindIndexes.isEmpty()) {
-            IntStream.range(0, bindIndexes.size())
-                            .forEach(idx -> bind(idx + 1, objects[idx]));
-        } else {
-            for (int i = 0; i < objects.length; i++) {
+        if (bindIndexes.isEmpty()) {
+            for (int i = this.currentIndex; i < objects.length + this.currentIndex; i++) {
                 bind(i+1, objects[i]);
             }
+            this.currentIndex = this.currentIndex + objects.length;
+        } else {
+            IntStream.range(0, bindIndexes.size())
+                    .forEach(idx -> bind(idx + 1, objects[idx]));
+            this.currentIndex = bindIndexes.size();
+            this.bindIndexes.clear();
         }
         return this;
     }
 
     @Override
     public TransactionalQuery bindAll(List<String> binds, List<Class<?>> types) {
-        if (!bindIndexes.isEmpty()) {
-            IntStream.range(0, bindIndexes.size())
-                    .forEach(idx -> bind(idx + 1, binds.get(idx), types.get(idx)));
-        } else {
-            IntStream.range(0, binds.size())
+        if (bindIndexes.isEmpty()) {
+            IntStream.range(this.currentIndex, binds.size() + this.currentIndex)
                     .forEach(idx ->
                             bind(idx + 1, binds.get(idx), types.get(idx))
                     );
+            this.currentIndex = this.currentIndex + binds.size();
+        } else {
+            IntStream.range(0, bindIndexes.size())
+                    .forEach(idx -> bind(idx + 1, binds.get(idx), types.get(idx)));
+            this.currentIndex = bindIndexes.size();
+            this.bindIndexes.clear();
         }
         return this;
     }

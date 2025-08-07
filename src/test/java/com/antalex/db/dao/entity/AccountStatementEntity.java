@@ -8,30 +8,29 @@ import lombok.Data;
 import lombok.EqualsAndHashCode;
 import lombok.experimental.Accessors;
 
-import javax.persistence.*;
+import javax.persistence.Index;
+import javax.persistence.JoinColumn;
+import javax.persistence.OneToOne;
+import javax.persistence.Table;
 import java.math.BigDecimal;
 import java.time.OffsetDateTime;
-import java.util.ArrayList;
-import java.util.List;
 
 @EqualsAndHashCode(callSuper = true)
-@Table(name = "T_ACCOUNT",
-       indexes = {
-               @Index(columnList = "code"),
-               @Index(columnList = "dateOpen")
+@Table(indexes = {
+               @Index(name = "IDX_ACCOUNT_STATEMENT_ACCOUNT_DATE", columnList = "account,date"),
+               @Index(columnList = "payment")
         })
 @Data
 @Accessors(chain = true, fluent = true)
 @ShardEntity(type = ShardType.SHARDABLE)
-public class AccountEntity extends BaseShardEntity {
-    private String code;
+public class AccountStatementEntity extends BaseShardEntity {
+    @OneToOne
+    @JoinColumn
+    private AccountEntity account;
     @ParentShard
     @OneToOne
     @JoinColumn
-    private ClientEntity client;
-    private BigDecimal balance;
-    private OffsetDateTime dateOpen;
-    @OneToMany(fetch = FetchType.EAGER)
-    @JoinColumn(name = "C_ACCOUNT")
-    private List<AccountStatementEntity> statements = new ArrayList<>();
+    private PaymentEntity payment;
+    private BigDecimal sum;
+    private OffsetDateTime date;
 }

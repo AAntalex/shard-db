@@ -221,7 +221,8 @@ public class AttributeStorageRepository implements ShardEntityRepository<Attribu
     public List<AttributeStorage> findAll(
             Map<String, DataStorage> storageMap,
             List<Long> ids,
-            String condition)
+            String condition,
+            Object... binds)
     {
         List<AttributeStorage> result = new ArrayList<>();
         QueryQueue queue = dataBaseManager
@@ -230,7 +231,8 @@ public class AttributeStorageRepository implements ShardEntityRepository<Attribu
                                 " and " +
                                 Optional.ofNullable(Utils.transformCondition(condition, FIELD_MAP))
                                         .orElse("x0.ID in (<IDS>)"),
-                        ids
+                        ids,
+                        binds
                 );
         while (true) {
             if (

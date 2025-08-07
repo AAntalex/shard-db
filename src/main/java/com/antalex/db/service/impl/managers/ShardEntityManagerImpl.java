@@ -516,11 +516,12 @@ public class ShardEntityManagerImpl implements ShardEntityManager {
             Class<T> clazz,
             Map<String, DataStorage> storageMap,
             String condition,
-            List<Long> ids)
+            List<Long> ids,
+            Object... binds)
     {
         return sharedTransactionManager.runInTransaction(() -> {
             ShardEntityRepository<T> repository = getEntityRepository(clazz);
-            return repository.findAll(storageMap, ids, condition);
+            return repository.findAll(storageMap, ids, condition, binds);
         });
     }
 
