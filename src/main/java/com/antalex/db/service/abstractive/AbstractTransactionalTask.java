@@ -21,7 +21,7 @@ public abstract class AbstractTransactionalTask implements TransactionalTask {
     protected ExecutorService executorService;
     protected String name;
     protected String errorCompletion;
-    protected Future future;
+    protected Future<?> future;
     protected TaskStatus status = TaskStatus.CREATED;
     protected DataBaseInstance shard;
     protected boolean parallelRun;

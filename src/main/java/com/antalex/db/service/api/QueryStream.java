@@ -1,5 +1,5 @@
 package com.antalex.db.service.api;
 
-public interface QueryQueue {
+public interface QueryStream {
     TransactionalQuery get();
 }

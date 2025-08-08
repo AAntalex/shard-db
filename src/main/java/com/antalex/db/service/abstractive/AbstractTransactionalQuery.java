@@ -17,6 +17,7 @@ import java.util.Optional;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Future;
 import java.util.stream.IntStream;
+import java.util.stream.Stream;
 
 @Slf4j
 public abstract class AbstractTransactionalQuery implements TransactionalQuery, Runnable {
@@ -41,7 +42,7 @@ public abstract class AbstractTransactionalQuery implements TransactionalQuery, 
 
     @Data
     private static class RunInfo {
-        private Future future;
+        private Future<?> future;
         private String error;
         private String name;
     }
@@ -84,14 +85,9 @@ public abstract class AbstractTransactionalQuery implements TransactionalQuery, 
     @Override
     public TransactionalQuery bindAll(Object... objects) {
         if (bindIndexes.isEmpty()) {
-            for (int i = this.currentIndex; i < objects.length + this.currentIndex; i++) {
-                bind(i+1, objects[i]);
-            }
-            this.currentIndex = this.currentIndex + objects.length;
+            Stream.of(objects).forEach(this::bind);
         } else {
-            IntStream.range(0, bindIndexes.size())
-                    .forEach(idx -> bind(idx + 1, objects[idx]));
-            this.currentIndex = bindIndexes.size();
+            bindIndexes.forEach(idx -> bind(objects[idx]));
             this.bindIndexes.clear();
         }
         return this;
@@ -100,15 +96,11 @@ public abstract class AbstractTransactionalQuery implements TransactionalQuery, 
     @Override
     public TransactionalQuery bindAll(List<String> binds, List<Class<?>> types) {
         if (bindIndexes.isEmpty()) {
-            IntStream.range(this.currentIndex, binds.size() + this.currentIndex)
-                    .forEach(idx ->
-                            bind(idx + 1, binds.get(idx), types.get(idx))
-                    );
-            this.currentIndex = this.currentIndex + binds.size();
+            IntStream
+                    .range(0, binds.size())
+                    .forEach(idx -> bind(binds.get(idx), types.get(idx)));
         } else {
-            IntStream.range(0, bindIndexes.size())
-                    .forEach(idx -> bind(idx + 1, binds.get(idx), types.get(idx)));
-            this.currentIndex = bindIndexes.size();
+            bindIndexes.forEach(idx -> bind(binds.get(idx), types.get(idx)));
             this.bindIndexes.clear();
         }
         return this;
@@ -124,6 +116,11 @@ public abstract class AbstractTransactionalQuery implements TransactionalQuery, 
             throw new ShardDataBaseException(err, this.shard);
         }
         return this;
+    }
+
+    @Override
+    public TransactionalQuery bind(String o, Class<?> clazz) {
+        return bind(this.currentIndex + 1, o, clazz);
     }
 
     @Override

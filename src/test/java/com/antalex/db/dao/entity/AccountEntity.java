@@ -31,7 +31,7 @@ public class AccountEntity extends BaseShardEntity {
     private ClientEntity client;
     private BigDecimal balance;
     private OffsetDateTime dateOpen;
-    @OneToMany(fetch = FetchType.EAGER)
+    @OneToMany
     @JoinColumn(name = "C_ACCOUNT")
     private List<AccountStatementEntity> statements = new ArrayList<>();
 }

@@ -2,7 +2,7 @@ package com.antalex.db.service.impl.repository;
 
 import com.antalex.db.model.StorageContext;
 import com.antalex.db.service.ShardDataBaseManager;
-import com.antalex.db.service.api.QueryQueue;
+import com.antalex.db.service.api.QueryStream;
 import com.antalex.db.service.api.TransactionalQuery;
 import com.google.common.collect.ImmutableMap;
 import org.apache.commons.lang3.StringUtils;
@@ -281,8 +281,8 @@ public class AttributeHistoryRepository implements ShardEntityRepository<Attribu
             Object... binds)
     {
         List<AttributeHistoryEntity> result = new ArrayList<>();
-        QueryQueue queue = dataBaseManager
-            .createQueryQueueByIds(
+        QueryStream queue = dataBaseManager
+            .createQueryStreamByIds(
                     SELECT_QUERY +
                             " and " +
                             Optional.ofNullable(Utils.transformCondition(condition, FIELD_MAP))

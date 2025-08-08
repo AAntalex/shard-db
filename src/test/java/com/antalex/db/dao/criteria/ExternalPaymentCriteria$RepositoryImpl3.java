@@ -1,8 +1,6 @@
 package com.antalex.db.dao.criteria;
 
 import com.antalex.db.dao.entity.ExternalPaymentEntity;
-import com.antalex.db.dao.entity.ExternalPaymentEntity$Interceptor;
-import com.antalex.db.dao.entity.PaymentEntity;
 import com.antalex.db.exception.ShardDataBaseException;
 import com.antalex.db.model.Cluster;
 import com.antalex.db.model.PredicateGroup;
@@ -13,7 +11,6 @@ import com.antalex.db.service.ShardDataBaseManager;
 import com.antalex.db.service.ShardEntityManager;
 import com.antalex.db.service.api.ResultQuery;
 import com.antalex.db.service.api.TransactionalQuery;
-import com.antalex.db.utils.Utils;
 import lombok.Data;
 import lombok.Getter;
 import org.apache.commons.lang3.StringUtils;
@@ -528,7 +525,7 @@ public class ExternalPaymentCriteria$RepositoryImpl3  {
 
                 ;
 
-        Future<ExternalPaymentCriteria> future = executorService.submit(() -> {
+        Future<?> future = executorService.submit(() -> {
             ResultQuery result = entityManager
                     .createQuery(ExternalPaymentEntity.class, sql, QueryType.SELECT)
                     .bindAll(binds)
@@ -537,13 +534,13 @@ public class ExternalPaymentCriteria$RepositoryImpl3  {
                 Map<Object[], ExternalPaymentCriteria> criteriaEntities = new HashMap<>();
                 while (result.next()) {
                     int index = Long.bitCount(criteriaPart.aliasMask());
-                    Object[] ids = IntStream
+                    Object[] keyIds = IntStream
                             .rangeClosed(1, index)
                             .mapToObj(idx -> getId(result, idx))
                             .toArray();
-                    if (!criteriaEntities.containsKey(ids)) {
+                    if (!criteriaEntities.containsKey(keyIds)) {
                         ExternalPaymentCriteria entity = new ExternalPaymentCriteria();
-                        criteriaEntities.put(ids, entity);
+                        criteriaEntities.put(keyIds, entity);
                         if ((criteriaPart.columns() & 1L) > 0) {
                             entity.setNum(result.getInteger(++index));
                         }
@@ -559,17 +556,18 @@ public class ExternalPaymentCriteria$RepositoryImpl3  {
             } catch (Exception err) {
                 throw new ShardDataBaseException(err);
             }
-
         });
+
+        return null;
     }
 
     private class CriteriaQueryThread {
         private TransactionalQuery query;
-        private Future future;
-        private Stream cluster;
+        private Future<?> future;
+        private Cluster cluster;
         private Long aliasMask;
         private String outerJoinKey;
         private PredicateGroup predicateGroup;
-        private List<Pair<String, String>> joinColumns = new ArrayList<>();
+        private final List<Pair<String, String>> joinColumns = new ArrayList<>();
     }
 }

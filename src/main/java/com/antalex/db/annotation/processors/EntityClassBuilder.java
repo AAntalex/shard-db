@@ -1,7 +1,7 @@
 package com.antalex.db.annotation.processors;
 
 import com.antalex.db.exception.ShardDataBaseException;
-import com.antalex.db.service.api.QueryQueue;
+import com.antalex.db.service.api.QueryStream;
 import com.antalex.db.service.api.TransactionalQuery;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.Lists;
@@ -393,7 +393,7 @@ public class EntityClassBuilder {
                                             Utils.class.getCanonicalName(),
                                             Collectors.class.getCanonicalName(),
                                             Lists.class.getCanonicalName(),
-                                            QueryQueue.class.getCanonicalName(),
+                                            QueryStream.class.getCanonicalName(),
                                             TransactionalQuery.class.getCanonicalName(),
                                             Collections.class.getCanonicalName(),
                                             ShardDataBaseException.class.getCanonicalName()
@@ -762,7 +762,7 @@ public class EntityClassBuilder {
                                     fromPrefix
                                             .append(" LEFT OUTER JOIN $$$.APP_ATTRIBUTE_STORAGE s").append(idx)
                                             .append(" ON s").append(idx)
-                                            .append(".C_ENTITY_ID=x0.ID and s").append(idx)
+                                            .append(".C_ENTITY_ID=x0.ID AND s").append(idx)
                                             .append(".C_STORAGE_NAME='").append(dataStorage.getName()).\
                 append("'");
                                 }
@@ -819,7 +819,7 @@ public class EntityClassBuilder {
                 "            ResultQuery result = entityManager\n" +
                 "                    .createQuery(\n" +
                 "                            entity,\n" +
-                "                            getSelectQuery(storageMap) + \" and x0.ID=?\",\n" +
+                "                            getSelectQuery(storageMap) + \" AND x0.ID=?\",\n" +
                 "                            QueryType.SELECT,\n" +
                 "                            QueryStrategy.OWN_SHARD\n" +
                 "                    )\n" +
@@ -849,7 +849,7 @@ public class EntityClassBuilder {
                 "                            getSelectQuery(storageMap) +\n" +
                 "                                    Optional.ofNullable(Utils.transformCondition(condition, " +
                 "FIELD_MAP))\n" +
-                "                                            .map(it -> \" and \" + it)\n" +
+                "                                            .map(it -> \" AND \" + it)\n" +
                 "                                            .orElse(StringUtils.EMPTY),\n" +
                 "                            QueryType.SELECT\n" +
                 "                    )\n" +
@@ -886,7 +886,7 @@ public class EntityClassBuilder {
                 "                                " + entityClassDto.getTargetClassName() + ".class, \n" +
                 "                                getSelectQuery(storageMap) +\n" +
                 "                                        Optional.ofNullable(Utils.transformCondition(condition, FIELD_MAP))\n" +
-                "                                                .map(it -> \" and \" + it)\n" +
+                "                                                .map(it -> \" AND \" + it)\n" +
                 "                                                .orElse(StringUtils.EMPTY),\n" +
                 "                                QueryType.SELECT\n" +
                 "                        )\n" +
@@ -907,12 +907,14 @@ public class EntityClassBuilder {
                 "            Object... binds)\n" +
                 "    {\n" +
                 "        List<" + entityClassDto.getTargetClassName() + "> result = new ArrayList<>();\n" +
-                "        QueryQueue queue = dataBaseManager\n" +
-                "                .createQueryQueueByIds(\n" +
+                "        QueryStream queryStream = dataBaseManager\n" +
+                "                .createQueryStreamByIds(\n" +
                 "                        getSelectQuery(storageMap) +\n" +
-                "                                \" and \" +\n" +
+                "                                \" AND \" +\n" +
                 "                                Optional.ofNullable(Utils.transformCondition(condition, FIELD_MAP))\n" +
-                "                                        .orElse(\"x0.ID in (<IDS>)\"),\n" +
+                "                                        .map(c -> condition.contains(\"<IDS>\") ? c : c + " +
+                "\" AND x0.ID IN (<IDS>)\")" +
+                "                                        .orElse(\"x0.ID IN (<IDS>)\"),\n" +
                 "                    ids,\n" +
                 "                    binds\n" +
                 "                );\n" +
@@ -920,7 +922,7 @@ public class EntityClassBuilder {
                 "            if (\n" +
                 "                    !result.addAll(\n" +
                 "                            Optional\n" +
-                "                                    .ofNullable(queue.get())\n" +
+                "                                    .ofNullable(queryStream.get())\n" +
                 "                                    .map(TransactionalQuery::getResult)\n" +
                 "                                    .map(it -> findAll(it, storageMap))\n" +
                 "                                    .orElse(Collections.emptyList())\n" +
@@ -943,7 +945,7 @@ public class EntityClassBuilder {
                 "                                " + entityClassDto.getTargetClassName() + ".class,\n" +
                 "                                getSelectQuery(null) +\n" +
                 "                                        Optional.ofNullable(Utils.transformCondition(condition, FIELD_MAP))\n" +
-                "                                                .map(it -> \" and \" + it)\n" +
+                "                                                .map(it -> \" AND \" + it)\n" +
                 "                                                .orElse(StringUtils.EMPTY) +\n" +
                 "                                \" FOR UPDATE SKIP LOCKED\",\n" +
                 "                                QueryType.LOCK\n" +
@@ -966,7 +968,7 @@ public class EntityClassBuilder {
                 "            Object... binds)\n" +
                 "    {\n" +
                 "        if (parent.getStorageContext().getCluster() != this.cluster) {\n" +
-                "            return findAll(storageMap, null, condition, binds);\n" +
+                "            return findAll(storageMap, (Integer) null, condition, binds);\n" +
                 "        }\n" +
                 "        return findAll(\n" +
                 "                entityManager\n" +
@@ -974,7 +976,7 @@ public class EntityClassBuilder {
                 "                                parent,\n" +
                 "                                getSelectQuery(storageMap) +\n" +
                 "                                        Optional.ofNullable(Utils.transformCondition(condition, FIELD_MAP))\n" +
-                "                                                .map(it -> \" and \" + it)\n" +
+                "                                                .map(it -> \" AND \" + it)\n" +
                 "                                                .orElse(StringUtils.EMPTY),\n" +
                 "                                QueryType.SELECT\n" +
                 "                        )\n" +
@@ -1030,7 +1032,7 @@ public class EntityClassBuilder {
                         "                                " + ProcessorUtils.getFinalType(field.getElement()) +
                         ".class,\n" +
                         "                                storageMap,\n" +
-                        "                                \"x0.C_B_REF in (<IDS>)\",\n" +
+                        "                                \"x0.C_B_REF IN (<IDS>)\",\n" +
                         "                                entities\n" +
                         "                                        .stream()\n" +
                         "                                        .map(ShardInstance::getId)\n" +

@@ -10,6 +10,7 @@ import java.util.concurrent.ExecutorService;
 public interface TransactionalQuery {
     TransactionalQuery bind(Object o, boolean skip);
     TransactionalQuery bind(int index, Object o);
+    TransactionalQuery bind(String o, Class<?> clazz);
     TransactionalQuery bind(int index, String o, Class<?> clazz);
     TransactionalQuery bindAll(Object... objects);
     TransactionalQuery bindAll(List<String> binds, List<Class<?>> types);
