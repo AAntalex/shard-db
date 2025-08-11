@@ -281,7 +281,7 @@ public class AttributeHistoryRepository implements ShardEntityRepository<Attribu
             Object... binds)
     {
         List<AttributeHistoryEntity> result = new ArrayList<>();
-        QueryStream queue = dataBaseManager
+        QueryStream queryStream = dataBaseManager
             .createQueryStreamByIds(
                     SELECT_QUERY +
                             " and " +
@@ -294,7 +294,7 @@ public class AttributeHistoryRepository implements ShardEntityRepository<Attribu
             if (
                     !result.addAll(
                     Optional
-                            .ofNullable(queue.get())
+                            .ofNullable(queryStream.get())
                             .map(TransactionalQuery::getResult)
                             .map(this::findAll)
                             .orElse(Collections.emptyList())

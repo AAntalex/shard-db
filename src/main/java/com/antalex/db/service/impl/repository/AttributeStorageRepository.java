@@ -225,7 +225,7 @@ public class AttributeStorageRepository implements ShardEntityRepository<Attribu
             Object... binds)
     {
         List<AttributeStorage> result = new ArrayList<>();
-        QueryStream queue = dataBaseManager
+        QueryStream querySream = dataBaseManager
                 .createQueryStreamByIds(
                         SELECT_QUERY +
                                 " and " +
@@ -238,7 +238,7 @@ public class AttributeStorageRepository implements ShardEntityRepository<Attribu
             if (
                     !result.addAll(
                             Optional
-                                    .ofNullable(queue.get())
+                                    .ofNullable(querySream.get())
                                     .map(TransactionalQuery::getResult)
                                     .map(this::findAll)
                                     .orElse(Collections.emptyList())

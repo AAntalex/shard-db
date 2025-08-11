@@ -32,11 +32,12 @@ class MainTest extends BaseIntegrationTest {
     @Test
     @DisplayName("Проверка создания данных")
     void createDataTest() {
+        // Генерируем и сохраняем в БД сущности Оплат с полями домена
         List<PaymentDomain> payments = paymentGenerator.generate(10000);
         assertThat(payments)
                 .isNotNull()
                 .hasSize(10000);
-
+        // Поиск всех доменов Оплат в БД
         payments = domainManager.findAll(PaymentDomain.class);
         assertThat(payments.size()).isEqualTo(10000);
     }
