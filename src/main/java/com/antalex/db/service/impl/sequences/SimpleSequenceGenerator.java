@@ -8,14 +8,6 @@ public class SimpleSequenceGenerator extends AbstractSequenceGenerator {
         this.maxValue = maxValue;
     }
 
-    SimpleSequenceGenerator(Long minValue) {
-        this.minValue = minValue;
-    }
-
-    SimpleSequenceGenerator() {
-        this.minValue = 0L;
-    }
-
     @Override
     public void init() {
         this.value = this.minValue;

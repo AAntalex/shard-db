@@ -6,6 +6,13 @@ import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 
+import java.util.List;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
+import java.util.concurrent.Future;
+import java.util.concurrent.TimeUnit;
+import java.util.stream.IntStream;
+
 class SqlConditionParserTest {
     @Test
     @DisplayName("Тест упрощения логического SQL-выражения")
@@ -81,5 +88,44 @@ class SqlConditionParserTest {
                         "NOT A3.C_DATE<{:3} AND A1.ID=A2.ID)",
                 parser.toString(parser.simplifying(expression))
         );
+    }
+
+    @Test
+    void futureTest() {
+        System.out.println("START id = " + Thread.currentThread().getId());
+        ExecutorService executorService = Executors.newCachedThreadPool();
+        Future<?> future = executorService.submit(() -> {
+            try {
+                System.out.println("RUN MAIN THREAD id = " + Thread.currentThread().getId());
+                Thread.sleep(10000L);
+                System.out.println("FINISH THREAD id = " + Thread.currentThread().getId());
+            } catch (Exception err) {
+                throw new RuntimeException(err);
+            }
+        });
+
+        List<Future> futures = IntStream
+                .range(0, 5)
+                .mapToObj(idx ->
+                        (Future) executorService.submit(() -> {
+                            try {
+                                System.out.println("RUN THREAD " + idx + " id = " + Thread.currentThread().getId());
+                                future.get(15, TimeUnit.SECONDS);
+                                System.out.println("FINISH THREAD " + idx + " id = " + Thread.currentThread().getId());
+                            } catch (Exception err) {
+                                throw new RuntimeException(err);
+                            }
+                        })
+                )
+                .toList();
+
+        try {
+            futures.get(0).get(30, TimeUnit.SECONDS);
+        } catch (Exception err) {
+            throw new RuntimeException(err);
+        }
+
+
+        System.out.println("FINISH id = " + Thread.currentThread().getId());
     }
 }
