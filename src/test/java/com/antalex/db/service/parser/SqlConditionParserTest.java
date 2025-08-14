@@ -6,6 +6,7 @@ import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 
+import java.util.ArrayList;
 import java.util.List;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
@@ -94,24 +95,37 @@ class SqlConditionParserTest {
     void futureTest() {
         System.out.println("START id = " + Thread.currentThread().getId());
         ExecutorService executorService = Executors.newCachedThreadPool();
-        Future<?> future = executorService.submit(() -> {
+        Future<List<List<String>>> future = executorService.submit(() -> {
             try {
                 System.out.println("RUN MAIN THREAD id = " + Thread.currentThread().getId());
                 Thread.sleep(10000L);
                 System.out.println("FINISH THREAD id = " + Thread.currentThread().getId());
+                List<List<String>> result = new ArrayList<>();
+                List<String> stringList = new ArrayList<>();
+                stringList.add("Main Thread");
+                stringList.add("Thread id = " + Thread.currentThread().getId());
+                result.add(stringList);
+                return result;
             } catch (Exception err) {
                 throw new RuntimeException(err);
             }
         });
 
-        List<Future> futures = IntStream
+        List<Future<List<List<String>>>> futures = IntStream
                 .range(0, 5)
                 .mapToObj(idx ->
-                        (Future) executorService.submit(() -> {
+                        executorService.submit(() -> {
                             try {
                                 System.out.println("RUN THREAD " + idx + " id = " + Thread.currentThread().getId());
-                                future.get(15, TimeUnit.SECONDS);
+                                List<List<String>> result = future.get(15, TimeUnit.SECONDS);
                                 System.out.println("FINISH THREAD " + idx + " id = " + Thread.currentThread().getId());
+
+                                List<String> stringList = new ArrayList<>();
+                                stringList.add("Thread " + idx);
+                                stringList.add("Thread id = " + Thread.currentThread().getId());
+                                result.add(stringList);
+
+                                return result;
                             } catch (Exception err) {
                                 throw new RuntimeException(err);
                             }
@@ -120,11 +134,23 @@ class SqlConditionParserTest {
                 .toList();
 
         try {
-            futures.get(0).get(30, TimeUnit.SECONDS);
+            Future<List<List<String>>> tmpFuture = futures.get(0);
+            System.out.println("Start get1!");
+            List<List<String>> result = tmpFuture.get(30, TimeUnit.SECONDS);
+            System.out.println("Stop get1! result = " + result);
         } catch (Exception err) {
             throw new RuntimeException(err);
         }
 
+        try {
+            Thread.sleep(1000L);
+            Future<List<List<String>>> tmpFuture = futures.get(0);
+            System.out.println("Start get2!");
+            List<List<String>> result = tmpFuture.get(30, TimeUnit.SECONDS);
+            System.out.println("Stop get2! result = " + result);
+        } catch (Exception err) {
+            throw new RuntimeException(err);
+        }
 
         System.out.println("FINISH id = " + Thread.currentThread().getId());
     }
