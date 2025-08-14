@@ -152,6 +152,8 @@ class SqlConditionParserTest {
             throw new RuntimeException(err);
         }
 
+
+
         System.out.println("FINISH id = " + Thread.currentThread().getId());
     }
 }
