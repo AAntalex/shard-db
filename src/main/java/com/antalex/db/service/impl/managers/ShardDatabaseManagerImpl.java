@@ -11,6 +11,7 @@ import com.antalex.db.service.impl.sequences.SimpleSequenceGenerator;
 import com.antalex.db.utils.ShardUtils;
 import com.google.common.collect.Lists;
 import com.google.common.util.concurrent.ThreadFactoryBuilder;
+import org.apache.commons.lang3.tuple.Triple;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.web.reactive.function.client.WebClient;
 import com.antalex.db.exception.ShardDataBaseException;
@@ -88,6 +89,7 @@ public class ShardDatabaseManagerImpl implements ShardDataBaseManager {
     private final Map<String, Map<Integer, SequenceGenerator>> sequences = new HashMap<>();
     private final Map<Integer, DataBaseInstance> shards = new HashMap<>();
     private final List<ImmutablePair<Cluster, DataBaseInstance>> newShards = new ArrayList<>();
+    private final Map<Integer, QueryQueue> queryQueueMap = new ConcurrentHashMap<>();
 
     private String changLogPath;
     private String changLogName;
@@ -298,17 +300,6 @@ public class ShardDatabaseManagerImpl implements ShardDataBaseManager {
     }
 
     @Override
-    public Connection getConnection(Short clusterId, Short shardId) throws SQLException {
-        return getConnection(
-                Optional.ofNullable(clusterId)
-                        .map(clusterIds::get)
-                        .map(Cluster::getShards)
-                        .map(it -> it.get(shardId))
-                        .orElse(null)
-        );
-    }
-
-    @Override
     public StorageContext getStorageContext(Long id) {
         if (id == null) {
             throw new ShardDataBaseException("Не указан идентификатор сущности");
@@ -442,6 +433,16 @@ public class ShardDatabaseManagerImpl implements ShardDataBaseManager {
     @Override
     public TransactionalQuery createQuery(Cluster cluster, String query, QueryType queryType) {
         return getMainQuery(createQueries(cluster, query, queryType));
+    }
+
+    @Override
+    public QueryQueue getQueryQueue(Cluster cluster, String query, Object... objects) {
+        int key = Triple.of(cluster.getId(), query, objects).hashCode();
+
+
+
+
+        return null;
     }
 
     private class TransactionalQueryStream implements QueryStream {
