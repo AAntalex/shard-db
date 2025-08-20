@@ -439,6 +439,10 @@ public class ShardDatabaseManagerImpl implements ShardDataBaseManager {
     public QueryQueue getQueryQueue(Cluster cluster, String query, Object... objects) {
         int key = Triple.of(cluster.getId(), query, objects).hashCode();
 
+        QueryQueue queryQueue = queryQueueMap.get(key);
+        if (queryQueue == null) {
+            queryQueue = queryQueueMap.computeIfAbsent(key, );
+        }
 
 
 
