@@ -253,7 +253,7 @@ public class AttributeStorageRepository implements ShardEntityRepository<Attribu
             Cluster cluster =
                     Optional.ofNullable(storage.getCluster())
                             .orElse(parent.getStorageContext().getCluster());
-            ResultQuery result = entityManager
+            ResultQuery result = dataBaseManager
                     .createQuery(
                             cluster,
                             SELECT_QUERY + " and x0.C_ENTITY_ID=? and x0.C_STORAGE_NAME=?",

@@ -377,7 +377,7 @@ public class ShardEntityManagerImpl implements ShardEntityManager {
             case OWN_SHARD -> dataBaseManager.createQuery(entity.getStorageContext().getShard(), query, queryType);
             case MAIN_SHARD ->
                     dataBaseManager.createQuery(entity.getStorageContext().getCluster().getMainShard(), query, queryType);
-            case ALL_SHARDS, NEW_SHARDS -> getMainQuery(
+            case ALL_SHARDS, NEW_SHARDS -> dataBaseManager.getMainQuery(
                     createQueries(entity, query, queryType, queryStrategy)
             );
         };
@@ -419,29 +419,13 @@ public class ShardEntityManagerImpl implements ShardEntityManager {
                             dataBaseManager.getNextShard(repository.getCluster()), query, queryType)
             );
         } else {
-            return createQueries(repository.getCluster(), query, queryType);
+            return dataBaseManager.createQueries(repository.getCluster(), query, queryType);
         }
     }
 
     @Override
-    public Iterable<TransactionalQuery> createQueries(
-            Cluster cluster,
-            String query,
-            QueryType queryType)
-    {
-        return dataBaseManager.getEnabledShards(cluster)
-                .map(shard -> dataBaseManager.createQuery(shard, query, queryType))
-                .toList();
-    }
-
-    @Override
     public <T extends ShardInstance> TransactionalQuery createQuery(Class<T> clazz, String query, QueryType queryType) {
-        return getMainQuery(createQueries(clazz, query, queryType));
-    }
-
-    @Override
-    public TransactionalQuery createQuery(Cluster cluster, String query, QueryType queryType) {
-        return getMainQuery(createQueries(cluster, query, queryType));
+        return dataBaseManager.getMainQuery(createQueries(clazz, query, queryType));
     }
 
     @Override
@@ -604,18 +588,6 @@ public class ShardEntityManagerImpl implements ShardEntityManager {
     @Override
     public AttributeStorage findAttributeStorage(ShardInstance parent, DataStorage storage) {
         return attributeStorageRepository.find(parent, storage);
-    }
-
-    private TransactionalQuery getMainQuery(Iterable<TransactionalQuery> queries) {
-        TransactionalQuery mainQuery = null;
-        for (TransactionalQuery query : queries) {
-            if (Objects.isNull(mainQuery)) {
-                mainQuery = query;
-            } else {
-                mainQuery.addRelatedQuery(query);
-            }
-        }
-        return mainQuery;
     }
 
     private <T extends ShardInstance> T save(T entity, boolean onlyChanged) {

@@ -412,6 +412,38 @@ public class ShardDatabaseManagerImpl implements ShardDataBaseManager {
         return new TransactionalQueryStream(query, ids, binds);
     }
 
+    @Override
+    public TransactionalQuery getMainQuery(Iterable<TransactionalQuery> queries) {
+        TransactionalQuery mainQuery = null;
+        for (TransactionalQuery query : queries) {
+            if (Objects.isNull(mainQuery)) {
+                mainQuery = query;
+                mainQuery.setParallelRun(
+                        Optional.ofNullable(multiDataBaseConfig.getParallelRun()).orElse(true)
+                );
+            } else {
+                mainQuery.addRelatedQuery(query);
+            }
+        }
+        return mainQuery;
+    }
+
+    @Override
+    public Iterable<TransactionalQuery> createQueries(
+            Cluster cluster,
+            String query,
+            QueryType queryType)
+    {
+        return getEnabledShards(cluster)
+                .map(shard -> createQuery(shard, query, queryType))
+                .toList();
+    }
+
+    @Override
+    public TransactionalQuery createQuery(Cluster cluster, String query, QueryType queryType) {
+        return getMainQuery(createQueries(cluster, query, queryType));
+    }
+
     private class TransactionalQueryStream implements QueryStream {
         private Map<Integer, List<List<Long>>> chunkIds;
         private final String query;
@@ -435,7 +467,7 @@ public class ShardDatabaseManagerImpl implements ShardDataBaseManager {
             Set<UUID> currentTaskQueries = new HashSet<>();
             SharedEntityTransaction transaction = (SharedEntityTransaction) sharedTransactionManager.getTransaction();
             Map<Integer, List<List<Long>>> newChunkIds = new HashMap<>();
-            TransactionalQuery mainQuery = null;
+            List<TransactionalQuery> queries = new ArrayList<>();
             for (Map.Entry<Integer, List<List<Long>>> groupIds: chunkIds.entrySet()) {
                 TransactionalTask currentTask = null;
                 DataBaseInstance shard = shards.get(groupIds.getKey());
@@ -466,14 +498,7 @@ public class ShardDatabaseManagerImpl implements ShardDataBaseManager {
                                         .bindAll(binds)
                                         .bindAll(idLists.toArray());
                         currentTaskQueries.add(task.getTaskUuid());
-                        if (mainQuery == null) {
-                            mainQuery = currentQuery;
-                            mainQuery.setParallelRun(
-                                    Optional.ofNullable(multiDataBaseConfig.getParallelRun()).orElse(true)
-                            );
-                        } else {
-                            mainQuery.addRelatedQuery(currentQuery);
-                        }
+                        queries.add(currentQuery);
                     }
                 }
                 if (currentTask != null) {
@@ -481,7 +506,7 @@ public class ShardDatabaseManagerImpl implements ShardDataBaseManager {
                 }
             }
             this.chunkIds = newChunkIds;
-            return mainQuery;
+            return getMainQuery(queries);
         }
     }
 

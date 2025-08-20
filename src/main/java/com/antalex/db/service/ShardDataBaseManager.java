@@ -42,4 +42,7 @@ public interface ShardDataBaseManager {
     TransactionalQuery createQuery(DataBaseInstance shard, String query, QueryType queryType);
     DataBaseInstance getNextShard(Cluster cluster);
     QueryStream createQueryStreamByIds(String query, List<Long> ids, Object... binds);
+    TransactionalQuery getMainQuery(Iterable<TransactionalQuery> queries);
+    Iterable<TransactionalQuery> createQueries(Cluster cluster, String query, QueryType queryType);
+    TransactionalQuery createQuery(Cluster cluster, String query, QueryType queryType);
 }
