@@ -109,12 +109,6 @@
         </dependency>
 
         <dependency>
-            <groupId>com.antalex</groupId>
-            <artifactId>optimizer</artifactId>
-            <version>1.0-SNAPSHOT</version>
-        </dependency>
-
-        <dependency>
             <groupId>com.fasterxml.jackson.datatype</groupId>
             <artifactId>jackson-datatype-jsr310</artifactId>
             <version>${jackson.version}</version>
