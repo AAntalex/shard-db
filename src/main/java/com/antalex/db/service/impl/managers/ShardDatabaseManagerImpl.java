@@ -441,7 +441,7 @@ public class ShardDatabaseManagerImpl implements ShardDataBaseManager {
 
         QueryQueue queryQueue = queryQueueMap.get(key);
         if (queryQueue == null) {
-            queryQueue = queryQueueMap.computeIfAbsent(key, );
+//            queryQueue = queryQueueMap.computeIfAbsent(key, );
         }
 
 
