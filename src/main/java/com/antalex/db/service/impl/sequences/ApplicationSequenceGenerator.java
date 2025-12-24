@@ -4,6 +4,7 @@ import com.antalex.db.model.DataBaseInstance;
 import com.antalex.db.service.abstractive.AbstractSequenceGenerator;
 import com.antalex.db.utils.ShardUtils;
 import com.antalex.db.exception.ShardDataBaseException;
+import lombok.Setter;
 
 import java.sql.Connection;
 import java.sql.PreparedStatement;
@@ -22,6 +23,7 @@ public class ApplicationSequenceGenerator extends AbstractSequenceGenerator {
 
     private final String name;
     private final DataBaseInstance shard;
+    @Setter
     private Integer cacheSize;
     private Connection connection;
 
@@ -29,10 +31,6 @@ public class ApplicationSequenceGenerator extends AbstractSequenceGenerator {
         this.name = name;
         this.shard = shard;
         this.cacheSize = shard.getSequenceCacheSize();
-    }
-
-    public void setCacheSize(Integer cacheSize) {
-        this.cacheSize = cacheSize;
     }
 
     private Connection getConnection() throws SQLException {

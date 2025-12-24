@@ -22,7 +22,6 @@
         <liquibase.version>4.27.0</liquibase.version>
     </properties>
 
-
     <dependencies>
         <dependency>
             <groupId>org.springframework.boot</groupId>
