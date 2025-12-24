@@ -7,84 +7,84 @@ databaseChangeLog:
             tableName: APP_SEQUENCE
             columns:
               - column:
-                  name: SEQUENCE_NAME
+                  name: C_SEQUENCE_NAME
                   type: VARCHAR(40)
                   constraints:
                     primaryKey: true
                     nullable: false
                     primaryKeyName: PK_SEQUENCE_NAME
               - column:
-                  name: LAST_VALUE
+                  name: C_LAST_VALUE
                   type: bigint
               - column:
-                  name: CACHE_SIZE
+                  name: C_CACHE_SIZE
                   type: bigint
               - column:
-                  name: MIN_VALUE
+                  name: C_MIN_VALUE
                   type: bigint
               - column:
-                  name: MAX_VALUE
+                  name: C_MAX_VALUE
                   type: bigint
               - column:
-                  name: CYCLE_FLAG
+                  name: C_CYCLE_FLAG
                   type: boolean
         - createTable:
             tableName: APP_DATABASE
             columns:
               - column:
-                  name: SHARD_ID
+                  name: C_SHARD_ID
                   type: tinyint
               - column:
-                  name: MAIN_SHARD
+                  name: C_MAIN_SHARD
                   type: boolean
               - column:
-                  name: CLUSTER_ID
+                  name: C_CLUSTER_ID
                   type: tinyint
               - column:
-                  name: CLUSTER_NAME
+                  name: C_CLUSTER_NAME
                   type: VARCHAR(128)
               - column:
-                  name: DEFAULT_CLUSTER
+                  name: C_DEFAULT_CLUSTER
                   type: boolean
               - column:
-                  name: SEGMENT_NAME
+                  name: C_SEGMENT_NAME
                   type: VARCHAR(128)
               - column:
-                  name: ACCESSIBLE
+                  name: C_ACCESSIBLE
                   type: boolean
         - createTable:
             tableName: APP_TRANSACTION
             columns:
               - column:
-                  name: UUID
+                  name: C_UUID
                   type: VARCHAR(40)
                   constraints:
                     primaryKey: true
                     nullable: false
                     primaryKeyName: PK_TRANSACTION_UUID
               - column:
-                  name: EXECUTE_TIME
+                  name: C_EXECUTE_TIME
                   type: timestamp
               - column:
-                  name: CHUNKS
+                  name: C_CHUNKS
                   type: bigint
               - column:
-                  name: ELAPSED_TIME
+                  name: C_ELAPSED_TIME
                   type: bigint
               - column:
-                  name: ALL_ELAPSED_TIME
+                  name: C_ALL_ELAPSED_TIME
                   type: bigint
               - column:
-                  name: FAILED
+                  name: C_FAILED
                   type: boolean
               - column:
-                  name: ERROR
+                  name: C_ERROR_TEXT
                   type: VARCHAR(2000)
         - createTable:
             tableName: APP_DML_QUERY
             columns:
               - column:
-                  name: TRN_UUID
+                  name: C_TRN_UUID
                   type: VARCHAR(40)
                   constraints:
                     foreignKey:
@@ -92,21 +92,21 @@ databaseChangeLog:
                       referencedTableName: APP_TRANSACTION
                     nullable: false
               - column:
-                  name: QUERY_ORDER
+                  name: C_QUERY_ORDER
                   type: int
               - column:
-                  name: SQL_TEXT
+                  name: C_SQL_TEXT
                   type: VARCHAR(2000)
               - column:
-                  name: ROWS_PROCESSED
+                  name: C_ROWS_PROCESSED
                   type: int
               - column:
-                  name: ELAPSED_TIME
+                  name: C_ELAPSED_TIME
                   type: bigint
         - createIndex:
             columns:
               - column:
-                  name: TRN_UUID
+                  name: C_TRN_UUID
             indexName: IDX_APP_DML_QUERY_TRN_UUID
             tableName: APP_DML_QUERY
         - createTable:

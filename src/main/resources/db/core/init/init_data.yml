@@ -6,17 +6,17 @@ databaseChangeLog:
       - onFail: MARK_RAN
       - sqlCheck:
           expectedResult: 0
-          sql: "select count(*) from ${database.defaultSchemaName}.APP_SEQUENCE where SEQUENCE_NAME = 'SEQ_ID'"
+          sql: "select count(*) from ${database.defaultSchemaName}.APP_SEQUENCE where C_SEQUENCE_NAME = 'SEQ_ID'"
     changes:
       - insert:
           tableName: APP_SEQUENCE
           columns:
             - column:
-                name: SEQUENCE_NAME
+                name: C_SEQUENCE_NAME
                 value: SEQ_ID
             - column:
-                name: CACHE_SIZE
+                name: C_CACHE_SIZE
                 value: 1000
             - column:
-                name: MIN_VALUE
+                name: C_MIN_VALUE
                 value: 1

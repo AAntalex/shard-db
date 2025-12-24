@@ -14,11 +14,11 @@ import java.util.Optional;
 
 public class ApplicationSequenceGenerator extends AbstractSequenceGenerator {
     private static final String QUERY_LOCK = """
-            SELECT LAST_VALUE,MIN_VALUE,CACHE_SIZE,MAX_VALUE,CYCLE_FLAG
+            SELECT C_LAST_VALUE,C_MIN_VALUE,C_CACHE_SIZE,C_MAX_VALUE,C_CYCLE_FLAG
               FROM $$$.APP_SEQUENCE
-            WHERE SEQUENCE_NAME = ? FOR UPDATE""";
+            WHERE C_SEQUENCE_NAME = ? FOR UPDATE""";
 
-    private static final String QUERY_UPDATE = "UPDATE $$$.APP_SEQUENCE SET LAST_VALUE = ? WHERE SEQUENCE_NAME = ?";
+    private static final String QUERY_UPDATE = "UPDATE $$$.APP_SEQUENCE SET C_LAST_VALUE = ? WHERE C_SEQUENCE_NAME = ?";
 
     private final String name;
     private final DataBaseInstance shard;

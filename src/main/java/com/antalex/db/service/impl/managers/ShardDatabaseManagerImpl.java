@@ -62,17 +62,18 @@ public class ShardDatabaseManagerImpl implements ShardDataBaseManager {
     private static final long DEFAULT_DELAY_LOCK_PROCESSOR = 10;
     private static final int SQL_IN_CLAUSE_LIMIT = 100;
     private static final int PERCENT_OF_ACTIVE_CONNECTION_FOR_PARALLEL_LIMIT = 50;
-    private static final String SELECT_DB_INFO = "SELECT SHARD_ID,MAIN_SHARD,CLUSTER_ID,CLUSTER_NAME,DEFAULT_CLUSTER" +
-            ",SEGMENT_NAME,ACCESSIBLE FROM $$$.APP_DATABASE";
+    private static final String SELECT_DB_INFO = "SELECT C_SHARD_ID,C_MAIN_SHARD,C_CLUSTER_ID,C_CLUSTER_NAME," +
+            "C_DEFAULT_CLUSTER,C_SEGMENT_NAME,C_ACCESSIBLE FROM $$$.APP_DATABASE";
     private static final String INS_DB_INFO = "INSERT INTO $$$.APP_DATABASE " +
-            "(SHARD_ID,MAIN_SHARD,CLUSTER_ID,CLUSTER_NAME,DEFAULT_CLUSTER,SEGMENT_NAME,ACCESSIBLE) " +
+            "(C_SHARD_ID,C_MAIN_SHARD,C_CLUSTER_ID,C_CLUSTER_NAME,C_DEFAULT_CLUSTER,C_SEGMENT_NAME,C_ACCESSIBLE) "+
             " VALUES (?, ?, ?, ?, ?, ?, ?)";
     private static final String SAVE_TRANSACTION_QUERY = "INSERT INTO $$$.APP_TRANSACTION " +
-            "(UUID,EXECUTE_TIME,CHUNKS,ELAPSED_TIME,ALL_ELAPSED_TIME,FAILED,ERROR) VALUES (?,?,?,?,?,?,?)";
+            "(C_UUID,C_EXECUTE_TIME,C_CHUNKS,C_ELAPSED_TIME,C_ALL_ELAPSED_TIME,C_FAILED,C_ERROR_TEXT) " +
+            "VALUES (?,?,?,?,?,?,?)";
     private static final String SAVE_DML_QUERY = "INSERT INTO $$$.APP_DML_QUERY " +
-            "(TRN_UUID,QUERY_ORDER,SQL_TEXT,ROWS_PROCESSED,ELAPSED_TIME) VALUES (?,?,?,?,?)";
+            "(C_TRN_UUID,C_QUERY_ORDER,C_SQL_TEXT,C_ROWS_PROCESSED,C_ELAPSED_TIME) VALUES (?,?,?,?,?)";
 
-    private static final String SELECT_DYNAMIC_DB_INFO = "SELECT SEGMENT_NAME,ACCESSIBLE FROM $$$.APP_DATABASE";
+    private static final String SELECT_DYNAMIC_DB_INFO ="SELECT C_SEGMENT_NAME,C_ACCESSIBLE FROM $$$.APP_DATABASE";
 
     private final ResourceLoader resourceLoader;
     private final MultiDataBaseConfig multiDataBaseConfig;
