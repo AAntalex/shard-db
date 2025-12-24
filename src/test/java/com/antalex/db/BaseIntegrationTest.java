@@ -25,7 +25,6 @@ public abstract class BaseIntegrationTest {
      */
     @DynamicPropertySource
     static void startContainersAndSetEnvironmentProperties(DynamicPropertyRegistry registry) {
-/*
         PostgreSQLContainer<?> pgContainer = new PostgreSQLContainer<>(POSTGRES_DOCKER_IMAGE_NAME)
                 .withInitScript("db/initPG.sql")
                 .withReuse(true)
@@ -46,29 +45,13 @@ public abstract class BaseIntegrationTest {
         registry.add("DATASOURCE_JDBC_URL_ORA", oracleContainer::getJdbcUrl);
         registry.add("DATASOURCE_JDBC_USR_ORA", oracleContainer::getUsername);
         registry.add("DATASOURCE_JDBC_PSW_ORA", oracleContainer::getPassword);
-*/
+
         MySQLContainer<?> mySQLContainer = new MySQLContainer<>(DockerImageName.parse(MYSQL_DOCKER_IMAGE_NAME))
-                .withPassword("test");
-        mySQLContainer.start();
-
-        registry.add("DATASOURCE_JDBC_URL_PG", mySQLContainer::getJdbcUrl);
-        registry.add("DATASOURCE_JDBC_USR_PG", mySQLContainer::getUsername);
-        registry.add("DATASOURCE_JDBC_PSW_PG", mySQLContainer::getPassword);
-
-        mySQLContainer = new MySQLContainer<>(DockerImageName.parse(MYSQL_DOCKER_IMAGE_NAME))
                 .withPassword("test");
         mySQLContainer.start();
 
         registry.add("DATASOURCE_JDBC_URL_MYSQL", mySQLContainer::getJdbcUrl);
         registry.add("DATASOURCE_JDBC_USR_MYSQL", mySQLContainer::getUsername);
         registry.add("DATASOURCE_JDBC_PSW_MYSQL", mySQLContainer::getPassword);
-
-        mySQLContainer = new MySQLContainer<>(DockerImageName.parse(MYSQL_DOCKER_IMAGE_NAME))
-                .withPassword("test");
-        mySQLContainer.start();
-
-        registry.add("DATASOURCE_JDBC_URL_ORA", mySQLContainer::getJdbcUrl);
-        registry.add("DATASOURCE_JDBC_USR_ORA", mySQLContainer::getUsername);
-        registry.add("DATASOURCE_JDBC_PSW_ORA", mySQLContainer::getPassword);
     }
 }
