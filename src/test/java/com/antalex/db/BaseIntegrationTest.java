@@ -46,8 +46,7 @@ public abstract class BaseIntegrationTest {
         registry.add("DATASOURCE_JDBC_USR_ORA", oracleContainer::getUsername);
         registry.add("DATASOURCE_JDBC_PSW_ORA", oracleContainer::getPassword);
 
-        MySQLContainer<?> mySQLContainer = new MySQLContainer<>(DockerImageName.parse(MYSQL_DOCKER_IMAGE_NAME))
-                .withPassword("test");
+        MySQLContainer<?> mySQLContainer = new MySQLContainer<>(DockerImageName.parse(MYSQL_DOCKER_IMAGE_NAME));
         mySQLContainer.start();
 
         registry.add("DATASOURCE_JDBC_URL_MYSQL", mySQLContainer::getJdbcUrl);
