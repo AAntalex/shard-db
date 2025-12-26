@@ -75,7 +75,7 @@ class MainTest extends BaseIntegrationTest {
         clientGenerator.generate(1);
         // Поиск домена Клиент в БД по условию
         ClientDomain client =
-                domainManager.find(ClientDomain.class, "${name}=?", "CLIENT4");
+                domainManager.find(ClientDomain.class, "${name}=?", "CLIENT1");
         // Изменение атрибутов Клиента по которым предусмотрено хранение истории изменений
         client
                 .category(client.category()) /* атрибут сущности с типом ссылки */
@@ -87,7 +87,6 @@ class MainTest extends BaseIntegrationTest {
         // История изменений атрибута с типом ссылки
         List<AttributeHistory> history = domainManager.getAttributeHistory(client, "category");
         assertThat(history.size()).isEqualTo(2);
-/*
         assertThat(history.get(1).value() instanceof Long).isTrue();
 
         // История изменений атрибута с типом произвольного класса
@@ -96,7 +95,7 @@ class MainTest extends BaseIntegrationTest {
         assertThat(history.get(0).value() instanceof Contract).isTrue();
         assertThat(((Contract) history.get(0).value()).additions().size()).isEqualTo(3);
         assertThat(((Contract) history.get(1).value()).additions().size()).isEqualTo(4);
-*/
+
         // Сохраняем в БД историю последних изменений
         domainManager.update(client);
         history = domainManager.getAttributeHistory(client, "contract");
