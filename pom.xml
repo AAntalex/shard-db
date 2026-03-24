@@ -11,6 +11,17 @@
         <relativePath/> <!-- lookup parent from repository -->
     </parent>
 
+    <distributionManagement>
+        <snapshotRepository>
+            <id>pmts-maven-snapshot</id>
+            <url>https://sfera.inno.local/app/repo-ci-maven/api/repository/pmts-maven-snapshot/</url>
+        </snapshotRepository>
+        <repository>
+            <id>pmts-maven-lib</id>
+            <url>https://sfera.inno.local/app/repo-ci-maven/api/repository/pmts-maven-lib/</url>
+        </repository>
+    </distributionManagement>
+
     <groupId>com.antalex</groupId>
     <artifactId>multi-db</artifactId>
     <version>1.0.0</version>
@@ -162,4 +173,21 @@
             <version>8.4.0</version>
         </dependency>
     </dependencies>
+
+    <build>
+        <plugins>
+            <plugin>
+                <groupId>org.apache.maven.plugins</groupId>
+                <artifactId>maven-source-plugin</artifactId>
+                <executions>
+                    <execution>
+                        <id>attach-sources</id>
+                        <goals>
+                            <goal>jar</goal>
+                        </goals>
+                    </execution>
+                </executions>
+            </plugin>
+        </plugins>
+    </build>
 </project>
