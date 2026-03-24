@@ -1,0 +1,58 @@
+databaseChangeLog:
+- changeSet:
+    id: 'create$AccountStatement'
+    author: Antalex
+    preConditions:
+      - onFail: MARK_RAN
+      - not:
+        - tableExists:
+            tableName: T_ACCOUNT_STATEMENT
+    changes:
+      - createTable:
+          tableName: T_ACCOUNT_STATEMENT
+          columns:
+            - column:
+                name: ID
+                type: bigint
+                constraints:
+                  primaryKey: true
+                  nullable: false
+                  primaryKeyName: PK_ACCOUNT_STATEMENT_ID
+            - column:
+                name: SN
+                type: int
+            - column:
+                name: ST
+                type: VARCHAR(40)
+            - column:
+                name: PREV_ST
+                type: VARCHAR(40)
+            - column:
+                name: SHARD_MAP
+                type: bigint
+            - column:
+                name: C_ACCOUNT
+                type: bigint
+            - column:
+                name: C_DATE
+                type: datetime
+            - column:
+                name: C_PAYMENT
+                type: bigint
+            - column:
+                name: C_SUM
+                type: number
+      - createIndex:
+          columns:
+            - column:
+                name:  C_ACCOUNT
+            - column:
+                name:  C_DATE
+          indexName:  IDX_ACCOUNT_STATEMENT_ACCOUNT_DATE
+          tableName:  T_ACCOUNT_STATEMENT
+      - createIndex:
+          columns:
+            - column:
+                name:  C_PAYMENT
+          indexName:  IDX_ACCOUNT_STATEMENT_PAYMENT
+          tableName:  T_ACCOUNT_STATEMENT

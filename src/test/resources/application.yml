@@ -1,0 +1,53 @@
+logging:
+  level:
+    com.antalex.db: trace
+spring:
+  liquibase:
+    enabled: false
+  application:
+    name: multi-db-test
+multiDbConfig:
+  processorTimeOut: 10
+  sequenceCacheSize: 10000
+  sqlInClauseLimit: 30
+  #activeConnectionParallelLimit: 10
+  percentActiveConnectionParallelLimit: 30
+  parallelRun: true
+  LockProcessor:
+    timeOut: 10
+    delay: 1
+  ThreadPool:
+    nameFormat: Multi-DB-%d
+    corePoolSize: 10
+    keepAliveTime: 60
+    maximumPoolSize: 1000
+  liquibase:
+    changeLogSrc: classpath:db/changelog
+    changeLogName: db.changelog-master.yaml
+    enabled: true
+  hikari:
+    minimumIdle: 0
+    maximumPoolSize: 15
+    idleTimeout: 60
+  checks:
+    checkShardID: true
+    checkClusterID: true
+    checkClusterName: true
+    checkMainShard: true
+    checkClusterDefault: true
+  clusters:
+    - name: DEFAULT
+      defaultCluster: true
+      shards:
+        - datasource:
+            url: ${DATASOURCE_JDBC_URL0}
+            username: ${DATASOURCE_JDBC_USR0}
+            password: ${DATASOURCE_JDBC_PSW0}
+        - datasource:
+            url: ${DATASOURCE_JDBC_URL1}
+            username: ${DATASOURCE_JDBC_USR1}
+            password: ${DATASOURCE_JDBC_PSW1}
+        - datasource:
+            url: ${DATASOURCE_JDBC_URL2}
+            username: ${DATASOURCE_JDBC_USR2}
+            password: ${DATASOURCE_JDBC_PSW2}

@@ -1,0 +1,71 @@
+package com.antalex.db.service.impl.generators;
+
+import com.antalex.db.dao.domain.ClientCategoryDomain;
+import com.antalex.db.dao.domain.ClientDomain;
+import com.antalex.db.dao.model.Contract;
+import com.antalex.db.dao.model.enums.ContractType;
+import com.antalex.db.service.DataGeneratorService;
+import com.antalex.db.service.DomainManager;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.stereotype.Component;
+
+import java.time.LocalDate;
+import java.time.LocalDateTime;
+import java.util.List;
+import java.util.Map;
+import java.util.stream.IntStream;
+
+@Component
+public class ClientGenerator implements DataGeneratorService<ClientDomain> {
+    @Autowired
+    private DomainManager domainManager;
+    @Autowired
+    private ClientCategoryGenerator clientCategoryGenerator;
+
+    @Override
+    public List<ClientDomain> generate(int count) {
+        List<ClientCategoryDomain> categories = clientCategoryGenerator.generate(1);
+        List<ClientDomain> clients = domainManager.findAll(ClientDomain.class);
+        clients.addAll(
+                IntStream.rangeClosed(clients.size() + 1, count)
+                        .mapToObj(idx ->
+                                domainManager.newDomain(ClientDomain.class)
+                                        .name("CLIENT" + idx)
+                                        .category(idx % 100 == 1 ? categories.get(0) : null)
+                                        .createDate(LocalDateTime.now())
+                                        .fullName("FULL NAME" + idx)
+                                        .contract(
+                                                new Contract()
+                                                        .description("CONTRACT" + idx)
+                                                        .date(LocalDate.now())
+                                                        .contractType(ContractType.AGREEMENT)
+                                                        .additions(List.of("Addition1", "Addition2", "Addition3"))
+                                        )
+                                        .contracts(
+                                                List.of(
+                                                        new Contract()
+                                                                .description("CONTRACT1")
+                                                                .date(LocalDate.now())
+                                                                .contractType(ContractType.AGREEMENT),
+                                                        new Contract()
+                                                                .description("CONTRACT2")
+                                                                .date(LocalDate.now())
+                                                                .contractType(ContractType.AGREEMENT)
+                                                        )
+                                        )
+                                        .additionalContracts(
+                                                Map.of(
+                                                        "ADD1",
+                                                        new Contract()
+                                                                .description("ADD_CONTRACT1")
+                                                                .date(LocalDate.now())
+                                                                .contractType(ContractType.AGREEMENT)
+                                                )
+                                        )
+                        )
+                        .toList()
+        );
+        domainManager.updateAll(clients);
+        return clients;
+    }
+}
