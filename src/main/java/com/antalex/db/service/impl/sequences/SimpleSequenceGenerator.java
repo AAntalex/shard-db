@@ -1,0 +1,15 @@
+package com.antalex.db.service.impl.sequences;
+
+import com.antalex.db.service.abstractive.AbstractSequenceGenerator;
+
+public class SimpleSequenceGenerator extends AbstractSequenceGenerator {
+    public SimpleSequenceGenerator(Long minValue, Long maxValue) {
+        this.minValue = minValue;
+        this.maxValue = maxValue;
+    }
+
+    @Override
+    public void init() {
+        this.value = this.minValue;
+    }
+}

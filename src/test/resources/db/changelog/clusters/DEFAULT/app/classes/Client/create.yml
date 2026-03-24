@@ -1,0 +1,50 @@
+databaseChangeLog:
+- changeSet:
+    id: 'create$Client'
+    author: Antalex
+    preConditions:
+      - onFail: MARK_RAN
+      - not:
+        - tableExists:
+            tableName: T_CLIENT
+    changes:
+      - createTable:
+          tableName: T_CLIENT
+          columns:
+            - column:
+                name: ID
+                type: bigint
+                constraints:
+                  primaryKey: true
+                  nullable: false
+                  primaryKeyName: PK_CLIENT_ID
+            - column:
+                name: SN
+                type: int
+            - column:
+                name: ST
+                type: VARCHAR(40)
+            - column:
+                name: PREV_ST
+                type: VARCHAR(40)
+            - column:
+                name: SHARD_MAP
+                type: bigint
+            - column:
+                name: C_NAME
+                type: VARCHAR(256)
+            - column:
+                name: C_CATEGORY
+                type: bigint
+      - createIndex:
+          columns:
+          - column:
+              name:  C_CATEGORY
+          indexName:  IDX_CLIENT_CATEGORY
+          tableName:  T_CLIENT
+      - createIndex:
+          columns:
+            - column:
+                name: C_NAME
+          indexName: IDX_CLIENT_NAME
+          tableName: T_CLIENT

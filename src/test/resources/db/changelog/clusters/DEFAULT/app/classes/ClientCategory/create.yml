@@ -1,0 +1,35 @@
+databaseChangeLog:
+- changeSet:
+    id: 'create$ClientCategory'
+    author: Antalex
+    preConditions:
+      - onFail: MARK_RAN
+      - not:
+        - tableExists:
+            tableName: T_CLIENT_CATEGORY
+    changes:
+      - createTable:
+          tableName: T_CLIENT_CATEGORY
+          columns:
+          - column:
+              name: ID
+              type: bigint
+              constraints:
+                primaryKey: true
+                nullable: false
+                primaryKeyName: PK_CLIENT_CATEGORY_ID
+          - column:
+                name: SN
+                type: int
+          - column:
+                name: ST
+                type: VARCHAR(40)
+          - column:
+                name: PREV_ST
+                type: VARCHAR(40)
+          - column:
+                name: SHARD_MAP
+                type: bigint
+          - column:
+                name: C_CODE
+                type: VARCHAR(40)
