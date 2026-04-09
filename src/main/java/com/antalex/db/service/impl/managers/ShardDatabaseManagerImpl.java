@@ -353,6 +353,7 @@ public class ShardDatabaseManagerImpl implements ShardDataBaseManager {
                         .bind(transactionInfo.failed())
                         .bind(transactionInfo.error())
                         .addBatch();
+/*
                 transactionInfo.queries().forEach(queryInfo -> getTransactionalTask(transactionInfo.shard())
                         .getQuery(SAVE_DML_QUERY, QueryType.DML)
                         .bind(transactionInfo.uuid())
@@ -361,6 +362,7 @@ public class ShardDatabaseManagerImpl implements ShardDataBaseManager {
                         .bind(queryInfo.rows())
                         .bind(queryInfo.elapsedTime())
                         .addBatch());
+*/
             });
             transaction.commit(false);
         }

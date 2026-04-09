@@ -1,6 +1,6 @@
 databaseChangeLog:
 - changeSet:
-    id: 'init$002'
+    id: 'initApplication$002'
     author: Antalex
     preConditions:
       - onFail: MARK_RAN
