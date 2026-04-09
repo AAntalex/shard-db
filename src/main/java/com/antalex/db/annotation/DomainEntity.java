@@ -9,7 +9,10 @@ import java.lang.annotation.*;
 @Retention(RetentionPolicy.RUNTIME)
 public @interface DomainEntity {
     Class<? extends ShardInstance> value();
+
     String cluster() default "";
+
     Storage storage() default @Storage;
+
     Storage[] additionalStorage() default {};
 }

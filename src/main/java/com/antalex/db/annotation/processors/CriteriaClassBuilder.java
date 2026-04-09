@@ -256,12 +256,6 @@ public class CriteriaClassBuilder {
         }
 
 
-
-
-
-
-
-
         if (joinDto.getJoinType() == JoinType.INNER) {
             CriteriaJoinDto parentJoin = JOINS.get(joinDto.getJoinAlias());
             while (
@@ -294,8 +288,7 @@ public class CriteriaClassBuilder {
     private static EntityAttribute getEntityAttribute(
             String attributeName,
             String defaultAlias,
-            Map<String, EntityClassDto> entityClasses)
-    {
+            Map<String, EntityClassDto> entityClasses) {
         int idx = attributeName.indexOf(".");
         EntityAttribute entityAttribute = new EntityAttribute();
         if (idx > 0) {
@@ -396,8 +389,7 @@ public class CriteriaClassBuilder {
 
     private static String getColumnName(String mainAlias,
                                         String attributeName,
-                                        Map<String, EntityClassDto> entityClasses)
-    {
+                                        Map<String, EntityClassDto> entityClasses) {
         EntityAttribute entityAttribute = getEntityAttribute(attributeName, mainAlias, entityClasses);
         return Optional
                 .ofNullable(entityAttribute.getEntityField())
@@ -419,10 +411,10 @@ public class CriteriaClassBuilder {
     ) {
         return Optional.ofNullable(element.getAnnotation(CriteriaAttribute.class))
                 .map(a ->
-                                getColumnName(
-                                        mainAlias,
-                                        a.value().isEmpty() ? element.getSimpleName().toString() : a.value(),
-                                        entityClasses)
+                        getColumnName(
+                                mainAlias,
+                                a.value().isEmpty() ? element.getSimpleName().toString() : a.value(),
+                                entityClasses)
                 )
                 .orElse(null);
     }
@@ -447,8 +439,7 @@ public class CriteriaClassBuilder {
 
     public static void createRepositoryClass(
             Element annotatedElement,
-            ProcessingEnvironment processingEnv) throws IOException
-    {
+            ProcessingEnvironment processingEnv) throws IOException {
         CriteriaClassDto criteriaClassDto = getClassDtoByElement(annotatedElement);
         if (criteriaClassDto == null) {
             return;
@@ -508,28 +499,28 @@ public class CriteriaClassBuilder {
 
     private static String getElementsCode(CriteriaClassDto criteriaClassDto) {
         return criteriaClassDto
-                        .getJoins()
-                        .stream()
-                        .map(CriteriaClassBuilder::getElementsCode)
-                        .reduce(
-                                "    private static final CriteriaElement ELEMENT_" +
-                                        criteriaClassDto.getAlias() +
-                                        " = new CriteriaElement()\n" +
-                                        "            .tableName(\""+ criteriaClassDto.getFrom().getTableName() +
-                                        "\")\n" +
-                                        "            .tableAlias(\"" + criteriaClassDto.getAlias() + "\")\n" +
-                                        "            .shardType(ShardType." +
-                                        criteriaClassDto.getFrom().getShardType().name() + ")\n" +
-                                        "            .index(0)\n" +
-                                        "            .columns(" + criteriaClassDto.getColumns() + "L);",
-                                String::concat
-                        );
+                .getJoins()
+                .stream()
+                .map(CriteriaClassBuilder::getElementsCode)
+                .reduce(
+                        "    private static final CriteriaElement ELEMENT_" +
+                                criteriaClassDto.getAlias() +
+                                " = new CriteriaElement()\n" +
+                                "            .tableName(\"" + criteriaClassDto.getFrom().getTableName() +
+                                "\")\n" +
+                                "            .tableAlias(\"" + criteriaClassDto.getAlias() + "\")\n" +
+                                "            .shardType(ShardType." +
+                                criteriaClassDto.getFrom().getShardType().name() + ")\n" +
+                                "            .index(0)\n" +
+                                "            .columns(" + criteriaClassDto.getColumns() + "L);",
+                        String::concat
+                );
     }
 
     private static String getElementsCode(CriteriaJoinDto criteriaJoinDto) {
         return "\n\n    private static final CriteriaElement ELEMENT_" + criteriaJoinDto.getAlias() +
                 " = new CriteriaElement()\n" +
-                "            .tableName(\""+ criteriaJoinDto.getFrom().getTableName() + "\")\n" +
+                "            .tableName(\"" + criteriaJoinDto.getFrom().getTableName() + "\")\n" +
                 "            .tableAlias(\"" + criteriaJoinDto.getAlias() + "\")\n" +
                 "            .shardType(ShardType." + criteriaJoinDto.getFrom().getShardType().name() + ")\n" +
                 "            .index(" + criteriaJoinDto.getIndex() + ")\n" +

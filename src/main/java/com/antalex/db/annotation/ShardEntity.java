@@ -9,7 +9,10 @@ import java.lang.annotation.*;
 @Retention(RetentionPolicy.RUNTIME)
 public @interface ShardEntity {
     ShardType type() default ShardType.SHARDABLE;
+
     String cluster() default "DEFAULT";
+
     String tablePrefix() default "T_";
+
     String columnPrefix() default "C_";
 }

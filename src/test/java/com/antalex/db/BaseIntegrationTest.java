@@ -3,13 +3,16 @@ package com.antalex.db;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.test.context.DynamicPropertyRegistry;
 import org.springframework.test.context.DynamicPropertySource;
+import org.testcontainers.containers.JdbcDatabaseContainer;
 import org.testcontainers.containers.MySQLContainer;
 import org.testcontainers.containers.OracleContainer;
 import org.testcontainers.containers.PostgreSQLContainer;
 import org.testcontainers.utility.DockerImageName;
 import org.testcontainers.utility.MountableFile;
 
+import java.util.List;
 import java.util.Map;
+import java.util.stream.IntStream;
 
 /**
  * Конфигурация интеграционных тестов.
@@ -20,37 +23,40 @@ public abstract class BaseIntegrationTest {
     private static final String ORACLE_DOCKER_IMAGE_NAME = "gvenzl/oracle-xe:slim";
     private static final String MYSQL_DOCKER_IMAGE_NAME = "mysql:8.0.36";
 
+    private static final List<String> TEST_CONTAINERS = List.of(POSTGRES_DOCKER_IMAGE_NAME, ORACLE_DOCKER_IMAGE_NAME);
+
+    private static final Integer CONTAINERS_COUNT = 3;
+
     /**
      * Запускаем контейнеры и задаем параметры в Environment, чтобы переопределить конфигурационные файлы.
      */
     @DynamicPropertySource
     static void startContainersAndSetEnvironmentProperties(DynamicPropertyRegistry registry) {
-        PostgreSQLContainer<?> pgContainer = new PostgreSQLContainer<>(POSTGRES_DOCKER_IMAGE_NAME)
-                .withInitScript("db/initPG.sql")
-                .withReuse(true)
-                .withTmpFs(Map.of("/var/postgres/data", "rw"));
-        pgContainer.start();
+        IntStream
+                .range(0, CONTAINERS_COUNT)
+                .forEach(idx -> {
+                    JdbcDatabaseContainer<?> container =
+                            initContainer(TEST_CONTAINERS.get(idx % TEST_CONTAINERS.size()));
+                    container.start();
+                    registry.add("DATASOURCE_JDBC_URL" + idx, container::getJdbcUrl);
+                    registry.add("DATASOURCE_JDBC_USR" + idx, container::getUsername);
+                    registry.add("DATASOURCE_JDBC_PSW" + idx, container::getPassword);
+                });
+    }
 
-        registry.add("DATASOURCE_JDBC_URL_PG", pgContainer::getJdbcUrl);
-        registry.add("DATASOURCE_JDBC_USR_PG", pgContainer::getUsername);
-        registry.add("DATASOURCE_JDBC_PSW_PG", pgContainer::getPassword);
-
-        OracleContainer oracleContainer = new OracleContainer(DockerImageName.parse(ORACLE_DOCKER_IMAGE_NAME))
-                .withCopyToContainer(
-                        MountableFile.forClasspathResource("db/initOra.sql"),
-                        "/container-entrypoint-startdb.d/init.sql"
-                );
-        oracleContainer.start();
-
-        registry.add("DATASOURCE_JDBC_URL_ORA", oracleContainer::getJdbcUrl);
-        registry.add("DATASOURCE_JDBC_USR_ORA", oracleContainer::getUsername);
-        registry.add("DATASOURCE_JDBC_PSW_ORA", oracleContainer::getPassword);
-
-        MySQLContainer<?> mySQLContainer = new MySQLContainer<>(DockerImageName.parse(MYSQL_DOCKER_IMAGE_NAME));
-        mySQLContainer.start();
-
-        registry.add("DATASOURCE_JDBC_URL_MYSQL", mySQLContainer::getJdbcUrl);
-        registry.add("DATASOURCE_JDBC_USR_MYSQL", mySQLContainer::getUsername);
-        registry.add("DATASOURCE_JDBC_PSW_MYSQL", mySQLContainer::getPassword);
+    static JdbcDatabaseContainer<?> initContainer(String containerName) {
+        return switch (containerName) {
+            case POSTGRES_DOCKER_IMAGE_NAME -> new PostgreSQLContainer<>(POSTGRES_DOCKER_IMAGE_NAME)
+                    .withInitScript("db/initPG.sql")
+                    .withReuse(true)
+                    .withTmpFs(Map.of("/var/postgres/data", "rw"));
+            case ORACLE_DOCKER_IMAGE_NAME -> new OracleContainer(DockerImageName.parse(ORACLE_DOCKER_IMAGE_NAME))
+                    .withCopyToContainer(
+                            MountableFile.forClasspathResource("db/initOra.sql"),
+                            "/container-entrypoint-startdb.d/init.sql"
+                    );
+            case MYSQL_DOCKER_IMAGE_NAME -> new MySQLContainer<>(DockerImageName.parse(MYSQL_DOCKER_IMAGE_NAME));
+            default -> throw new IllegalArgumentException("Unknown container name: " + containerName);
+        };
     }
 }

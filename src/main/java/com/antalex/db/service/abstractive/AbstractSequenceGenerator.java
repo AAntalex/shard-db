@@ -22,8 +22,7 @@ public abstract class AbstractSequenceGenerator implements SequenceGenerator {
     @Override
     public synchronized long nextValue() {
         if (Objects.isNull(this.value)
-                || Objects.nonNull(this.maxValue) && this.value > this.maxValue)
-        {
+                || Objects.nonNull(this.maxValue) && this.value > this.maxValue) {
             init();
         }
         return this.value++;

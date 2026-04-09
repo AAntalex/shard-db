@@ -1,6 +1,6 @@
 package com.antalex.db.service.impl.managers;
 
-import com.antalex.db.config.*;
+import com.antalex.db.config.model.*;
 import com.antalex.db.entity.abstraction.ShardInstance;
 import com.antalex.db.model.*;
 import com.antalex.db.service.LockManager;
@@ -353,6 +353,7 @@ public class ShardDatabaseManagerImpl implements ShardDataBaseManager {
                         .bind(transactionInfo.failed())
                         .bind(transactionInfo.error())
                         .addBatch();
+/*
                 transactionInfo.queries().forEach(queryInfo -> getTransactionalTask(transactionInfo.shard())
                         .getQuery(SAVE_DML_QUERY, QueryType.DML)
                         .bind(transactionInfo.uuid())
@@ -361,6 +362,7 @@ public class ShardDatabaseManagerImpl implements ShardDataBaseManager {
                         .bind(queryInfo.rows())
                         .bind(queryInfo.elapsedTime())
                         .addBatch());
+*/
             });
             transaction.commit(false);
         }
@@ -945,7 +947,7 @@ public class ShardDatabaseManagerImpl implements ShardDataBaseManager {
         this.liquibaseEnable = Optional
                 .ofNullable(multiDataBaseConfig.getLiquibase())
                 .map(LiquibaseConfig::getEnabled)
-                .orElse(false);
+                .orElse(true);
     }
 
     private void processThreadPoolConfig() {

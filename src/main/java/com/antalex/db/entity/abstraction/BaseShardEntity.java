@@ -21,7 +21,7 @@ public abstract class BaseShardEntity implements ShardInstance {
     private boolean hasDomain;
     private Cluster cluster;
 
-    public BaseShardEntity () {
+    public BaseShardEntity() {
         if (this.getClass().isAnnotationPresent(ShardEntity.class)) {
             throw new ShardDataBaseException(
                     String.format(

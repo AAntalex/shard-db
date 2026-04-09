@@ -11,7 +11,7 @@ import javax.persistence.EntityTransaction;
 import java.util.List;
 import java.util.Map;
 
-public interface DomainEntityManager {
+public interface DomainManager {
     <T extends Domain> T newDomain(Class<T> clazz);
     <T extends Domain, M extends ShardInstance> T map(final Class<T> clazz, M entity);
     <T extends Domain, M extends ShardInstance> M map(final Class<T> clazz, T domain);
@@ -55,7 +55,7 @@ public interface DomainEntityManager {
         return findAllByIds(clazz, null, ids);
     }
 
-    default  <T extends Domain> List<T> skipLocked(Class<T> clazz, String condition, Object... binds) {
-        return skipLocked(clazz, 1, condition, binds);
+    default  <T extends Domain> T skipLocked(Class<T> clazz, String condition, Object... binds) {
+        return skipLocked(clazz, 1, condition, binds).stream().findFirst().orElse(null);
     }
 }

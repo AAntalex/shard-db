@@ -6,7 +6,7 @@ import com.antalex.db.entity.abstraction.ShardInstance;
 import com.antalex.db.model.Cluster;
 import com.antalex.db.model.DataStorage;
 import com.antalex.db.model.dto.AttributeHistory;
-import com.antalex.db.service.DomainEntityManager;
+import com.antalex.db.service.DomainManager;
 import com.antalex.db.service.DomainEntityMapper;
 import org.springframework.stereotype.Component;
 
@@ -36,7 +36,7 @@ public class DomainEntityMapperImpl<T extends Domain, M extends ShardInstance> i
     }
 
     @Override
-    public void setDomainManager(DomainEntityManager domainManager) {
+    public void setDomainManager(DomainManager domainManager) {
 
     }
 

@@ -165,12 +165,12 @@ public interface ShardEntityManager {
         return findAllByIds(clazz, null, (String) null, ids);
     }
 
-    default <T extends ShardInstance> List<T> skipLocked(
+    default <T extends ShardInstance> T skipLocked(
             Class<T> clazz,
             String condition,
             Object... binds)
     {
-        return skipLocked(clazz, 1, condition, binds);
+        return skipLocked(clazz, 1, condition, binds).stream().findFirst().orElse(null);
     }
 
     default <T extends ShardInstance> List<T> findAll(

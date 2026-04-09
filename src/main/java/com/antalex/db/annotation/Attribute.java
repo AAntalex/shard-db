@@ -9,6 +9,8 @@ import java.lang.annotation.*;
 @Retention(RetentionPolicy.RUNTIME)
 public @interface Attribute {
     String name() default "";
+
     String storage() default "";
+
     MappingType mappingType() default MappingType.ENTITY;
 }

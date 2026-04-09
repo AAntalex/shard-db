@@ -5,19 +5,20 @@ import com.antalex.db.dao.domain.ClientDomain;
 import com.antalex.db.dao.model.Contract;
 import com.antalex.db.dao.model.enums.ContractType;
 import com.antalex.db.service.DataGeneratorService;
-import com.antalex.db.service.DomainEntityManager;
+import com.antalex.db.service.DomainManager;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Component;
 
 import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.util.List;
+import java.util.Map;
 import java.util.stream.IntStream;
 
 @Component
 public class ClientGenerator implements DataGeneratorService<ClientDomain> {
     @Autowired
-    private DomainEntityManager domainManager;
+    private DomainManager domainManager;
     @Autowired
     private ClientCategoryGenerator clientCategoryGenerator;
 
@@ -39,6 +40,27 @@ public class ClientGenerator implements DataGeneratorService<ClientDomain> {
                                                         .date(LocalDate.now())
                                                         .contractType(ContractType.AGREEMENT)
                                                         .additions(List.of("Addition1", "Addition2", "Addition3"))
+                                        )
+                                        .contracts(
+                                                List.of(
+                                                        new Contract()
+                                                                .description("CONTRACT1")
+                                                                .date(LocalDate.now())
+                                                                .contractType(ContractType.AGREEMENT),
+                                                        new Contract()
+                                                                .description("CONTRACT2")
+                                                                .date(LocalDate.now())
+                                                                .contractType(ContractType.AGREEMENT)
+                                                        )
+                                        )
+                                        .additionalContracts(
+                                                Map.of(
+                                                        "ADD1",
+                                                        new Contract()
+                                                                .description("ADD_CONTRACT1")
+                                                                .date(LocalDate.now())
+                                                                .contractType(ContractType.AGREEMENT)
+                                                )
                                         )
                         )
                         .toList()

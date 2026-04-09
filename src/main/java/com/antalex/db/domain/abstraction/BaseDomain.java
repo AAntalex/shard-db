@@ -21,12 +21,12 @@ public abstract class BaseDomain implements Domain {
     private final Map<String, AttributeStorage> storage = new HashMap<>();
     private final List<AttributeHistory> attributeHistory = new ArrayList<>();
 
-    public BaseDomain () {
+    public BaseDomain() {
         if (this.getClass().isAnnotationPresent(DomainEntity.class)) {
             throw new ShardDataBaseException(
                     String.format(
                             "Запрещено использовать конструктор класса %s напрямую. " +
-                                    "Следует использовать DomainEntityManager.newDomain(Class<?>)",
+                                    "Следует использовать DomainManager.newDomain(Class<?>)",
                             this.getClass().getName())
             );
         }
@@ -119,9 +119,9 @@ public abstract class BaseDomain implements Domain {
 
     public Boolean isChanged(String storageName, String attribute) {
         return Optional.ofNullable(controlledObjects.get(storageName))
-                        .map(it -> it.get(attribute))
-                        .map(o -> o.getHashCode() != o.getObject().hashCode())
-                        .orElse(false);
+                .map(it -> it.get(attribute))
+                .map(o -> o.getHashCode() != o.getObject().hashCode())
+                .orElse(false);
     }
 
     public Boolean isChanged() {

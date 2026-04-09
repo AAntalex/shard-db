@@ -1,0 +1,40 @@
+databaseChangeLog:
+  - changeSet:
+      id: 'initApplication$003'
+      author: Antalex
+      changes:
+        - createTable:
+            tableName: APP_QUERY_STAT
+            columns:
+              - column:
+                  name: C_TRN_UUID
+                  type: VARCHAR(40)
+                  constraints:
+                    foreignKey:
+                      referencedColumnNames: UUID
+                      referencedTableName: APP_TRANSACTION
+                    nullable: false
+              - column:
+                  name: C_QUERY_ORDER
+                  type: int
+              - column:
+                  name: C_SQL_ID
+                  type: VARCHAR(40)
+              - column:
+                  name: C_ROWS_PROCESSED
+                  type: int
+              - column:
+                  name: C_ELAPSED_TIME
+                  type: bigint
+        - createIndex:
+            columns:
+              - column:
+                  name: C_TRN_UUID
+            indexName: IDX_APP_QUERY_STAT_TRN_UUID
+            tableName: APP_QUERY_STAT
+        - createIndex:
+            columns:
+              - column:
+                  name: C_SQL_ID
+            indexName: IDX_APP_QUERY_STAT_SQL_ID
+            tableName: APP_QUERY_STAT

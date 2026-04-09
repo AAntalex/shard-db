@@ -31,6 +31,9 @@ databaseChangeLog:
                 name: SHARD_MAP
                 type: bigint
             - column:
+                name: C_QUIT_DOC
+                type: bigint
+            - column:
                 name: C_ACC_DT
                 type: bigint
             - column:

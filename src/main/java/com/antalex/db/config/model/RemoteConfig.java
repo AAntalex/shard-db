@@ -1,4 +1,4 @@
-package com.antalex.db.config;
+package com.antalex.db.config.model;
 
 import lombok.Data;
 

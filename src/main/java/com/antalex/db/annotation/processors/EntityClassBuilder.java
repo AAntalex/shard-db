@@ -55,7 +55,7 @@ public class EntityClassBuilder {
 
     private static List<IndexDto> getIndexes(Index[] indexes) {
         List<IndexDto> result = new ArrayList<>();
-        for(Index index : indexes) {
+        for (Index index : indexes) {
             result.add(
                     IndexDto
                             .builder()
@@ -135,9 +135,8 @@ public class EntityClassBuilder {
                                     .orElse(Collections.emptyList())
                     )
                     .build();
-
-            normalizeClassDto(entityClassDto);
             ENTITY_CLASSES.put(classElement, entityClassDto);
+            normalizeClassDto(entityClassDto);
         }
         return ENTITY_CLASSES.get(classElement);
     }
@@ -160,8 +159,7 @@ public class EntityClassBuilder {
                                 !"id".equals(fieldName) &&
                                 Objects.nonNull(entityFieldDto.getGetter()) &&
                                 Objects.nonNull(entityFieldDto.getColumnName()) &&
-                                !entityFieldDto.getIsLinked())
-                        {
+                                !entityFieldDto.getIsLinked()) {
                             entityFieldDto.setUnique(true);
                         }
                     }
@@ -342,8 +340,7 @@ public class EntityClassBuilder {
 
     public static void createRepositoryClass(
             Element annotatedElement,
-            ProcessingEnvironment processingEnv) throws IOException
-    {
+            ProcessingEnvironment processingEnv) throws IOException {
         EntityClassDto entityClassDto = getClassDtoByElement(annotatedElement);
         if (entityClassDto == null) {
             return;
@@ -505,8 +502,7 @@ public class EntityClassBuilder {
 
     public static void createInterceptorClass(
             Element annotatedElement,
-            ProcessingEnvironment processingEnv) throws IOException
-    {
+            ProcessingEnvironment processingEnv) throws IOException {
         EntityClassDto entityClassDto = getClassDtoByElement(annotatedElement);
         if (entityClassDto == null) {
             return;
@@ -693,7 +689,7 @@ public class EntityClassBuilder {
         return classDto.getColumnFields()
                 .stream()
                 .map(field ->
-                        "\n            .put(\"" + field.getFieldName() + "\", \"" + field.getColumnName() + "\")"
+                        "\n            .put(\"" + field.getFieldName() + "\", \"x0." + field.getColumnName() + "\")"
                 )
                 .reduce(
                         "    private static final Map<String, String> FIELD_MAP = " +
@@ -812,7 +808,7 @@ public class EntityClassBuilder {
     }
 
     private static String getFindCode(EntityClassDto entityClassDto) {
-        return  "    @Override\n" +
+        return "    @Override\n" +
                 "    public " + entityClassDto.getTargetClassName() + " find(" + entityClassDto.getTargetClassName() +
                 " entity, Map<String, DataStorage> storageMap) {\n" +
                 "        try {\n" +
@@ -839,7 +835,7 @@ public class EntityClassBuilder {
     }
 
     private static String getFindOneCode(EntityClassDto entityClassDto) {
-        return  "    @Override\n" +
+        return "    @Override\n" +
                 "    public " + entityClassDto.getTargetClassName() +
                 " find(Map<String, DataStorage> storageMap, String condition, Object... binds) {\n" +
                 "        try {\n" +
@@ -873,7 +869,7 @@ public class EntityClassBuilder {
     }
 
     private static String getFindAllCode(EntityClassDto entityClassDto) {
-        return  "    @Override\n" +
+        return "    @Override\n" +
                 "    public List<" + entityClassDto.getTargetClassName() + ">  findAll(\n" +
                 "            Map<String, DataStorage> storageMap,\n" +
                 "            Integer limit,\n" +
@@ -899,7 +895,7 @@ public class EntityClassBuilder {
     }
 
     private static String getFindAllByIdsCode(EntityClassDto entityClassDto) {
-        return  "    @Override\n" +
+        return "    @Override\n" +
                 "    public List<" + entityClassDto.getTargetClassName() + "> findAll(\n" +
                 "            Map<String, DataStorage> storageMap,\n" +
                 "            List<Long> ids,\n" +
@@ -934,7 +930,7 @@ public class EntityClassBuilder {
     }
 
     private static String getSkipLockedCode(EntityClassDto entityClassDto) {
-        return  "    @Override\n" +
+        return "    @Override\n" +
                 "    public List<" + entityClassDto.getTargetClassName() + "> skipLocked(\n" +
                 "            Integer limit,\n" +
                 "            String condition,\n" +
@@ -959,7 +955,7 @@ public class EntityClassBuilder {
     }
 
     private static String getFindAllParentCode(EntityClassDto entityClassDto) {
-        return  "    @Override\n" +
+        return "    @Override\n" +
                 "    public List<" + entityClassDto.getTargetClassName() +
                 "> findAll(\n" +
                 "            ShardInstance parent,\n" +
@@ -988,7 +984,7 @@ public class EntityClassBuilder {
     }
 
     private static String getFindAllPrivateCode(EntityClassDto entityClassDto) {
-        return  "    private List<" + entityClassDto.getTargetClassName() +
+        return "    private List<" + entityClassDto.getTargetClassName() +
                 "> findAll(ResultQuery result, Map<String, DataStorage> storageMap) {\n" +
                 "        List<" + entityClassDto.getTargetClassName() + "> entities = new ArrayList<>();\n" +
                 "        try {\n" +
@@ -1038,7 +1034,7 @@ public class EntityClassBuilder {
                         "                                        .map(ShardInstance::getId)\n" +
                         "                                        .toList()\n" +
                         "                        )\n" +
-                        "                        .forEach(l ->\n"+
+                        "                        .forEach(l ->\n" +
                         "                                ((" + entityClassDto.getTargetClassName() +
                         ProcessorUtils.CLASS_INTERCEPT_POSTFIX + ") " +
                         (
@@ -1240,16 +1236,16 @@ public class EntityClassBuilder {
         StringBuilder persistCode =
                 new StringBuilder(
                         """            
-                                       String sql = entity.isStored() ? (onlyChanged ? getUpdateSQL(entity.getChanges()) : UPD_QUERY) : INS_QUERY;
-                                       if (Objects.nonNull(sql)) {
-                                           boolean checkChanges = onlyChanged && entity.isStored();
-                                           entityManager
-                                                   .createQueries(entity, sql, QueryType.DML)
-                                                   .forEach(query ->
-                                                           query
-                                                                   .bind(entityManager.getTransactionUUID())
-                                                                   .bindShardMap(entity)
-                           """
+                                            String sql = entity.isStored() ? (onlyChanged ? getUpdateSQL(entity.getChanges()) : UPD_QUERY) : INS_QUERY;
+                                            if (Objects.nonNull(sql)) {
+                                                boolean checkChanges = onlyChanged && entity.isStored();
+                                                entityManager
+                                                        .createQueries(entity, sql, QueryType.DML)
+                                                        .forEach(query ->
+                                                                query
+                                                                        .bind(entityManager.getTransactionUUID())
+                                                                        .bindShardMap(entity)
+                                """
                 );
         StringBuilder childPersistCode = new StringBuilder();
         for (EntityFieldDto field : entityClassDto.getFields()) {

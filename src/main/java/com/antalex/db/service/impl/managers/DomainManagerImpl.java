@@ -16,7 +16,7 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.context.annotation.Primary;
 import org.springframework.core.GenericTypeResolver;
 import org.springframework.stereotype.Component;
-import com.antalex.db.service.DomainEntityManager;
+import com.antalex.db.service.DomainManager;
 import com.antalex.db.service.DomainEntityMapper;
 import com.antalex.db.service.ShardEntityManager;
 import com.antalex.db.utils.Utils;
@@ -28,7 +28,7 @@ import java.util.stream.Collectors;
 @Component
 @Primary
 @SuppressWarnings("unchecked")
-public class DomainEntityManagerImpl implements DomainEntityManager {
+public class DomainManagerImpl implements DomainManager {
     private static final Map<Class<?>, Mapper> MAPPERS = new HashMap<>();
 
     private final ThreadLocal<Mapper> currentMapper = new ThreadLocal<>();
@@ -38,7 +38,7 @@ public class DomainEntityManagerImpl implements DomainEntityManager {
     private final DataWrapperFactory dataWrapperFactory;
     private final SharedTransactionManager sharedTransactionManager;
 
-    DomainEntityManagerImpl(
+    DomainManagerImpl(
             ShardEntityManager entityManager,
             DataWrapperFactory dataWrapperFactory,
             SharedTransactionManager sharedTransactionManager)

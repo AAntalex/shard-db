@@ -14,6 +14,8 @@ import lombok.experimental.Accessors;
 
 import javax.persistence.FetchType;
 import java.time.LocalDateTime;
+import java.util.List;
+import java.util.Map;
 
 @EqualsAndHashCode(callSuper = true)
 @Data
@@ -37,4 +39,8 @@ public class ClientDomain extends BaseDomain {
     @Attribute(mappingType = MappingType.STORAGE)
     @Historical
     private Contract contract;
+    @Attribute(mappingType = MappingType.STORAGE)
+    private List<Contract> contracts;
+    @Attribute(mappingType = MappingType.STORAGE)
+    private Map<String, Contract> additionalContracts;
 }

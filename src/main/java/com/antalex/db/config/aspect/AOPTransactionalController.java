@@ -15,7 +15,8 @@ public class AOPTransactionalController {
     private final SharedTransactionManager transactionManager;
 
     @Pointcut("@annotation(org.springframework.transaction.annotation.Transactional)")
-    public void callTransactional() { }
+    public void callTransactional() {
+    }
 
 
     @Around("callTransactional()")

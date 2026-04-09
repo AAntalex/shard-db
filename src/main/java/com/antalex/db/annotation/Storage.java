@@ -11,8 +11,12 @@ import java.lang.annotation.*;
 @Retention(RetentionPolicy.RUNTIME)
 public @interface Storage {
     String value() default "DEFAULT";
+
     String cluster() default "";
+
     ShardType shardType() default ShardType.SHARDABLE;
+
     DataFormat dataFormat() default DataFormat.JSON;
+
     FetchType fetchType() default FetchType.EAGER;
 }

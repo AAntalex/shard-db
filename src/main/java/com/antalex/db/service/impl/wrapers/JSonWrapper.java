@@ -51,14 +51,14 @@ public class JSonWrapper implements DataWrapper {
     }
 
     @Override
-    public <E> List<E> getList(String attribute, Class<E> clazz) throws JsonProcessingException
+    public <E> List<E> getList(String attribute, TypeReference<?> typeReference) throws JsonProcessingException
     {
         JsonNode nodeAttribute = this.root.get(attribute);
         return Objects.isNull(nodeAttribute) ?
                 null :
                 objectMapper.treeToValue(
                         nodeAttribute,
-                        objectMapper.constructType(new TypeReference<List<E>>(){})
+                        objectMapper.constructType(typeReference)
                 );
     }
 

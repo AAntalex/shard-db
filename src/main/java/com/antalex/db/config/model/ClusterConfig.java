@@ -1,17 +1,17 @@
-package com.antalex.db.config;
+package com.antalex.db.config.model;
 
 import lombok.Data;
 
+import java.util.List;
+
 @Data
-public class ShardConfig {
+public class ClusterConfig {
     private Short id;
-    private Boolean main;
-    private DataSourceConfig datasource;
-    private RemoteConfig remote;
+    private String name;
+    private Boolean defaultCluster;
+    private List<ShardConfig> shards;
     private HikariSettings hikari;
     private Integer activeConnectionParallelLimit;
     private Integer percentActiveConnectionParallelLimit;
     private Integer sequenceCacheSize;
-    private String segment;
-    private Boolean accessible;
 }

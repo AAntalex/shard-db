@@ -40,14 +40,14 @@ multiDbConfig:
       defaultCluster: true
       shards:
         - datasource:
-            url: ${DATASOURCE_JDBC_URL_PG}
-            username: ${DATASOURCE_JDBC_USR_PG}
-            password: ${DATASOURCE_JDBC_PSW_PG}
+            url: ${DATASOURCE_JDBC_URL0}
+            username: ${DATASOURCE_JDBC_USR0}
+            password: ${DATASOURCE_JDBC_PSW0}
         - datasource:
-            url: ${DATASOURCE_JDBC_URL_ORA}
-            username: ${DATASOURCE_JDBC_USR_ORA}
-            password: ${DATASOURCE_JDBC_PSW_ORA}
+            url: ${DATASOURCE_JDBC_URL1}
+            username: ${DATASOURCE_JDBC_USR1}
+            password: ${DATASOURCE_JDBC_PSW1}
         - datasource:
-            url: ${DATASOURCE_JDBC_URL_MYSQL}
-            username: ${DATASOURCE_JDBC_USR_MYSQL}
-            password: ${DATASOURCE_JDBC_PSW_MYSQL}
+            url: ${DATASOURCE_JDBC_URL2}
+            username: ${DATASOURCE_JDBC_USR2}
+            password: ${DATASOURCE_JDBC_PSW2}

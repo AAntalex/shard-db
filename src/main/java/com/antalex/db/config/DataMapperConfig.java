@@ -27,7 +27,10 @@ public class DataMapperConfig {
                 .disable(DeserializationFeature.FAIL_ON_UNKNOWN_PROPERTIES)
                 // Не теряем точность long
                 .enable(JsonWriteFeature.WRITE_NUMBERS_AS_STRINGS)
+                // Не падать, если вместо массива приходит одиночный объект
+                .enable(DeserializationFeature.ACCEPT_SINGLE_VALUE_AS_ARRAY)
                 .visibility(PropertyAccessor.FIELD, JsonAutoDetect.Visibility.ANY)
+                // Не падать при сериализации пустых (без полей) классов
                 .disable(SerializationFeature.FAIL_ON_EMPTY_BEANS)
                 .build();
         return objectMapper;

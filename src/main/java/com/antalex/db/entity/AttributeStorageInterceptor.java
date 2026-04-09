@@ -18,6 +18,7 @@ public class AttributeStorageInterceptor extends AttributeStorage {
         }
         return super.getEntityId();
     }
+
     @Override
     public String getStorageName() {
         if (this.isLazy()) {
@@ -25,6 +26,7 @@ public class AttributeStorageInterceptor extends AttributeStorage {
         }
         return super.getStorageName();
     }
+
     @Override
     public String getData() {
         if (this.isLazy()) {
@@ -32,6 +34,7 @@ public class AttributeStorageInterceptor extends AttributeStorage {
         }
         return super.getData();
     }
+
     @Override
     public DataFormat getDataFormat() {
         if (this.isLazy()) {
@@ -49,10 +52,12 @@ public class AttributeStorageInterceptor extends AttributeStorage {
         }
         super.setEntityId(value);
     }
+
     @Override
     public void setEntityId(Long value) {
         setEntityId(value, true);
     }
+
     public void setStorageName(String value, boolean change) {
         if (change) {
             if (this.isLazy()) {
@@ -62,10 +67,12 @@ public class AttributeStorageInterceptor extends AttributeStorage {
         }
         super.setStorageName(value);
     }
+
     @Override
     public void setStorageName(String value) {
         setStorageName(value, true);
     }
+
     public void setData(String value, boolean change) {
         if (change) {
             if (this.isLazy()) {
@@ -75,10 +82,12 @@ public class AttributeStorageInterceptor extends AttributeStorage {
         }
         super.setData(value);
     }
+
     @Override
     public void setData(String value) {
         setData(value, true);
     }
+
     public void setDataFormat(DataFormat value, boolean change) {
         if (change) {
             if (this.isLazy()) {
@@ -88,6 +97,7 @@ public class AttributeStorageInterceptor extends AttributeStorage {
         }
         super.setDataFormat(value);
     }
+
     @Override
     public void setDataFormat(DataFormat value) {
         setDataFormat(value, true);

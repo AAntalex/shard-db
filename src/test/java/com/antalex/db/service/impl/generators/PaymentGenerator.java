@@ -1,11 +1,9 @@
 package com.antalex.db.service.impl.generators;
 
 import com.antalex.db.dao.domain.AccountDomain;
-import com.antalex.db.dao.domain.ClientDomain;
 import com.antalex.db.dao.domain.PaymentDomain;
 import com.antalex.db.service.DataGeneratorService;
-import com.antalex.db.service.DomainEntityManager;
-import org.apache.commons.lang3.StringUtils;
+import com.antalex.db.service.DomainManager;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Component;
 
@@ -20,7 +18,7 @@ import java.util.stream.IntStream;
 @Component
 public class PaymentGenerator implements DataGeneratorService<PaymentDomain> {
     @Autowired
-    private DomainEntityManager domainManager;
+    private DomainManager domainManager;
     @Autowired
     private AccountGenerator accountGenerator;
 

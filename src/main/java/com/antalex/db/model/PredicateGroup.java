@@ -9,10 +9,13 @@ public class PredicateGroup {
     private Long predicateMask;
     private Long signMask;
 
-    public PredicateGroup() {}
+    public PredicateGroup() {
+    }
+
     public PredicateGroup(String value) {
         this.value = value;
     }
+
     public PredicateGroup(Long predicateMask, Long signMask) {
         this.predicateMask = predicateMask;
         this.signMask = signMask;

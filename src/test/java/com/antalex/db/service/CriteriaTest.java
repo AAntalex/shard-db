@@ -15,7 +15,7 @@ import java.util.Map;
 @DisplayName("Тесты работы с представлениями")
 class CriteriaTest extends BaseIntegrationTest {
     @Autowired
-    private DomainEntityManager domainManager;
+    private DomainManager domainManager;
 
     @Autowired
     private ShardEntityManager entityManager;

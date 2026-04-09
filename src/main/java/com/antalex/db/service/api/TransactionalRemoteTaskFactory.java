@@ -6,5 +6,6 @@ import java.util.concurrent.ExecutorService;
 
 public interface TransactionalRemoteTaskFactory {
     void setExecutorService(ExecutorService executorService);
+
     TransactionalTask createTask(DataBaseInstance shard);
 }

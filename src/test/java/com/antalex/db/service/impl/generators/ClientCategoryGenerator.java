@@ -2,7 +2,7 @@ package com.antalex.db.service.impl.generators;
 
 import com.antalex.db.dao.domain.ClientCategoryDomain;
 import com.antalex.db.service.DataGeneratorService;
-import com.antalex.db.service.DomainEntityManager;
+import com.antalex.db.service.DomainManager;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Component;
 
@@ -13,7 +13,7 @@ import java.util.Optional;
 @Component
 public class ClientCategoryGenerator implements DataGeneratorService<ClientCategoryDomain> {
     @Autowired
-    private DomainEntityManager domainManager;
+    private DomainManager domainManager;
 
     @Override
     public List<ClientCategoryDomain> generate(int count) {

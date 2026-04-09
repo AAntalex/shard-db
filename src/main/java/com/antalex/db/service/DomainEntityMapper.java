@@ -16,7 +16,7 @@ public interface DomainEntityMapper<T extends Domain, M extends ShardInstance> {
     M map(T domain);
     Cluster getCluster();
     Map<String, DataStorage> getDataStorage();
-    void setDomainManager(DomainEntityManager domainManager);
+    void setDomainManager(DomainManager domainManager);
     Map<String, String> getFieldMap();
     List<AttributeHistory> mapAttributeHistory(List<AttributeHistoryEntity> attributeHistoryEntities);
     List<AttributeHistory> getAttributeHistoryFromControlledObjects(T domain);

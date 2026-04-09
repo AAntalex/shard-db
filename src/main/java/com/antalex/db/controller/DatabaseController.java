@@ -23,7 +23,7 @@ public class DatabaseController {
 
     @PostMapping(
             value = "/executeQuery",
-            consumes = { "application/json" }
+            consumes = {"application/json"}
     )
     public ResponseEntity<String> executeQuery(@RequestBody QueryDto query) {
         try {
@@ -37,7 +37,7 @@ public class DatabaseController {
 
     @PostMapping(
             value = "/executeUpdate",
-            consumes = { "application/json" }
+            consumes = {"application/json"}
     )
     public ResponseEntity<String> executeUpdate(@RequestBody QueryDto query) {
         try {
@@ -51,7 +51,7 @@ public class DatabaseController {
 
     @PostMapping(
             value = "/executeBatch",
-            consumes = { "application/json" }
+            consumes = {"application/json"}
     )
     public ResponseEntity<String> executeBatch(@RequestBody QueryDto query) {
         try {

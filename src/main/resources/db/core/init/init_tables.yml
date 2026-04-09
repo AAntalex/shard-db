@@ -1,7 +1,12 @@
 databaseChangeLog:
   - changeSet:
-      id: 'init$001'
+      id: 'initApplication$001'
       author: Antalex
+      preConditions:
+        - onFail: MARK_RAN
+        - not:
+            - tableExists:
+                tableName: APP_DATABASE
       changes:
         - createTable:
             tableName: APP_SEQUENCE
@@ -80,35 +85,6 @@ databaseChangeLog:
               - column:
                   name: C_ERROR_TEXT
                   type: VARCHAR(2000)
-        - createTable:
-            tableName: APP_DML_QUERY
-            columns:
-              - column:
-                  name: C_TRN_UUID
-                  type: VARCHAR(40)
-                  constraints:
-                    foreignKey:
-                      referencedColumnNames: UUID
-                      referencedTableName: APP_TRANSACTION
-                    nullable: false
-              - column:
-                  name: C_QUERY_ORDER
-                  type: int
-              - column:
-                  name: C_SQL_TEXT
-                  type: VARCHAR(2000)
-              - column:
-                  name: C_ROWS_PROCESSED
-                  type: int
-              - column:
-                  name: C_ELAPSED_TIME
-                  type: bigint
-        - createIndex:
-            columns:
-              - column:
-                  name: C_TRN_UUID
-            indexName: IDX_APP_DML_QUERY_TRN_UUID
-            tableName: APP_DML_QUERY
         - createTable:
             tableName: APP_ATTRIBUTE_STORAGE
             columns:

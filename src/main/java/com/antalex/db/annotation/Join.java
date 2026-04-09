@@ -10,7 +10,10 @@ import java.lang.annotation.*;
 @Retention(RetentionPolicy.RUNTIME)
 public @interface Join {
     Class<? extends ShardInstance> from();
+
     String alias();
+
     String on();
+
     JoinType joinType() default JoinType.INNER;
 }

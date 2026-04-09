@@ -48,7 +48,7 @@ public abstract class AbstractTransactionalTask implements TransactionalTask {
                 steps.forEach(step -> {
                     if (this.error == null) {
                         try {
-                            log.trace("Running \"{}\", step \"{}\"...", this.name,  step.name);
+                            log.trace("Running \"{}\", step \"{}\"...", this.name, step.name);
                             step.target.run();
                         } catch (Exception err) {
                             this.error = step.name + ":\n" + err.getMessage();
@@ -72,7 +72,7 @@ public abstract class AbstractTransactionalTask implements TransactionalTask {
         if (this.status == TaskStatus.RUNNING) {
             try {
                 log.trace("Waiting {}...", this.name);
-               this.future.get();
+                this.future.get();
             } catch (Exception err) {
                 throw new ShardDataBaseException(err, this.shard);
             } finally {

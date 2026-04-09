@@ -12,6 +12,7 @@ import javax.persistence.*;
 import java.math.BigDecimal;
 import java.time.OffsetDateTime;
 import java.util.Date;
+import java.util.List;
 
 @EqualsAndHashCode(callSuper = true)
 @Table(name = "T_PAYMENT",
@@ -35,4 +36,7 @@ public class PaymentEntity extends BaseShardEntity {
     @OneToOne(fetch = FetchType.LAZY)
     @JoinColumn
     private AccountEntity accCt;
+    @OneToMany
+    @JoinColumn(name = "C_QUIT_DOC")
+    private List<PaymentEntity> quitDocs;
 }

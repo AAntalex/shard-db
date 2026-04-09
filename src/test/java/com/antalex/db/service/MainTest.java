@@ -21,7 +21,7 @@ import static org.assertj.core.api.Assertions.assertThat;
 @DisplayName("Основные тесты")
 class MainTest extends BaseIntegrationTest {
     @Autowired
-    private DomainEntityManager domainManager;
+    private DomainManager domainManager;
 
     @Autowired
     private PaymentGenerator paymentGenerator;

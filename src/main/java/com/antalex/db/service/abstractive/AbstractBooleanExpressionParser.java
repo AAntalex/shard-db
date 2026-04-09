@@ -176,10 +176,10 @@ public class AbstractBooleanExpressionParser implements BooleanExpressionParser 
         IntStream.range(0, predicateGroups.size())
                 .forEach(i -> {
                     PredicateGroup left = predicateGroups.get(i);
-                    while (IntStream.range(i+1, predicateGroups.size())
+                    while (IntStream.range(i + 1, predicateGroups.size())
                             .mapToObj(predicateGroups::get)
                             .map(right -> reduction(left, right))
-                            .reduce(false, (a, b) -> a || b));
+                            .reduce(false, (a, b) -> a || b)) ;
                 });
         return predicateGroups;
     }
@@ -258,7 +258,7 @@ public class AbstractBooleanExpressionParser implements BooleanExpressionParser 
                 String currentString = String.copyValueOf(chars, i, endPos - i + 1);
                 currentExpression
                         .expression()
-                        .append(token.isEmpty() ? "" :  " ")
+                        .append(token.isEmpty() ? "" : " ")
                         .append(currentString);
                 i = endPos;
                 lastChar = chars[i];
@@ -315,7 +315,7 @@ public class AbstractBooleanExpressionParser implements BooleanExpressionParser 
             } else if (!curToken.isEmpty()) {
                 currentExpression
                         .expression()
-                        .append(lastChar == '.' ? "." : (token.isEmpty() ? "" :  " "))
+                        .append(lastChar == '.' ? "." : (token.isEmpty() ? "" : " "))
                         .append(curToken);
                 token = curToken;
                 lastChar = chars[i];
@@ -326,9 +326,8 @@ public class AbstractBooleanExpressionParser implements BooleanExpressionParser 
                 continue;
             } else if (
                     BOOLEAN_OPERATOR_CHARACTERS.contains(curChar)
-                            && i < chars.length-1
-                            && BOOLEAN_OPERATOR_CHARACTERS.contains(chars[i+1]))
-            {
+                            && i < chars.length - 1
+                            && BOOLEAN_OPERATOR_CHARACTERS.contains(chars[i + 1])) {
                 ++i;
                 lastChar = chars[i];
                 String operator = String.valueOf(curChar) + lastChar;
@@ -350,7 +349,7 @@ public class AbstractBooleanExpressionParser implements BooleanExpressionParser 
 
     private int getEndWord(char[] chars, int offset) {
         for (int i = offset; i < chars.length; i++) {
-            if (i == chars.length - 1 || !isTokenCharacter(chars[i+1])) {
+            if (i == chars.length - 1 || !isTokenCharacter(chars[i + 1])) {
                 return i;
             }
         }
@@ -363,7 +362,7 @@ public class AbstractBooleanExpressionParser implements BooleanExpressionParser 
             return -1;
         }
         int quotesCount = 0;
-        for (int i = offset+1; i < chars.length; i++) {
+        for (int i = offset + 1; i < chars.length; i++) {
             if (chars[i] == quote) {
                 if (++quotesCount % 2 == 1 && (i == chars.length - 1 || chars[i + 1] != quote)) return i;
             } else {
@@ -387,7 +386,7 @@ public class AbstractBooleanExpressionParser implements BooleanExpressionParser 
         } else {
             return -1;
         }
-        for (int i = offset+1; i < chars.length; i++) {
+        for (int i = offset + 1; i < chars.length; i++) {
             if (chars[i] == endParenthesis) return i;
             if (chars[i] == parenthesis) {
                 i = getEndParenthesis(chars, i);
@@ -478,8 +477,7 @@ public class AbstractBooleanExpressionParser implements BooleanExpressionParser 
         right.isNot(isNot && !right.isNot() || !isNot && right.isNot());
         if (left.expressions().isEmpty() ||
                 !isNot && left.isAnd() && !isAnd ||
-                isNot && !left.isAnd() && isAnd)
-        {
+                isNot && !left.isAnd() && isAnd) {
             cloneUpExpression(left, isAnd);
         }
         if (!isNot && !left.isAnd() && isAnd || isNot && left.isAnd() && !isAnd) {
