@@ -38,6 +38,7 @@ public class ShardDataBaseException extends RuntimeException {
         this.shard = shard;
         if (var1 instanceof SQLTransientConnectionException) {
             this.shard.getDynamicDataBaseInfo().setAvailable(false);
+            this.shard.getDynamicDataBaseInfo().setUnavailableReason(var1.getMessage());
         }
     }
 

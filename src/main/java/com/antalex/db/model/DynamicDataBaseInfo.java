@@ -3,11 +3,14 @@ package com.antalex.db.model;
 import lombok.Builder;
 import lombok.Data;
 
+import java.time.OffsetDateTime;
+
 @Data
 @Builder
 public class DynamicDataBaseInfo {
     private String segment;
     private Boolean accessible;
     private Boolean available;
-    private Long lastTime;
+    private OffsetDateTime lastTime;
+    private String unavailableReason;
 }

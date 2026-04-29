@@ -38,6 +38,7 @@ import org.springframework.util.Assert;
 import javax.sql.DataSource;
 import java.io.File;
 import java.sql.*;
+import java.time.OffsetDateTime;
 import java.util.*;
 import java.util.concurrent.*;
 import java.util.function.Consumer;
@@ -428,9 +429,14 @@ public class ShardDatabaseManagerImpl implements ShardDataBaseManager {
             String query,
             QueryType queryType)
     {
-        return getEnabledShards(cluster)
+        List<TransactionalQuery> queries = getEnabledShards(cluster)
                 .map(shard -> createQuery(shard, query, queryType))
                 .toList();
+        Assert.notEmpty(
+                queries,
+                "Отсутствуют доступные шарды в кластере " + cluster.getName() + "!"
+        );
+        return queries;
     }
 
     @Override
@@ -734,7 +740,7 @@ public class ShardDatabaseManagerImpl implements ShardDataBaseManager {
         log.trace("Read dynamic DB info on '{}'...", shard.getName());
         TransactionalTask task = getTransactionalTask(shard);
         DynamicDataBaseInfo dynamicDataBaseInfo = shard.getDynamicDataBaseInfo();
-        dynamicDataBaseInfo.setLastTime(System.currentTimeMillis());
+        dynamicDataBaseInfo.setLastTime(OffsetDateTime.now());
         try {
             ResultQuery resultSet = task.getQuery(
                     SELECT_DYNAMIC_DB_INFO,
@@ -750,6 +756,7 @@ public class ShardDatabaseManagerImpl implements ShardDataBaseManager {
         } catch (Exception err) {
             if (err instanceof SQLTransientConnectionException) {
                 dynamicDataBaseInfo.setAvailable(false);
+                dynamicDataBaseInfo.setUnavailableReason(err.getMessage());
                 log.trace("The shard '{}' is not available", shard.getName());
             } else {
                 throw new ShardDataBaseException(err, shard);
@@ -784,7 +791,7 @@ public class ShardDatabaseManagerImpl implements ShardDataBaseManager {
                                                 .build()
                                 );
                                 DynamicDataBaseInfo dynamicDBInfo = shard.getDynamicDataBaseInfo();
-                                dynamicDBInfo.setLastTime(System.currentTimeMillis());
+                                dynamicDBInfo.setLastTime(OffsetDateTime.now());
                                 dynamicDBInfo.setAvailable(true);
                                 dynamicDBInfo.setSegment(resultSet.getString(6));
                                 dynamicDBInfo.setAccessible(resultSet.getBoolean(7));
@@ -825,7 +832,7 @@ public class ShardDatabaseManagerImpl implements ShardDataBaseManager {
         );
 
         DynamicDataBaseInfo dynamicDBInfo = shard.getDynamicDataBaseInfo();
-        dynamicDBInfo.setLastTime(System.currentTimeMillis());
+        dynamicDBInfo.setLastTime(OffsetDateTime.now());
         dynamicDBInfo.setAvailable(true);
         dynamicDBInfo.setAccessible(Optional.ofNullable(dynamicDBInfo.getAccessible()).orElse(true));
 

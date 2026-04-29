@@ -18,7 +18,7 @@ import java.util.UUID;
 @RestController
 @RequestMapping(path = "/api/v1/db/request")
 @RequiredArgsConstructor
-public class DatabaseController {
+public class DatabaseRequestController {
     private final RemoteDatabaseService databaseService;
 
     @PostMapping(
