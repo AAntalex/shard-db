@@ -34,5 +34,5 @@ public class DatabaseInfoController {
     ResponseEntity<DynamicDataBaseInfo> showDBInfo(@PathVariable String cluster, @PathVariable Short shardId) {
         return ResponseEntity.ok(
                 dataBaseManager.getShard(dataBaseManager.getCluster(cluster), shardId).getDynamicDataBaseInfo());
-    };
+    }
 }
