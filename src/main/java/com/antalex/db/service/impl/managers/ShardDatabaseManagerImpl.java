@@ -434,7 +434,8 @@ public class ShardDatabaseManagerImpl implements ShardDataBaseManager {
                 .toList();
         Assert.notEmpty(
                 queries,
-                "Отсутствуют доступные шарды в кластере " + cluster.getName() + "!"
+                "Отсутствуют доступные шарды" +
+                        (cluster == null ? "" : (" в кластере " + cluster.getName())) + "!"
         );
         return queries;
     }

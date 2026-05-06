@@ -739,9 +739,6 @@ public class EntityClassBuilder {
                             for (DataStorage dataStorage : storageMap.values()) {
                             if (
                                     dataStorage.getFetchType() == FetchType.EAGER &&
-                                            Optional.ofNullable(dataStorage.getCluster())
-                                                    .map(it -> it == cluster)
-                                                    .orElse(true)  &&
                                             (
                                                     SHARD_TYPE != ShardType.REPLICABLE ||
                                                             dataStorage.getShardType() == ShardType.REPLICABLE)

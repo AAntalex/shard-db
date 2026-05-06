@@ -43,8 +43,7 @@ public class ShardEntityManagerImpl implements ShardEntityManager {
     ShardEntityManagerImpl(
             ShardDataBaseManager dataBaseManager,
             SharedTransactionManager sharedTransactionManager,
-            AttributeStorageRepository attributeStorageRepository)
-    {
+            AttributeStorageRepository attributeStorageRepository) {
         this.dataBaseManager = dataBaseManager;
         this.sharedTransactionManager = sharedTransactionManager;
         this.attributeStorageRepository = attributeStorageRepository;
@@ -140,7 +139,7 @@ public class ShardEntityManagerImpl implements ShardEntityManager {
     }
 
     @Override
-    public  <T extends ShardInstance> void deleteAll(Iterable<T> entities) {
+    public <T extends ShardInstance> void deleteAll(Iterable<T> entities) {
         if (entities == null) {
             return;
         }
@@ -274,8 +273,7 @@ public class ShardEntityManagerImpl implements ShardEntityManager {
                                     .map(StorageContext::isTemporary)
                                     .orElse(false) &&
                                     Objects.nonNull(entity.getStorageContext().getShard());
-                        }))
-        {
+                        })) {
             parent.setStorageContext(
                     StorageContext.builder()
                             .cluster(parent.getStorageContext().getCluster())
@@ -371,8 +369,7 @@ public class ShardEntityManagerImpl implements ShardEntityManager {
             T entity,
             String query,
             QueryType queryType,
-            QueryStrategy queryStrategy)
-    {
+            QueryStrategy queryStrategy) {
         return switch (queryStrategy) {
             case OWN_SHARD -> dataBaseManager.createQuery(entity.getStorageContext().getShard(), query, queryType);
             case MAIN_SHARD ->
@@ -388,8 +385,7 @@ public class ShardEntityManagerImpl implements ShardEntityManager {
             T entity,
             String query,
             QueryType queryType,
-            QueryStrategy queryStrategy)
-    {
+            QueryStrategy queryStrategy) {
         return switch (queryStrategy) {
             case OWN_SHARD, MAIN_SHARD ->
                     Collections.singletonList(createQuery(entity, query, queryType, queryStrategy));
@@ -406,12 +402,11 @@ public class ShardEntityManagerImpl implements ShardEntityManager {
     public <T extends ShardInstance> Iterable<TransactionalQuery> createQueries(
             Class<T> clazz,
             String query,
-            QueryType queryType)
-    {
+            QueryType queryType) {
         ShardEntityRepository<T> repository = getEntityRepository(clazz);
         if (
                 Optional.ofNullable(repository.getShardType())
-                        .map(it ->  it == ShardType.REPLICABLE)
+                        .map(it -> it == ShardType.REPLICABLE)
                         .orElse(false)
         ) {
             return Collections.singletonList(
@@ -459,8 +454,7 @@ public class ShardEntityManagerImpl implements ShardEntityManager {
             Class<T> clazz,
             Map<String, DataStorage> storageMap,
             String condition,
-            Object... binds)
-    {
+            Object... binds) {
         return sharedTransactionManager.runInTransaction(() -> {
             ShardEntityRepository<T> repository = getEntityRepository(clazz);
             return repository.find(storageMap, condition, binds);
@@ -473,8 +467,7 @@ public class ShardEntityManagerImpl implements ShardEntityManager {
             Map<String, DataStorage> storageMap,
             Integer limit,
             String condition,
-            Object... binds)
-    {
+            Object... binds) {
         return sharedTransactionManager.runInTransaction(() -> {
             ShardEntityRepository<T> repository = getEntityRepository(clazz);
             return repository.findAll(storageMap, limit, condition, binds);
@@ -487,8 +480,7 @@ public class ShardEntityManagerImpl implements ShardEntityManager {
             ShardInstance parent,
             Map<String, DataStorage> storageMap,
             String condition,
-            Object... binds)
-    {
+            Object... binds) {
         return sharedTransactionManager.runInTransaction(() -> {
             ShardEntityRepository<T> repository = getEntityRepository(clazz);
             return repository.findAll(parent, storageMap, condition, binds);
@@ -501,8 +493,7 @@ public class ShardEntityManagerImpl implements ShardEntityManager {
             Map<String, DataStorage> storageMap,
             String condition,
             List<Long> ids,
-            Object... binds)
-    {
+            Object... binds) {
         return sharedTransactionManager.runInTransaction(() -> {
             ShardEntityRepository<T> repository = getEntityRepository(clazz);
             return repository.findAll(storageMap, ids, condition, binds);
@@ -514,10 +505,11 @@ public class ShardEntityManagerImpl implements ShardEntityManager {
             Class<T> clazz,
             Integer limit,
             String condition,
-            Object... binds)
-    {
-        ShardEntityRepository<T> repository = getEntityRepository(clazz);
-        return repository.skipLocked(limit, condition, binds);
+            Object... binds) {
+        return sharedTransactionManager.runInTransaction(() -> {
+            ShardEntityRepository<T> repository = getEntityRepository(clazz);
+            return repository.skipLocked(limit, condition, binds);
+        });
     }
 
     @Override
@@ -546,16 +538,12 @@ public class ShardEntityManagerImpl implements ShardEntityManager {
             ResultQuery result,
             Cluster cluster,
             ShardType shardType,
-            int index)
-    {
+            int index) {
         List<AttributeStorage> attributeStorageList = new ArrayList<>();
         if (Objects.nonNull(storageMap)) {
             for (DataStorage dataStorage : storageMap.values()) {
                 if (
                         dataStorage.getFetchType() == FetchType.EAGER &&
-                                Optional.ofNullable(dataStorage.getCluster())
-                                        .map(it -> it == cluster)
-                                        .orElse(true) &&
                                 (
                                         shardType != ShardType.REPLICABLE ||
                                                 dataStorage.getShardType() == ShardType.REPLICABLE)
@@ -598,7 +586,7 @@ public class ShardEntityManagerImpl implements ShardEntityManager {
         return entity;
     }
 
-    private  <T extends ShardInstance> Iterable<T> saveAll(Iterable<T> entities, boolean onlyChanged) {
+    private <T extends ShardInstance> Iterable<T> saveAll(Iterable<T> entities, boolean onlyChanged) {
         if (entities == null) {
             return null;
         }
@@ -614,8 +602,7 @@ public class ShardEntityManagerImpl implements ShardEntityManager {
                         .map(ShardInstance::getStorageContext)
                         .map(it -> delete || !it.isLazy())
                         .orElse(false) &&
-                        entity.setTransactionalContext(transaction))
-        {
+                        entity.setTransactionalContext(transaction)) {
             ShardEntityRepository<T> repository = getEntityRepository(entity.getClass());
             if (!delete) {
                 checkShardMap(entity, repository.getShardType(entity));
@@ -664,8 +651,7 @@ public class ShardEntityManagerImpl implements ShardEntityManager {
             SharedEntityTransaction transaction,
             Class<?> clazz,
             T entity,
-            Long id)
-    {
+            Long id) {
         if (entity == null) {
             return;
         }
@@ -674,13 +660,11 @@ public class ShardEntityManagerImpl implements ShardEntityManager {
 
     private void checkShardMap(ShardInstance entity, ShardType shardType) {
         Long shardMap = entity.getStorageContext().getShardMap();
-        if (shardType == ShardType.REPLICABLE && !shardMap.equals(0L))
-        {
+        if (shardType == ShardType.REPLICABLE && !shardMap.equals(0L)) {
             entity.getStorageContext().setShardMap(0L);
         }
         if (shardType == ShardType.SHARDABLE
-                && !shardMap.equals(ShardUtils.getShardMap(entity.getStorageContext().getShard().getId())))
-        {
+                && !shardMap.equals(ShardUtils.getShardMap(entity.getStorageContext().getShard().getId()))) {
             throw new ShardDataBaseException("У шардируемой сущности не может быть определенно более 1 шарды.");
         }
     }

@@ -41,8 +41,7 @@ public class DomainManagerImpl implements DomainManager {
     DomainManagerImpl(
             ShardEntityManager entityManager,
             DataWrapperFactory dataWrapperFactory,
-            SharedTransactionManager sharedTransactionManager)
-    {
+            SharedTransactionManager sharedTransactionManager) {
         this.entityManager = entityManager;
         this.dataWrapperFactory = dataWrapperFactory;
         this.sharedTransactionManager = sharedTransactionManager;
@@ -50,8 +49,7 @@ public class DomainManagerImpl implements DomainManager {
 
     @Autowired
     public void setDomainMappers(
-            List<DomainEntityMapper<? extends Domain, ? extends ShardInstance>> domainEntityMappers)
-    {
+            List<DomainEntityMapper<? extends Domain, ? extends ShardInstance>> domainEntityMappers) {
         for (DomainEntityMapper<?, ?> domainEntityMapper : domainEntityMappers) {
             Class<?>[] classes = GenericTypeResolver
                     .resolveTypeArguments(domainEntityMapper.getClass(), DomainEntityMapper.class);
@@ -122,7 +120,7 @@ public class DomainManagerImpl implements DomainManager {
     @Override
     public <T extends Domain> List<T> skipLocked(Class<T> clazz, Integer limit, String condition, Object... binds) {
         Mapper mapper = getMapper(clazz);
-        return mapAllToDomains(
+        return sharedTransactionManager.runInTransaction(() -> mapAllToDomains(
                 clazz,
                 entityManager.skipLocked(
                         mapper.entityClass,
@@ -130,7 +128,7 @@ public class DomainManagerImpl implements DomainManager {
                         Utils.transformCondition(condition, mapper.domainEntityMapper.getFieldMap()),
                         binds
                 )
-        );
+        ));
     }
 
     @Override
@@ -170,8 +168,7 @@ public class DomainManagerImpl implements DomainManager {
     @Override
     public <T extends Domain, M extends ShardInstance> List<M> mapAllToEntities(
             Class<T> clazz,
-            List<T> domains)
-    {
+            List<T> domains) {
         Mapper mapper = getMapper(clazz);
         return (List) domains.stream()
                 .map(mapper.domainEntityMapper::map)
