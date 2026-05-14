@@ -742,6 +742,16 @@ public class ShardDatabaseManagerImpl implements ShardDataBaseManager {
         TransactionalTask task = getTransactionalTask(shard);
         DynamicDataBaseInfo dynamicDataBaseInfo = shard.getDynamicDataBaseInfo();
         dynamicDataBaseInfo.setLastTime(OffsetDateTime.now());
+        dynamicDataBaseInfo.setActiveConnections(
+                ((HikariDataSource) shard.getDataSource())
+                        .getHikariPoolMXBean()
+                        .getActiveConnections()
+        );
+        dynamicDataBaseInfo.setIdleConnections(
+                ((HikariDataSource) shard.getDataSource())
+                        .getHikariPoolMXBean()
+                        .getIdleConnections()
+        );
         try {
             ResultQuery resultSet = task.getQuery(
                     SELECT_DYNAMIC_DB_INFO,
@@ -752,8 +762,6 @@ public class ShardDatabaseManagerImpl implements ShardDataBaseManager {
                 dynamicDataBaseInfo.setSegment(resultSet.getString(1));
                 dynamicDataBaseInfo.setAccessible(resultSet.getBoolean(2));
             }
-            task.finish();
-            ((SharedEntityTransaction) sharedTransactionManager.getTransaction()).close();
         } catch (Exception err) {
             if (err instanceof SQLTransientConnectionException) {
                 dynamicDataBaseInfo.setAvailable(false);
@@ -762,6 +770,9 @@ public class ShardDatabaseManagerImpl implements ShardDataBaseManager {
             } else {
                 throw new ShardDataBaseException(err, shard);
             }
+        } finally {
+            task.finish();
+            ((SharedEntityTransaction) sharedTransactionManager.getTransaction()).close();
         }
     }
 

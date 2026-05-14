@@ -13,4 +13,6 @@ public class DynamicDataBaseInfo {
     private Boolean available;
     private OffsetDateTime lastTime;
     private String unavailableReason;
+    private Integer idleConnections;
+    private Integer activeConnections;
 }
