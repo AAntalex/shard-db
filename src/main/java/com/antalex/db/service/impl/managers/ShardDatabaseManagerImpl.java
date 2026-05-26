@@ -739,7 +739,6 @@ public class ShardDatabaseManagerImpl implements ShardDataBaseManager {
 
     private void getDynamicDataBaseInfo(DataBaseInstance shard) {
         log.trace("Read dynamic DB info on '{}'...", shard.getName());
-        TransactionalTask task = getTransactionalTask(shard);
         DynamicDataBaseInfo dynamicDataBaseInfo = shard.getDynamicDataBaseInfo();
         dynamicDataBaseInfo.setLastTime(OffsetDateTime.now());
         dynamicDataBaseInfo.setActiveConnections(
@@ -752,11 +751,13 @@ public class ShardDatabaseManagerImpl implements ShardDataBaseManager {
                         .getHikariPoolMXBean()
                         .getIdleConnections()
         );
+        Connection connection = null;
         try {
-            ResultQuery resultSet = task.getQuery(
-                    SELECT_DYNAMIC_DB_INFO,
-                    QueryType.SELECT
-            ).getResult();
+            connection = shard.getDataSource().getConnection();
+            PreparedStatement preparedStatement = connection.prepareStatement(
+                    ShardUtils.transformSQL(SELECT_DYNAMIC_DB_INFO, shard)
+            );
+            ResultSet resultSet = preparedStatement.executeQuery();
             if (resultSet.next()) {
                 dynamicDataBaseInfo.setAvailable(true);
                 dynamicDataBaseInfo.setSegment(resultSet.getString(1));
@@ -768,11 +769,21 @@ public class ShardDatabaseManagerImpl implements ShardDataBaseManager {
                 dynamicDataBaseInfo.setUnavailableReason(err.getMessage());
                 log.trace("The shard '{}' is not available", shard.getName());
             } else {
+                log.trace(err.getMessage());
                 throw new ShardDataBaseException(err, shard);
             }
         } finally {
-            task.finish();
-            ((SharedEntityTransaction) sharedTransactionManager.getTransaction()).close();
+            closeConnection(connection, shard);
+        }
+    }
+
+    private void closeConnection(Connection connection, DataBaseInstance shard) {
+        try {
+            if (Objects.nonNull(connection) && !connection.isClosed()) {
+                connection.close();
+            }
+        } catch (Exception err) {
+            throw new ShardDataBaseException(err, shard);
         }
     }
 

@@ -12,7 +12,7 @@ public abstract class AbstractSequenceGenerator implements SequenceGenerator {
     protected Long maxValue;
 
     @Override
-    public long curValue() {
+    public synchronized long curValue() {
         if (Objects.isNull(this.value)) {
             init();
         }
