@@ -171,6 +171,11 @@ public class ShardDatabaseManagerImpl implements ShardDataBaseManager {
     }
 
     @Override
+    public Map<String, Cluster> getClusters() {
+        return clusters;
+    }
+
+    @Override
     public DataBaseInstance getShard(Cluster cluster, Short id) {
         if (cluster == null) {
             throw new ShardDataBaseException("Не указан кластер");
@@ -741,16 +746,6 @@ public class ShardDatabaseManagerImpl implements ShardDataBaseManager {
         log.trace("Read dynamic DB info on '{}'...", shard.getName());
         DynamicDataBaseInfo dynamicDataBaseInfo = shard.getDynamicDataBaseInfo();
         dynamicDataBaseInfo.setLastTime(OffsetDateTime.now());
-        dynamicDataBaseInfo.setActiveConnections(
-                ((HikariDataSource) shard.getDataSource())
-                        .getHikariPoolMXBean()
-                        .getActiveConnections()
-        );
-        dynamicDataBaseInfo.setIdleConnections(
-                ((HikariDataSource) shard.getDataSource())
-                        .getHikariPoolMXBean()
-                        .getIdleConnections()
-        );
         Connection connection = null;
         try {
             connection = shard.getDataSource().getConnection();
@@ -767,9 +762,9 @@ public class ShardDatabaseManagerImpl implements ShardDataBaseManager {
             if (err instanceof SQLTransientConnectionException) {
                 dynamicDataBaseInfo.setAvailable(false);
                 dynamicDataBaseInfo.setUnavailableReason(err.getMessage());
-                log.trace("The shard '{}' is not available", shard.getName());
+                log.error("The shard '{}' is not available", shard.getName());
             } else {
-                log.trace(err.getMessage());
+                log.error(err.getMessage());
                 throw new ShardDataBaseException(err, shard);
             }
         } finally {

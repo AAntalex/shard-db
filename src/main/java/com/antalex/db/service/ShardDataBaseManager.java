@@ -14,6 +14,7 @@ import javax.sql.DataSource;
 import java.sql.Connection;
 import java.sql.SQLException;
 import java.util.List;
+import java.util.Map;
 import java.util.stream.Stream;
 
 public interface ShardDataBaseManager {
@@ -22,6 +23,7 @@ public interface ShardDataBaseManager {
     Cluster getCluster(Short id);
     Cluster getCluster(String clusterName);
     Cluster getDefaultCluster();
+    Map<String, Cluster> getClusters();
     DataBaseInstance getShard(Cluster cluster, Short id);
     Stream<DataBaseInstance> getEnabledShards(Cluster cluster);
     Stream<DataBaseInstance> getEntityShards(ShardInstance entity);
