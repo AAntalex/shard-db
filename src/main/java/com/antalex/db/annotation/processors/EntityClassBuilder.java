@@ -1056,20 +1056,14 @@ public class EntityClassBuilder {
                 .stream()
                 .filter(it -> Objects.nonNull(it.getSetter()) && isEagerField(it))
                 .map(field ->
-                        "                if (\n" +
-                                "                        result.getLong(index+1) != 0L &&\n" +
-                                "                                Optional.ofNullable(entity." + field.getGetter() +
-                                "()).map(ShardInstance::isLazy).orElse(false))\n" +
-                                "                {\n" +
-                                "                    entityManager.extractValues(entity." + field.getGetter() +
+                        "                entityManager.extractValues(entity." + field.getGetter() +
                                 "(), result, index);\n" +
-                                "                    index = index + " +
+                                "                index = index + " +
                                 getCountSelectColumns(
                                         getClassDtoByElement(
                                                 ProcessorUtils.getDeclaredType(field.getElement()).asElement()
                                         )
-                                ) + ";\n" +
-                                "                }\n"
+                                ) + ";\n"
                 )
                 .reduce(
                         "                int index = 0;\n" +
@@ -1176,6 +1170,8 @@ public class EntityClassBuilder {
                                 "                if (entity == null) {\n" +
                                 "                    entity = entityManager.getEntity(" +
                                 entityClassDto.getTargetClassName() + ".class, result.getLong(index));\n" +
+                                "                } else if (!entity.isLazy() && result.getLong(index + 1) < 0L) {\n" +
+                                "                    return entity;\n" +
                                 "                }\n" +
                                 "                " + entityClassDto.getTargetClassName() +
                                 ProcessorUtils.CLASS_INTERCEPT_POSTFIX + " entityInterceptor = (" +
