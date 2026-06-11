@@ -25,6 +25,7 @@ import java.util.*;
 
 @Component
 public class AttributeHistoryRepository implements ShardEntityRepository<AttributeHistoryEntity> {
+    private static final String TABLE_NAME = "APP_ATTRIBUTE_HISTORY";
     private static final ShardType SHARD_TYPE = ShardType.SHARDABLE;
     private static final String INS_QUERY = "INSERT INTO $$$.APP_ATTRIBUTE_HISTORY (SN,ST,SHARD_MAP,C_ENTITY_ID,C_ATTRIBUTE_NAME,C_TIME,C_VALUE,ID) VALUES (0,?,?,?,?,?,?,?)";
     private static final String SELECT_QUERY = "SELECT x0.ID,x0.SHARD_MAP,x0.C_ENTITY_ID,x0.C_ATTRIBUTE_NAME,x0.C_TIME,x0.C_VALUE FROM $$$.APP_ATTRIBUTE_HISTORY x0 WHERE x0.SHARD_MAP>=0";
@@ -49,11 +50,6 @@ public class AttributeHistoryRepository implements ShardEntityRepository<Attribu
     @Override
     public void setEntityManager(ShardEntityManager entityManager) {
         this.entityManager = entityManager;
-    }
-
-    @Override
-    public Map<String, String> getFieldMap() {
-        return FIELD_MAP;
     }
 
     @Override
@@ -302,6 +298,26 @@ public class AttributeHistoryRepository implements ShardEntityRepository<Attribu
             ) break;
         }
         return result;
+    }
+
+    @Override
+    public String getTableName() {
+        return TABLE_NAME;
+    }
+
+    @Override
+    public Class<? extends ShardInstance> getEntityClassByField(String fieldName) {
+        return null;
+    }
+
+    @Override
+    public String getColumnNameByField(String fieldName) {
+        return FIELD_MAP.get(fieldName);
+    }
+
+    @Override
+    public String getLinkedColumnNameByField(String fieldName) {
+        return null;
     }
 
     private List<AttributeHistoryEntity> findAll(ResultQuery result) {

@@ -137,6 +137,7 @@ class SqlConditionParserTest {
             Future<List<List<String>>> tmpFuture = futures.get(0);
             System.out.println("Start get1!");
             List<List<String>> result = tmpFuture.get(30, TimeUnit.SECONDS);
+
             System.out.println("Stop get1! result = " + result);
         } catch (Exception err) {
             throw new RuntimeException(err);

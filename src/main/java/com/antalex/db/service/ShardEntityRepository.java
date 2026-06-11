@@ -28,6 +28,9 @@ public interface ShardEntityRepository<T extends ShardInstance> {
     List<T> skipLocked(Integer limit, String condition, Object... binds);
     T extractValues(T entity, ResultQuery result, int index);
     void setEntityManager(ShardEntityManager entityManager);
-    Map<String, String> getFieldMap();
     List<T> findAll(Map<String, DataStorage> storageMap, List<Long> ids, String condition, Object... binds);
+    String getTableName();
+    String getColumnNameByField(String fieldName);
+    String getLinkedColumnNameByField(String fieldName);
+    Class<? extends ShardInstance> getEntityClassByField(String fieldName);
 }

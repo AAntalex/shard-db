@@ -9,6 +9,7 @@ import com.antalex.db.model.enums.QueryStrategy;
 import com.antalex.db.model.enums.QueryType;
 import com.antalex.db.model.enums.ShardType;
 import com.antalex.db.service.api.TransactionalQuery;
+import org.apache.commons.lang3.tuple.Pair;
 
 import javax.persistence.EntityTransaction;
 import java.util.List;
@@ -64,6 +65,11 @@ public interface ShardEntityManager {
     );
     <T extends ShardInstance> T find(T entity, Map<String, DataStorage> storageMap);
     AttributeStorage findAttributeStorage(ShardInstance parent, DataStorage storage);
+    <T extends ShardInstance> String transformCondition(
+            Class<T> clazz,
+            String condition,
+            StringBuilder fromPrefix,
+            Map<String, Pair<String, Class<? extends ShardInstance>>> aliasesMap);
     <T extends ShardInstance> List<T> findAllLimit(
             Class<T> clazz,
             Map<String, DataStorage> storageMap,
@@ -91,7 +97,6 @@ public interface ShardEntityManager {
             Object... binds);
     <T extends ShardInstance> T extractValues(T entity, ResultQuery result, int index);
     <T extends ShardInstance> T extractValues(Class<T> clazz, ResultQuery result, int index);
-    <T extends ShardInstance> Map<String, String> getFieldMap(Class<T> clazz);
     List<AttributeStorage> extractAttributeStorage(
             Map<String, DataStorage> storageMap,
             ResultQuery result,
@@ -99,6 +104,10 @@ public interface ShardEntityManager {
             ShardType shardType,
             int index
     );
+    <T extends ShardInstance> String getTableName(Class<T> clazz);
+    <T extends ShardInstance> String getColumnNameByField(Class<T> clazz, String fieldName);
+    <T extends ShardInstance> String getLinkedColumnNameByField(Class<T> clazz, String fieldName);
+    <T extends ShardInstance> Class<? extends ShardInstance> getEntityClassByField(Class<T> clazz, String fieldName);
     EntityTransaction getTransaction();
     String getTransactionUUID();
     void setAutonomousTransaction();

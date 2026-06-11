@@ -28,6 +28,7 @@ import java.util.stream.IntStream;
 
 @Component
 public class AttributeStorageRepository implements ShardEntityRepository<AttributeStorage> {
+    private static final String TABLE_NAME = "APP_ATTRIBUTE_STORAGE";
     private static final String UPD_QUERY_PREFIX = "UPDATE $$$.APP_ATTRIBUTE_STORAGE SET SN=SN+1,PREV_ST=ST,ST=?,SHARD_MAP=?";
     private static final String INS_QUERY = "INSERT INTO $$$.APP_ATTRIBUTE_STORAGE (SN,ST,SHARD_MAP,C_ENTITY_ID,C_STORAGE_NAME,C_DATA,C_DATA_FORMAT,ID) VALUES (0,?,?,?,?,?,?,?)";
     private static final String UPD_QUERY = "UPDATE $$$.APP_ATTRIBUTE_STORAGE SET SN=SN+1,PREV_ST=ST,ST=?,SHARD_MAP=?,C_ENTITY_ID=?,C_STORAGE_NAME=?,C_DATA=?,C_DATA_FORMAT=? WHERE ID=?";
@@ -136,11 +137,6 @@ public class AttributeStorageRepository implements ShardEntityRepository<Attribu
     }
 
     @Override
-    public Map<String, String> getFieldMap() {
-        return FIELD_MAP;
-    }
-
-    @Override
     public void lock(AttributeStorage entity) {
         entityManager
                 .createQuery(entity, LOCK_QUERY, QueryType.LOCK, QueryStrategy.OWN_SHARD)
@@ -246,6 +242,26 @@ public class AttributeStorageRepository implements ShardEntityRepository<Attribu
             ) break;
         }
         return result;
+    }
+
+    @Override
+    public String getTableName() {
+        return TABLE_NAME;
+    }
+
+    @Override
+    public Class<? extends ShardInstance> getEntityClassByField(String fieldName) {
+        return null;
+    }
+
+    @Override
+    public String getColumnNameByField(String fieldName) {
+        return FIELD_MAP.get(fieldName);
+    }
+
+    @Override
+    public String getLinkedColumnNameByField(String fieldName) {
+        return null;
     }
 
     public AttributeStorage find(ShardInstance parent, DataStorage storage) {

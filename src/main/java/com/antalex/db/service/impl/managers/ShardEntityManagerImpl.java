@@ -19,6 +19,9 @@ import com.antalex.db.service.api.TransactionalQuery;
 import com.antalex.db.service.impl.repository.AttributeStorageRepository;
 import com.antalex.db.service.impl.transaction.SharedEntityTransaction;
 import com.antalex.db.utils.ShardUtils;
+import com.antalex.db.utils.Utils;
+import org.apache.commons.lang3.StringUtils;
+import org.apache.commons.lang3.tuple.Pair;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.context.annotation.Primary;
 import org.springframework.core.GenericTypeResolver;
@@ -27,6 +30,7 @@ import org.springframework.stereotype.Component;
 import javax.persistence.EntityTransaction;
 import javax.persistence.FetchType;
 import java.util.*;
+import java.util.stream.Collectors;
 
 @Component
 @Primary
@@ -528,11 +532,6 @@ public class ShardEntityManagerImpl implements ShardEntityManager {
     }
 
     @Override
-    public <T extends ShardInstance> Map<String, String> getFieldMap(Class<T> clazz) {
-        return getEntityRepository(clazz).getFieldMap();
-    }
-
-    @Override
     public List<AttributeStorage> extractAttributeStorage(
             Map<String, DataStorage> storageMap,
             ResultQuery result,
@@ -563,6 +562,26 @@ public class ShardEntityManagerImpl implements ShardEntityManager {
     }
 
     @Override
+    public <T extends ShardInstance> String getTableName(Class<T> clazz) {
+        return getEntityRepository(clazz).getTableName();
+    }
+
+    @Override
+    public <T extends ShardInstance> String getColumnNameByField(Class<T> clazz, String fieldName) {
+        return getEntityRepository(clazz).getColumnNameByField(fieldName);
+    }
+
+    @Override
+    public <T extends ShardInstance> String getLinkedColumnNameByField(Class<T> clazz, String fieldName) {
+        return getEntityRepository(clazz).getLinkedColumnNameByField(fieldName);
+    }
+
+    @Override
+    public <T extends ShardInstance> Class<? extends ShardInstance> getEntityClassByField(Class<T> clazz, String fieldName) {
+        return getEntityRepository(clazz).getEntityClassByField(fieldName);
+    }
+
+    @Override
     public <T extends ShardInstance> T find(T entity, Map<String, DataStorage> storageMap) {
         if (entity == null) {
             return null;
@@ -576,6 +595,99 @@ public class ShardEntityManagerImpl implements ShardEntityManager {
     @Override
     public AttributeStorage findAttributeStorage(ShardInstance parent, DataStorage storage) {
         return attributeStorageRepository.find(parent, storage);
+    }
+
+    @Override
+    public <T extends ShardInstance> String transformCondition(
+            Class<T> clazz,
+            String condition,
+            StringBuilder fromPrefix,
+            Map<String, Pair<String, Class<? extends ShardInstance>>> aliasesMap)
+    {
+        if (StringUtils.isEmpty(condition)) {
+            return condition;
+        }
+        Map<String, Pair<String, Class<? extends ShardInstance>>> aliases = new HashMap<>(aliasesMap);
+        return Utils.transformCondition(
+                condition,
+                Utils.getTokensFormCondition(condition)
+                        .stream()
+                        .collect(
+                                Collectors.toMap(
+                                        token -> token,
+                                        token -> transformToken(clazz, token, fromPrefix, aliases)
+                                )
+                        )
+        );
+    }
+
+    private String transformToken(
+            Class<? extends ShardInstance> clazz,
+            String token,
+            StringBuilder fromPrefix,
+            Map<String, Pair<String, Class<? extends ShardInstance>>> aliases)
+    {
+        String[] tokenParts = token.split("\\.");
+        String fieldName = null;
+        String alias = "X0";
+        String aliasPath = StringUtils.EMPTY;
+        for (int i = 0; i < tokenParts.length; i++) {
+            fieldName = tokenParts[i];
+            if (i == tokenParts.length - 1) {
+                break;
+            }
+            if (alias.equals(fieldName.toUpperCase())) {
+                continue;
+            }
+            aliasPath = (aliasPath.isEmpty() ? aliasPath : (aliasPath +  ".")) + fieldName;
+            String finalFieldName = fieldName;
+            Class<? extends ShardInstance> finalClazz = clazz;
+            String finalAlias = alias;
+            Pair<String, Class<? extends ShardInstance>> pair = aliases.computeIfAbsent(
+                    aliasPath,
+                    k ->
+                            getNewAlias(
+                                    finalClazz,
+                                    finalFieldName,
+                                    finalAlias,
+                                    "X" + (aliases.size() + 1),
+                                    fromPrefix
+                            )
+            );
+            alias = pair.getLeft();
+            clazz = pair.getRight();
+        }
+        String columnName = getColumnNameByField(clazz, fieldName);
+        if (columnName == null) {
+            throw new ShardDataBaseException();
+        }
+        return alias + "." + columnName;
+    }
+
+    private Pair<String, Class<? extends ShardInstance>> getNewAlias(
+            Class<? extends ShardInstance> clazz,
+            String fieldName,
+            String alias,
+            String newAlias,
+            StringBuilder fromPrefix)
+    {
+        Class<? extends ShardInstance> newClazz = getEntityClassByField(clazz, fieldName);
+        if (newClazz == null) {
+            throw new ShardDataBaseException("Отсутсвует поле " + fieldName + " в классе " + clazz.getName());
+        }
+        String linkedColumn = "ID";
+        String columnName = getColumnNameByField(clazz, fieldName);
+        if (columnName == null) {
+            linkedColumn = getLinkedColumnNameByField(clazz, fieldName);
+            columnName = "ID";
+        }
+        fromPrefix
+                .append(" LEFT OUTER JOIN $$$.")
+                .append(getTableName(newClazz))
+                .append(" ").append(newAlias)
+                .append(" ON ").append(newAlias).append(".").append(linkedColumn)
+                .append("=").append(alias).append(".").append(columnName);
+        return Pair.of(newAlias, newClazz);
     }
 
     private <T extends ShardInstance> T save(T entity, boolean onlyChanged) {
