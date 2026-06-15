@@ -33,6 +33,8 @@ public interface DomainManager {
     <T extends Domain> boolean lock(T domain);
     <T extends Domain> Map<String, DataStorage> getDataStorage(Class<T> clazz);
     <T extends Domain> List<AttributeHistory> getAttributeHistory(T domain, String attributeName);
+    <T extends Domain> Class<? extends Domain> getDomainClassByField(Class<T> clazz, String fieldName);
+    <T extends Domain> String getEntityField(Class<T> clazz, String fieldName);
     AttributeStorage getAttributeStorage(Domain domain, DataStorage dataStorage);
     EntityTransaction getTransaction();
     String getTransactionUUID();

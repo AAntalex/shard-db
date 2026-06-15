@@ -81,7 +81,7 @@ public class DomainManagerImpl implements DomainManager {
                 entityManager.find(
                         mapper.entityClass,
                         mapper.domainEntityMapper.getDataStorage(),
-                        Utils.transformCondition(condition, mapper.domainEntityMapper.getFieldMap()),
+                        transformCondition(clazz, condition),
                         binds
                 )
         ));
@@ -96,7 +96,7 @@ public class DomainManagerImpl implements DomainManager {
                         mapper.entityClass,
                         mapper.domainEntityMapper.getDataStorage(),
                         limit,
-                        Utils.transformCondition(condition, mapper.domainEntityMapper.getFieldMap()),
+                        transformCondition(clazz, condition),
                         binds
                 )
         ));
@@ -110,7 +110,7 @@ public class DomainManagerImpl implements DomainManager {
                 entityManager.findAllByIds(
                         mapper.entityClass,
                         mapper.domainEntityMapper.getDataStorage(),
-                        Utils.transformCondition(condition, mapper.domainEntityMapper.getFieldMap()),
+                        transformCondition(clazz, condition),
                         ids,
                         binds
                 )
@@ -125,7 +125,7 @@ public class DomainManagerImpl implements DomainManager {
                 entityManager.skipLocked(
                         mapper.entityClass,
                         limit,
-                        Utils.transformCondition(condition, mapper.domainEntityMapper.getFieldMap()),
+                        transformCondition(clazz, condition),
                         binds
                 )
         ));
@@ -331,6 +331,53 @@ public class DomainManagerImpl implements DomainManager {
                         .toList()
         );
         return attributeHistoryList;
+    }
+
+    @Override
+    public <T extends Domain> Class<? extends Domain> getDomainClassByField(Class<T> clazz, String fieldName) {
+        return null;
+    }
+
+    @Override
+    public <T extends Domain> String getEntityField(Class<T> clazz, String fieldName) {
+        return null;
+    }
+
+    private <T extends Domain> String transformCondition(Class<T> clazz, String condition) {
+        return Utils.transformCondition(
+                condition,
+                Utils.getTokensFormCondition(condition)
+                        .stream()
+                        .collect(
+                                Collectors.toMap(
+                                        token -> token,
+                                        token -> transformToken(clazz, token)
+                                )
+                        )
+        );
+    }
+
+    private String transformToken(
+            Class<? extends Domain> clazz,
+            String token)
+    {
+        String[] tokenParts = token.split("\\.");
+        String newToken = null;
+        for (int i = 0; i < tokenParts.length; i++) {
+            String fieldName = tokenParts[i];
+            if (clazz != null) {
+                fieldName = getEntityField(clazz, fieldName);
+                if (fieldName == null) {
+                    newToken = token;
+                    break;
+                }
+                if (i <  tokenParts.length - 1) {
+                    clazz = getDomainClassByField(clazz, fieldName);
+                }
+            }
+            newToken = newToken == null ? fieldName : (newToken + '.' + fieldName);
+        }
+        return "${" + newToken + "}";
     }
 
     private Mapper getMapper(Class<?> clazz) {

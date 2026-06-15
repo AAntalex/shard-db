@@ -49,7 +49,7 @@ class MainTest extends BaseIntegrationTest {
         List<PaymentDomain> payments = paymentGenerator.generate(10000);
         // Поиск домена Категории клиента в БД по условию
         ClientCategoryDomain category =
-                domainManager.find(ClientCategoryDomain.class, "${categoryCode}=?", "VIP");
+                domainManager.find(ClientCategoryDomain.class, "${code}=?", "VIP");
         assertThat(category.description()).isEqualTo("VIP-клиент");
         // Поиск всех доменов Оплат в БД по списку идентификаторов
         List<Long> ids = payments.stream().map(Domain::getId).toList();

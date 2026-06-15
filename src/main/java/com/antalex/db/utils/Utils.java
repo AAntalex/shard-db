@@ -2,10 +2,7 @@ package com.antalex.db.utils;
 
 import org.apache.commons.lang3.StringUtils;
 
-import java.util.List;
-import java.util.Map;
-import java.util.Objects;
-import java.util.Optional;
+import java.util.*;
 import java.util.regex.MatchResult;
 import java.util.regex.Pattern;
 
@@ -22,14 +19,16 @@ public class Utils {
     }
 
     public static List<String> getTokensFormCondition(String condition) {
-        return Pattern
-                .compile("\\$\\{.+}")
-                .matcher(condition)
-                .results()
-                .map(MatchResult::group)
-                .map(it -> it.substring(2, it.length() - 1))
-                .distinct()
-                .toList();
+        return condition == null ?
+                Collections.emptyList() :
+                Pattern
+                        .compile("\\$\\{.+}")
+                        .matcher(condition)
+                        .results()
+                        .map(MatchResult::group)
+                        .map(it -> it.substring(2, it.length() - 1))
+                        .distinct()
+                        .toList();
     }
 
     public static String transformCondition(String condition, Map<String, String> tokenMap) {

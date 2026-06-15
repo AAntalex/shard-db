@@ -711,9 +711,9 @@ public class EntityClassBuilder {
     }
 
     private static String getLinkedFieldMapCode(EntityClassDto classDto) {
-        return classDto.getColumnFields()
+        return classDto.getFields()
                 .stream()
-                .filter(EntityFieldDto::getIsLinkedEntity)
+                .filter(it -> Objects.nonNull(it.getLinkedField()))
                 .map(field ->
                         "\n            .put(\"" + field.getFieldName() + "\", \"" +
                                 field.getLinkedField().getColumnName() + "\")"
@@ -761,7 +761,6 @@ public class EntityClassBuilder {
                 private String getSelectQuery(Map<String, DataStorage> storageMap, String condition) {
                     StringBuilder selectPrefix = new StringBuilder(SELECT_PREFIX);
                     StringBuilder fromPrefix = new StringBuilder(FROM_PREFIX);
-                
                     if (Objects.nonNull(storageMap)) {
                         int idx = 0;
                         for (DataStorage dataStorage : storageMap.values()) {
@@ -787,7 +786,6 @@ public class EntityClassBuilder {
                                         .append(".C_STORAGE_NAME='").append(dataStorage.getName()).append("'");
                             }
                         }
-                        return selectPrefix + fromPrefix.toString() + " WHERE x0.SHARD_MAP>=0";
                     }
                     String transformedCondition =
                 """ +
@@ -922,9 +920,9 @@ public class EntityClassBuilder {
                 "                .createQueryStreamByIds(\n" +
                 "                        getSelectQuery(storageMap, condition) +\n" +
                 "                                Optional.ofNullable(condition)\n" +
-                "                                        .map(c -> c.contains(\"<IDS>\") ? c : c + " +
-                "\" AND x0.ID IN (<IDS>)\")" +
-                "                                        .orElse(\"x0.ID IN (<IDS>)\"),\n" +
+                "                                        .map(c -> c.contains(\"<IDS>\") ? StringUtils.EMPTY : " +
+                "\" AND x0.ID IN (<IDS>)\")\n" +
+                "                                        .orElse(\" AND x0.ID IN (<IDS>)\"),\n" +
                 "                    ids,\n" +
                 "                    binds\n" +
                 "                );\n" +

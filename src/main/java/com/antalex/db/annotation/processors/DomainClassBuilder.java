@@ -913,8 +913,8 @@ public class DomainClassBuilder {
                 .stream()
                 .filter(field -> Objects.nonNull(field.getEntityField()))
                 .map(field ->
-                        "\n            .put(\"" + field.getFieldName() + "\", \"x0." +
-                                field.getEntityField().getColumnName() + "\")"
+                        "\n            .put(\"" + field.getFieldName() + "\", \"" +
+                                field.getEntityField().getFieldName() + "\")"
                 )
                 .reduce(
                         "    private static final Map<String, String> FIELD_MAP = " +

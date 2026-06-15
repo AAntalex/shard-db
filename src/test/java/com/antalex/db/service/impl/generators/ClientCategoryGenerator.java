@@ -18,7 +18,7 @@ public class ClientCategoryGenerator implements DataGeneratorService<ClientCateg
     @Override
     public List<ClientCategoryDomain> generate(int count) {
         return Collections.singletonList(
-                Optional.ofNullable(domainManager.find(ClientCategoryDomain.class, "${categoryCode}=?", "VIP"))
+                Optional.ofNullable(domainManager.find(ClientCategoryDomain.class, "${code}=?", "VIP"))
                         .orElseGet(() -> domainManager.newDomain(ClientCategoryDomain.class)
                                 .categoryCode("VIP")
                                 .description("VIP-клиент")

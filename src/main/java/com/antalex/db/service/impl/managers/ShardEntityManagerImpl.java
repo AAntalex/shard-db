@@ -659,7 +659,7 @@ public class ShardEntityManagerImpl implements ShardEntityManager {
         }
         String columnName = getColumnNameByField(clazz, fieldName);
         if (columnName == null) {
-            throw new ShardDataBaseException();
+            throw new ShardDataBaseException("Отсутсвует поле " + fieldName + " в классе " + clazz.getName());
         }
         return alias + "." + columnName;
     }
