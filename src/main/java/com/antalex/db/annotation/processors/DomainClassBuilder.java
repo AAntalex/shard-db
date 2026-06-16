@@ -344,6 +344,10 @@ public class DomainClassBuilder {
             out.println(getMapStorageToEntityCode(domainClassDto));
             out.println();
             out.println(getMapAttributeHistory());
+            out.println();
+            out.println(getEntityFieldCode());
+            out.println();
+            out.println(getEntityClassByFieldCode(domainClassDto));
             out.println("}");
         }
     }
@@ -642,6 +646,41 @@ public class DomainClassBuilder {
                 "        return entity;\n" +
                 "    }";
     }
+
+    private static String getEntityFieldCode() {
+        return """
+                    @Override
+                    public String getEntityField(String fieldName) {
+                        return FIELD_MAP.get(fieldName);
+                    }\
+                """;
+    }
+
+    private static String getEntityClassByFieldCode(DomainClassDto domainClassDto) {
+        return domainClassDto.getFields()
+                .stream()
+                .filter(it ->
+                        ProcessorUtils.isAnnotationPresentByType(it.getElement(), DomainEntity.class) ||
+                                ProcessorUtils.isAnnotationPresentInArgument(it.getElement(), DomainEntity.class)
+                )
+                .map(field ->
+                        "            case \"" + field.getFieldName() + "\":\n" +
+                                "                return " + ProcessorUtils.getFinalType(field.getElement())
+                                + ".class;\n"
+                )
+                .reduce(
+                        """
+                                    @Override
+                                    public Class<? extends Domain> getDomainClassByField(String fieldName) {
+                                        switch (fieldName) {
+                                """,
+                        String::concat
+                ) + "            default:\n" +
+                "                return null;\n" +
+                "        }\n" +
+                "    }";
+    }
+
 
     private static String getMapStorageToEntityCode(DomainClassDto classDto) {
         return classDto.getStorageMap()

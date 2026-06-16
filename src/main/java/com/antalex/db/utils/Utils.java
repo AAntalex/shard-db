@@ -22,7 +22,7 @@ public class Utils {
         return condition == null ?
                 Collections.emptyList() :
                 Pattern
-                        .compile("\\$\\{.+}")
+                        .compile("\\$\\{(.*?)}")
                         .matcher(condition)
                         .results()
                         .map(MatchResult::group)
@@ -56,8 +56,8 @@ public class Utils {
 
     private static String getNewToken(String token, Map<String, String> tokenMap, String condition) {
         String alias = StringUtils.EMPTY;
-        String newToken = null;
-        if (token.contains(".")) {
+        String newToken = tokenMap.get(token);
+        if (newToken == null && token.contains(".")) {
             int aliasIdx = token.indexOf('.');
             alias = token.substring(0, aliasIdx + 1).toUpperCase();
             token = token.substring(aliasIdx + 1);

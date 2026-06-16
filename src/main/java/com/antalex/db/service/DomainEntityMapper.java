@@ -20,4 +20,6 @@ public interface DomainEntityMapper<T extends Domain, M extends ShardInstance> {
     Map<String, String> getFieldMap();
     List<AttributeHistory> mapAttributeHistory(List<AttributeHistoryEntity> attributeHistoryEntities);
     List<AttributeHistory> getAttributeHistoryFromControlledObjects(T domain);
+    String getEntityField(String fieldName);
+    Class<? extends Domain> getDomainClassByField(String fieldName);
 }

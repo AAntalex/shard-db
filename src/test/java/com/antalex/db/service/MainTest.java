@@ -49,7 +49,7 @@ class MainTest extends BaseIntegrationTest {
         List<PaymentDomain> payments = paymentGenerator.generate(10000);
         // Поиск домена Категории клиента в БД по условию
         ClientCategoryDomain category =
-                domainManager.find(ClientCategoryDomain.class, "${code}=?", "VIP");
+                domainManager.find(ClientCategoryDomain.class, "${categoryCode}=?", "VIP");
         assertThat(category.description()).isEqualTo("VIP-клиент");
         // Поиск всех доменов Оплат в БД по списку идентификаторов
         List<Long> ids = payments.stream().map(Domain::getId).toList();
@@ -66,6 +66,24 @@ class MainTest extends BaseIntegrationTest {
                                 .filter(it -> it.num() < 100)
                                 .count()
                 );
+
+        filteredPayments =
+                domainManager.findAll(
+                        PaymentDomain.class,
+                        "${accDt.client.category.categoryCode}=?",
+                        "VIP");
+
+        List<ClientDomain> clients1 = domainManager.findAll(
+                ClientDomain.class,
+                "${category}=?",
+                category.getId());
+
+        List<ClientDomain> clients2 = domainManager.findAll(
+                ClientDomain.class,
+                "${category.categoryCode}=?",
+                "VIP");
+
+        assertThat(clients1.size()).isEqualTo(clients2.size());
     }
 
     @Test

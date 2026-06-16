@@ -1430,15 +1430,14 @@ public class EntityClassBuilder {
     private static String getEntityClassByFieldCode(EntityClassDto entityClassDto) {
         return entityClassDto.getFields()
                 .stream()
-                .filter(it -> Objects.nonNull(it.getGetter()))
+                .filter(it ->
+                        ProcessorUtils.isAnnotationPresentByType(it.getElement(), ShardEntity.class) ||
+                                ProcessorUtils.isAnnotationPresentInArgument(it.getElement(), ShardEntity.class)
+                )
                 .map(field ->
-                        ProcessorUtils.isAnnotationPresent(field.getElement(), ParentShard.class) ||
-                                ProcessorUtils.isAnnotationPresentByType(field.getElement(), ShardEntity.class) ||
-                                ProcessorUtils.isAnnotationPresentInArgument(field.getElement(), ShardEntity.class) ?
-                                "            case \"" + field.getFieldName() + "\":\n" +
-                                        "                return " + ProcessorUtils.getFinalType(field.getElement())
-                                        + ".class;\n" :
-                                ""
+                        "            case \"" + field.getFieldName() + "\":\n" +
+                                "                return " + ProcessorUtils.getFinalType(field.getElement())
+                                + ".class;\n"
                 )
                 .reduce(
                         """
@@ -1499,29 +1498,31 @@ public class EntityClassBuilder {
     private static String getSetDependentStorageCode(EntityClassDto entityClassDto) {
         return entityClassDto.getFields()
                 .stream()
-                .filter(it -> Objects.nonNull(it.getGetter()))
+                .filter(it ->
+                        Objects.nonNull(it.getGetter()) && (
+                                ProcessorUtils.isAnnotationPresent(it.getElement(), ParentShard.class) ||
+                                        ProcessorUtils.isAnnotationPresentByType(it.getElement(), ShardEntity.class) ||
+                                        ProcessorUtils.isAnnotationPresentInArgument(it.getElement(), ShardEntity.class)
+                        )
+                )
                 .map(field ->
-                        ProcessorUtils.isAnnotationPresent(field.getElement(), ParentShard.class) ||
-                                ProcessorUtils.isAnnotationPresentByType(field.getElement(), ShardEntity.class) ||
-                                ProcessorUtils.isAnnotationPresentInArgument(field.getElement(), ShardEntity.class) ?
-                                "        entityManager." +
-                                        (ProcessorUtils.isAnnotationPresentInArgument(
-                                                field.getElement(),
-                                                ShardEntity.class
-                                        ) ?
-                                                "setAllStorage(((" + entityClassDto.getTargetClassName() +
-                                                        ProcessorUtils.CLASS_INTERCEPT_POSTFIX +
-                                                        ") entity)." + field.getGetter() + "(false), " :
-                                                "setStorage(entity." + field.getGetter() + "(), "
-                                        ) +
-                                        (
-                                                ProcessorUtils.isAnnotationPresent(field.getElement(), ParentShard.class) &&
-                                                        entityClassDto.getShardType() != ShardType.REPLICABLE ?
-                                                        "entity" :
-                                                        "null"
-                                        ) +
-                                        ");\n" :
-                                ""
+                        "        entityManager." +
+                                (ProcessorUtils.isAnnotationPresentInArgument(
+                                        field.getElement(),
+                                        ShardEntity.class
+                                ) ?
+                                        "setAllStorage(((" + entityClassDto.getTargetClassName() +
+                                                ProcessorUtils.CLASS_INTERCEPT_POSTFIX +
+                                                ") entity)." + field.getGetter() + "(false), " :
+                                        "setStorage(entity." + field.getGetter() + "(), "
+                                ) +
+                                (
+                                        ProcessorUtils.isAnnotationPresent(field.getElement(), ParentShard.class) &&
+                                                entityClassDto.getShardType() != ShardType.REPLICABLE ?
+                                                "entity" :
+                                                "null"
+                                ) +
+                                ");\n"
                 )
                 .reduce(
                         "    @Override\n" +

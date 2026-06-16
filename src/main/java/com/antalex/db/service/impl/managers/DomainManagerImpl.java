@@ -335,12 +335,12 @@ public class DomainManagerImpl implements DomainManager {
 
     @Override
     public <T extends Domain> Class<? extends Domain> getDomainClassByField(Class<T> clazz, String fieldName) {
-        return null;
+        return getMapper(clazz).domainEntityMapper.getDomainClassByField(fieldName);
     }
 
     @Override
     public <T extends Domain> String getEntityField(Class<T> clazz, String fieldName) {
-        return null;
+        return getMapper(clazz).domainEntityMapper.getEntityField(fieldName);
     }
 
     private <T extends Domain> String transformCondition(Class<T> clazz, String condition) {

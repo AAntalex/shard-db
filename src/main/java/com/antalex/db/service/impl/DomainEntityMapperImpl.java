@@ -59,4 +59,14 @@ public class DomainEntityMapperImpl<T extends Domain, M extends ShardInstance> i
     public List<AttributeHistory> getAttributeHistoryFromControlledObjects(T domain) {
         return List.of();
     }
+
+    @Override
+    public String getEntityField(String fieldName) {
+        return "";
+    }
+
+    @Override
+    public Class<? extends Domain> getDomainClassByField(String fieldName) {
+        return null;
+    }
 }
